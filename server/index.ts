@@ -1,8 +1,12 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { CopilotClient } from '@github/copilot-sdk';
 import { tmdbTools } from './tools.js';
 import { queries } from './db.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(cors());
@@ -232,6 +236,16 @@ app.delete('/api/chat/session/:id', async (req, res) => {
 });
 
 const PORT = 3001;
+
+// In production, serve the built Vite frontend from dist/
+if (process.env.NODE_ENV === 'production') {
+  const distDir = path.join(__dirname, '..', 'dist');
+  app.use(express.static(distDir));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(distDir, 'index.html'));
+  });
+}
+
 app.listen(PORT, () => {
   console.log(`Chat server ready on http://localhost:${PORT}`);
   console.log(`TMDB token: ${process.env.VITE_TMDB_API_TOKEN ? '✓ loaded' : '✗ missing (set VITE_TMDB_API_TOKEN in .env)'}`);
