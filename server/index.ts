@@ -2,17 +2,103 @@ import express from 'express';
 import cors from 'cors';
 import { CopilotClient } from '@github/copilot-sdk';
 import { tmdbTools } from './tools.js';
-import type { WatchedItem } from '../src/db/models.js';
+import { queries } from './db.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// ── Library REST API ──────────────────────────────────────────────
+
+// GET /api/library — list items (optional ?contentType=&status=)
+app.get('/api/library', (req, res) => {
+  const { contentType, status } = req.query as { contentType?: string; status?: string };
+  res.json(queries.getAllItems(contentType, status));
+});
+
+// GET /api/library/:tmdbId/:type — single item lookup
+app.get('/api/library/:tmdbId/:type', (req, res) => {
+  const item = queries.getItemByTmdb(Number(req.params.tmdbId), req.params.type);
+  if (!item) { res.status(404).json({ error: 'Not found' }); return; }
+  res.json(item);
+});
+
+// POST /api/library — add item (skips if already exists)
+app.post('/api/library', (req, res) => {
+  const id = queries.addItem(req.body);
+  res.json({ id });
+});
+
+// PATCH /api/library/:id — update item fields
+app.patch('/api/library/:id', (req, res) => {
+  queries.updateItem(Number(req.params.id), req.body);
+  res.json({ ok: true });
+});
+
+// DELETE /api/library/:id — remove item + series progress
+app.delete('/api/library/:id', (req, res) => {
+  queries.deleteItem(Number(req.params.id));
+  res.json({ ok: true });
+});
+
+// GET /api/progress/:tmdbId — series progress
+app.get('/api/progress/:tmdbId', (req, res) => {
+  const p = queries.getProgress(Number(req.params.tmdbId));
+  res.json(p);
+});
+
+// PUT /api/progress — upsert series progress
+app.put('/api/progress', (req, res) => {
+  queries.upsertProgress(req.body);
+  res.json({ ok: true });
+});
+
+// GET /api/episodes/:tmdbId/:season — watched episodes for a season
+app.get('/api/episodes/:tmdbId/:season', (req, res) => {
+  res.json(queries.getEpisodes(Number(req.params.tmdbId), Number(req.params.season)));
+});
+
+// POST /api/episodes/toggle — toggle a single episode
+app.post('/api/episodes/toggle', (req, res) => {
+  const { tmdbId, season, episode } = req.body;
+  res.json(queries.toggleEpisode(tmdbId, season, episode));
+});
+
+// POST /api/episodes/season — mark entire season watched
+app.post('/api/episodes/season', (req, res) => {
+  const { tmdbId, season, episodes } = req.body;
+  queries.markSeasonWatched(tmdbId, season, episodes);
+  res.json({ ok: true });
+});
+
+// POST /api/migrate — one-time Dexie import
+app.post('/api/migrate', (req, res) => {
+  try {
+    queries.migrate(req.body);
+    res.json({ ok: true, message: 'Migration complete' });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// POST /api/library/clear — clear all data
+app.post('/api/library/clear', (_req, res) => {
+  queries.clearAll();
+  res.json({ ok: true });
+});
+
+// GET /api/library/export — export library
+app.get('/api/library/export', (_req, res) => {
+  res.json(queries.exportAll());
+});
 
 const client = new CopilotClient();
 
 try {
   await client.start();
   console.log('✓ Copilot SDK client started');
+  const models = await client.listModels();
+  console.log('Available models:', models.map((m: { id: string }) => m.id).join(', '));
 } catch (err) {
   console.error('✗ Failed to start Copilot SDK — is the Copilot CLI installed?', err);
   process.exit(1);
@@ -21,7 +107,14 @@ try {
 type ActiveSession = Awaited<ReturnType<typeof client.createSession>>;
 const sessions = new Map<string, ActiveSession>();
 
-function buildLibraryContext(library: WatchedItem[]): string {
+interface LibraryItem {
+  title: string;
+  contentType: string;
+  status: string;
+  userRating: number | null;
+}
+
+function buildLibraryContext(library: LibraryItem[]): string {
   if (!library.length) return 'The user has no items in their library yet.';
 
   const watched = library.filter((i) => i.status === 'watched');
@@ -29,7 +122,7 @@ function buildLibraryContext(library: WatchedItem[]): string {
   const planned = library.filter((i) => i.status === 'plan_to_watch');
   const dropped = library.filter((i) => i.status === 'dropped');
 
-  const fmt = (item: WatchedItem) =>
+  const fmt = (item: LibraryItem) =>
     `  - "${item.title}" (${item.contentType})${item.userRating ? ` ★${item.userRating}/10` : ''}`;
 
   const sections: string[] = [];
@@ -44,10 +137,11 @@ function buildLibraryContext(library: WatchedItem[]): string {
 // POST /api/chat/session — create a new Copilot session with library context
 app.post('/api/chat/session', async (req, res) => {
   try {
-    const library: WatchedItem[] = req.body.library ?? [];
+    // Read library from SQLite — cast needed because SQLite stores dates as ISO strings
+    const library = queries.getAllItems();
 
     const session = await client.createSession({
-      model: 'gpt-4.1',
+      model: 'claude-sonnet-4.6',
       streaming: true,
       tools: tmdbTools,
       systemMessage: {
@@ -60,7 +154,8 @@ ${buildLibraryContext(library)}
 Guidelines:
 - Be conversational, concise, and enthusiastic about movies/TV.
 - Always cross-reference the user's library before suggesting something they've already seen.
-- When relevant, use the TMDB tools to look up details, similar titles, or recommendations.
+- CRITICAL: Your training data may be outdated. For ANY factual question about movies or series (sequels, release dates, cast, upcoming titles, franchise info), ALWAYS use searchTMDB first to get current, real-time data from TMDB. Never rely solely on your training data for factual claims.
+- When the user asks about sequels, prequels, successors, or related movies in a franchise, use searchTMDB to find the title, then getTMDBDetails for full info, then getSimilar or getRecommendations to find related titles in the franchise.
 - IMPORTANT: For every movie or series you suggest, you MUST first use searchTMDB to find its TMDB ID, then format the title as a markdown link using this exact pattern: [Title](add:movie/TMDB_ID) for movies or [Title](add:tv/TMDB_ID) for TV series. Always include the TMDB ID in the link — never suggest a title without this link format.
 - Format suggestions as short lists: linked title, one-sentence pitch, and why it matches their taste.
 - If the user asks about a specific upcoming title, search for it on TMDB first to get its ID, then use getSimilar/getRecommendations.`,

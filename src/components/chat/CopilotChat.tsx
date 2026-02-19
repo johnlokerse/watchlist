@@ -1,30 +1,28 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db/database';
 import { useChat } from '../../hooks/useChat';
+import { addToLibrary } from '../../db/hooks';
 import ChatPanel from './ChatPanel';
 import { TMDB_BASE_URL, TMDB_API_TOKEN } from '../../utils/constants';
-import type { WatchedItem } from '../../db/models';
 
 export default function CopilotChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
-  const library = useLiveQuery(() => db.watchedItems.toArray(), []) ?? [];
   const { sessionId, messages, isStreaming, error, createSession, sendMessage, destroySession } = useChat();
 
   const initSession = useCallback(() => {
     if (sessionId || isCreatingSession) return;
     setIsCreatingSession(true);
     setSessionError(null);
-    createSession(library)
+    // Library context is now read from SQLite on the server side
+    createSession([])
       .catch((err) => {
         console.error('Failed to create chat session:', err);
         setSessionError(String(err));
       })
       .finally(() => setIsCreatingSession(false));
-  }, [sessionId, isCreatingSession, library, createSession]);
+  }, [sessionId, isCreatingSession, createSession]);
 
   // Create session on first open
   useEffect(() => {
@@ -48,17 +46,20 @@ export default function CopilotChat() {
 
   const handleAdd = useCallback(
     async (tmdbId: number, type: 'movie' | 'tv', title: string) => {
-      const existing = await db.watchedItems.where('tmdbId').equals(tmdbId).first();
-      if (existing) return;
-
+      // Check existence via REST API
       const contentType = type === 'tv' ? 'series' : 'movie';
+      try {
+        const check = await fetch(`/api/library/${tmdbId}/${contentType}`);
+        if (check.ok) return; // already exists
+      } catch { /* proceed with add */ }
+
       const path = type === 'tv' ? `/tv/${tmdbId}` : `/movie/${tmdbId}`;
       const res = await fetch(`${TMDB_BASE_URL}${path}`, {
         headers: { Authorization: `Bearer ${TMDB_API_TOKEN}` },
       });
       const data = res.ok ? await res.json() : {};
 
-      const item: Omit<WatchedItem, 'id'> = {
+      await addToLibrary({
         tmdbId,
         contentType,
         title: data.title ?? data.name ?? title,
@@ -68,10 +69,7 @@ export default function CopilotChat() {
         userRating: null,
         notes: '',
         genreIds: (data.genres as Array<{ id: number }> | undefined)?.map((g) => g.id) ?? data.genre_ids ?? [],
-        addedAt: new Date(),
-        updatedAt: new Date(),
-      };
-      await db.watchedItems.add(item as WatchedItem);
+      });
     },
     [],
   );

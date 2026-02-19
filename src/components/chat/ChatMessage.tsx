@@ -86,10 +86,12 @@ function renderInline(text: string, onAdd?: Props['onAdd']): React.ReactNode[] {
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\(add:[^)]+\))/);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
+      const inner = part.slice(2, -2);
+      return <strong key={i}>{renderInline(inner, onAdd)}</strong>;
     }
     if (part.startsWith('*') && part.endsWith('*')) {
-      return <em key={i}>{part.slice(1, -1)}</em>;
+      const inner = part.slice(1, -1);
+      return <em key={i}>{renderInline(inner, onAdd)}</em>;
     }
     // [Title](add:movie/123) or [Title](add:tv/123)
     const addMatch = part.match(/^\[([^\]]+)\]\(add:(movie|tv)\/(\d+)\)$/);

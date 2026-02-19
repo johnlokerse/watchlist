@@ -1,126 +1,178 @@
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from './database';
+import { useState, useEffect } from 'react';
+import { useLibrary } from './LibraryContext';
 import type { WatchedItem, SeriesProgress, WatchedEpisode, ContentType, WatchedStatus } from './models';
 
+const API = '/api';
+
+// Global invalidation callback set by the first hook that renders
+let _invalidate: (() => void) | null = null;
+function triggerInvalidate() {
+  _invalidate?.();
+}
+
+async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
+  const res = await fetch(`${API}${path}`, {
+    headers: { 'Content-Type': 'application/json', ...opts?.headers },
+    ...opts,
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+  return res.json();
+}
+
+function useRegisterInvalidate() {
+  const { invalidate } = useLibrary();
+  useEffect(() => { _invalidate = invalidate; }, [invalidate]);
+}
+
 export function useWatchedItems(contentType?: ContentType, status?: WatchedStatus) {
-  return useLiveQuery(async () => {
-    let collection = db.watchedItems.toCollection();
-    if (contentType) {
-      collection = db.watchedItems.where('contentType').equals(contentType);
-    }
-    const items = await collection.reverse().sortBy('addedAt');
-    if (status) return items.filter((i) => i.status === status);
-    return items;
-  }, [contentType, status]);
+  useRegisterInvalidate();
+  const { version } = useLibrary();
+  const [items, setItems] = useState<WatchedItem[] | undefined>(undefined);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (contentType) params.set('contentType', contentType);
+    if (status) params.set('status', status);
+    apiFetch<WatchedItem[]>(`/library?${params}`).then(setItems);
+  }, [contentType, status, version]);
+
+  return items;
 }
 
 export function useUpcomingFromLibrary(contentType: ContentType) {
-  return useLiveQuery(async () => {
-    const today = new Date().toISOString().slice(0, 10);
-    const all = await db.watchedItems.where('contentType').equals(contentType).toArray();
-    if (contentType === 'movie') {
-      return all
-        .filter((i) => i.releaseDate && i.releaseDate >= today)
-        .sort((a, b) => (a.releaseDate ?? '').localeCompare(b.releaseDate ?? ''));
-    }
-    // For series: show watching + plan_to_watch
-    return all
-      .filter((i) => i.status === 'watching' || i.status === 'plan_to_watch')
-      .sort((a, b) => a.title.localeCompare(b.title));
-  }, [contentType]);
+  useRegisterInvalidate();
+  const { version } = useLibrary();
+  const [items, setItems] = useState<WatchedItem[] | undefined>(undefined);
+
+  useEffect(() => {
+    apiFetch<WatchedItem[]>(`/library?contentType=${contentType}`).then((all) => {
+      const today = new Date().toISOString().slice(0, 10);
+      if (contentType === 'movie') {
+        setItems(
+          all
+            .filter((i) => i.releaseDate && i.releaseDate >= today)
+            .sort((a, b) => (a.releaseDate ?? '').localeCompare(b.releaseDate ?? '')),
+        );
+      } else {
+        setItems(
+          all
+            .filter((i) => i.status === 'watching' || i.status === 'plan_to_watch')
+            .sort((a, b) => a.title.localeCompare(b.title)),
+        );
+      }
+    });
+  }, [contentType, version]);
+
+  return items;
 }
 
 export function usePlannedMovies() {
-  return useLiveQuery(async () => {
-    const all = await db.watchedItems.where('contentType').equals('movie').toArray();
-    return all
-      .filter((i) => i.status === 'plan_to_watch' && !i.releaseDate)
-      .sort((a, b) => a.title.localeCompare(b.title));
-  }, []);
+  useRegisterInvalidate();
+  const { version } = useLibrary();
+  const [items, setItems] = useState<WatchedItem[] | undefined>(undefined);
+
+  useEffect(() => {
+    apiFetch<WatchedItem[]>('/library?contentType=movie').then((all) => {
+      setItems(
+        all
+          .filter((i) => i.status === 'plan_to_watch' && !i.releaseDate)
+          .sort((a, b) => a.title.localeCompare(b.title)),
+      );
+    });
+  }, [version]);
+
+  return items;
 }
 
 export function useWatchedItem(tmdbId: number, contentType: ContentType) {
-  return useLiveQuery(
-    () => db.watchedItems.where({ tmdbId, contentType }).first(),
-    [tmdbId, contentType],
-  );
+  useRegisterInvalidate();
+  const { version } = useLibrary();
+  const [item, setItem] = useState<WatchedItem | undefined>(undefined);
+
+  useEffect(() => {
+    if (!tmdbId) { setItem(undefined); return; }
+    apiFetch<WatchedItem>(`/library/${tmdbId}/${contentType}`)
+      .then(setItem)
+      .catch(() => setItem(undefined));
+  }, [tmdbId, contentType, version]);
+
+  return item;
 }
 
 export function useSeriesProgress(tmdbId: number) {
-  return useLiveQuery(
-    () => db.seriesProgress.where('tmdbId').equals(tmdbId).first(),
-    [tmdbId],
-  );
+  useRegisterInvalidate();
+  const { version } = useLibrary();
+  const [progress, setProgress] = useState<SeriesProgress | undefined>(undefined);
+
+  useEffect(() => {
+    if (!tmdbId) { setProgress(undefined); return; }
+    apiFetch<SeriesProgress | null>(`/progress/${tmdbId}`)
+      .then((p) => setProgress(p ?? undefined))
+      .catch(() => setProgress(undefined));
+  }, [tmdbId, version]);
+
+  return progress;
 }
 
 export async function addToLibrary(item: Omit<WatchedItem, 'id' | 'addedAt' | 'updatedAt'>) {
-  const existing = await db.watchedItems.where({ tmdbId: item.tmdbId, contentType: item.contentType }).first();
-  if (existing) return existing.id;
-  const now = new Date();
-  return db.watchedItems.add({ ...item, addedAt: now, updatedAt: now });
+  const result = await apiFetch<{ id: number }>('/library', {
+    method: 'POST',
+    body: JSON.stringify(item),
+  });
+  triggerInvalidate();
+  return result.id;
 }
 
 export async function updateWatchedItem(id: number, changes: Partial<WatchedItem>) {
-  return db.watchedItems.update(id, { ...changes, updatedAt: new Date() });
+  await apiFetch(`/library/${id}`, { method: 'PATCH', body: JSON.stringify(changes) });
+  triggerInvalidate();
 }
 
 export async function removeFromLibrary(id: number) {
-  const item = await db.watchedItems.get(id);
-  if (item?.contentType === 'series') {
-    await db.seriesProgress.where('watchedItemId').equals(id).delete();
-  }
-  return db.watchedItems.delete(id);
+  await apiFetch(`/library/${id}`, { method: 'DELETE' });
+  triggerInvalidate();
 }
 
 export async function updateSeriesProgress(progress: Omit<SeriesProgress, 'id'>) {
-  const existing = await db.seriesProgress.where('tmdbId').equals(progress.tmdbId).first();
-  if (existing) {
-    return db.seriesProgress.update(existing.id!, progress);
-  }
-  return db.seriesProgress.add(progress);
+  await apiFetch('/progress', { method: 'PUT', body: JSON.stringify(progress) });
+  triggerInvalidate();
 }
 
 export function useWatchedEpisodes(tmdbId: number, season: number) {
-  return useLiveQuery(
-    () => db.watchedEpisodes.where({ tmdbId, season }).toArray(),
-    [tmdbId, season],
-  );
+  useRegisterInvalidate();
+  const { version } = useLibrary();
+  const [episodes, setEpisodes] = useState<WatchedEpisode[] | undefined>(undefined);
+
+  useEffect(() => {
+    if (!tmdbId) { setEpisodes(undefined); return; }
+    apiFetch<WatchedEpisode[]>(`/episodes/${tmdbId}/${season}`).then(setEpisodes);
+  }, [tmdbId, season, version]);
+
+  return episodes;
 }
 
 export async function toggleEpisodeWatched(tmdbId: number, season: number, episode: number) {
-  const existing = await db.watchedEpisodes.where({ tmdbId, season, episode }).first();
-  if (existing) return db.watchedEpisodes.delete(existing.id!);
-  return db.watchedEpisodes.add({ tmdbId, season, episode });
+  await apiFetch('/episodes/toggle', { method: 'POST', body: JSON.stringify({ tmdbId, season, episode }) });
+  triggerInvalidate();
 }
 
 export async function markSeasonWatched(tmdbId: number, season: number, episodes: number[]) {
-  await db.watchedEpisodes.where({ tmdbId, season }).delete();
-  await db.watchedEpisodes.bulkAdd(episodes.map((episode) => ({ tmdbId, season, episode })));
+  await apiFetch('/episodes/season', { method: 'POST', body: JSON.stringify({ tmdbId, season, episodes }) });
+  triggerInvalidate();
 }
 
 export async function exportLibrary() {
-  const items = await db.watchedItems.toArray();
-  return items.map(({ tmdbId, title, contentType, status, posterPath, releaseDate, userRating, notes }) => ({
-    tmdbId,
-    title,
-    contentType,
-    status,
-    posterPath,
-    releaseDate,
-    ...(userRating != null && { userRating }),
-    ...(notes && { notes }),
-  }));
+  return apiFetch<unknown[]>('/library/export');
 }
 
 export async function clearLibrary() {
-  await db.watchedItems.clear();
-  await db.seriesProgress.clear();
-  await db.watchedEpisodes.clear();
+  await apiFetch('/library/clear', { method: 'POST' });
+  triggerInvalidate();
 }
 
 export async function bulkAddWatchedEpisodes(entries: WatchedEpisode[]) {
   for (const e of entries) {
-    const exists = await db.watchedEpisodes.where({ tmdbId: e.tmdbId, season: e.season, episode: e.episode }).first();
-    if (!exists) await db.watchedEpisodes.add(e);
+    await apiFetch('/episodes/toggle', { method: 'POST', body: JSON.stringify(e) }).catch(() => {});
   }
+  triggerInvalidate();
 }

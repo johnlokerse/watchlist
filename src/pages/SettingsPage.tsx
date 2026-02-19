@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { clearLibrary, addToLibrary, exportLibrary } from '../db/hooks';
+import { db } from '../db/database';
 import type { WatchedStatus, ContentType } from '../db/models';
 
 const EXAMPLE_JSON = JSON.stringify(
@@ -40,6 +41,8 @@ export default function SettingsPage() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ added: number; skipped: number } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [migrating, setMigrating] = useState(false);
+  const [migrateResult, setMigrateResult] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async () => {
@@ -165,6 +168,40 @@ export default function SettingsPage() {
           </p>
         )}
         {importError && <p className="text-xs text-danger">✗ {importError}</p>}
+      </div>
+
+      <div className="bg-surface-raised rounded-xl border border-border-subtle p-6 space-y-4">
+        <h2 className="text-base font-semibold">Migrate from IndexedDB</h2>
+        <p className="text-text-secondary text-xs">
+          One-time migration: copy all data from IndexedDB (Dexie) to the new SQLite database on the server. Your IndexedDB data stays intact as a backup.
+        </p>
+        <button
+          onClick={async () => {
+            setMigrating(true);
+            setMigrateResult(null);
+            try {
+              const items = await db.watchedItems.toArray();
+              const progress = await db.seriesProgress.toArray();
+              const episodes = await db.watchedEpisodes.toArray();
+              const res = await fetch('/api/migrate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items, progress, episodes }),
+              });
+              if (!res.ok) throw new Error(await res.text());
+              setMigrateResult(`✓ Migrated ${items.length} items, ${progress.length} progress records, ${episodes.length} episodes.`);
+            } catch (err) {
+              setMigrateResult(`✗ ${err instanceof Error ? err.message : String(err)}`);
+            } finally {
+              setMigrating(false);
+            }
+          }}
+          disabled={migrating}
+          className="w-full px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {migrating ? 'Migrating…' : 'Migrate to SQLite'}
+        </button>
+        {migrateResult && <p className="text-xs text-text-secondary">{migrateResult}</p>}
       </div>
 
       <div className="bg-surface-raised rounded-xl border border-danger/30 p-6 space-y-3">

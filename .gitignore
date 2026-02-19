@@ -28,3 +28,4 @@ src/db/seed.ts
 *.njsproj
 *.sln
 *.sw?
+data/

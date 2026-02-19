@@ -54,7 +54,7 @@ export default function ChatPanel({ messages, isStreaming, error, isCreatingSess
           <span className="text-lg">🎬</span>
           <div>
             <p className="text-sm font-semibold text-text-primary">Watchlist Assistant</p>
-            <p className="text-xs text-text-muted">Powered by GitHub Copilot</p>
+            <p className="text-xs text-text-muted">Powered by GitHub Copilot - claude-sonnet-4.6</p>
           </div>
         </div>
         <button
