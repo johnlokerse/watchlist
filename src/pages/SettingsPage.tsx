@@ -303,7 +303,7 @@ export default function SettingsPage() {
     <div className="max-w-5xl space-y-4">
       <h1 className="text-2xl font-bold">Settings</h1>
 
-      <div className="grid grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
 
         {/* ── Left column ── */}
         <div className="space-y-4">
@@ -360,7 +360,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Export */}
-            <div className="flex items-center justify-between py-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3">
               <div>
                 <p className="text-sm font-medium">Export to JSON</p>
                 <p className="text-xs text-text-secondary mt-0.5">Download your full library as a backup file</p>
@@ -368,7 +368,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleExport}
                 disabled={exporting}
-                className="shrink-0 ml-4 px-3 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="shrink-0 sm:ml-4 px-3 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {exporting ? 'Exporting…' : 'Export'}
               </button>
@@ -378,7 +378,7 @@ export default function SettingsPage() {
 
             {/* Import */}
             <div className="py-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
                   <p className="text-sm font-medium">Import from JSON</p>
                   <p className="text-xs text-text-secondary mt-0.5">Restore from an export file or a plain items array</p>
@@ -386,7 +386,7 @@ export default function SettingsPage() {
                 <button
                   onClick={() => fileRef.current?.click()}
                   disabled={importing}
-                  className="shrink-0 ml-4 px-3 py-1.5 bg-accent/15 text-accent rounded-lg text-sm font-medium hover:bg-accent/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 sm:ml-4 px-3 py-1.5 bg-accent/15 text-accent rounded-lg text-sm font-medium hover:bg-accent/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {importing ? 'Importing…' : 'Choose file'}
                 </button>
@@ -436,7 +436,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Country */}
-            <div className="flex items-center justify-between py-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3">
               <div>
                 <p className="text-sm font-medium">Country</p>
                 <p className="text-xs text-text-secondary mt-0.5">Used to find streaming services near you</p>
@@ -444,7 +444,7 @@ export default function SettingsPage() {
               <select
                 value={settings.country}
                 onChange={(e) => updateSettings({ country: e.target.value })}
-                className="bg-surface border border-border-subtle rounded-lg px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/50 cursor-pointer ml-4 shrink-0"
+                className="bg-surface border border-border-subtle rounded-lg px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/50 cursor-pointer sm:ml-4 shrink-0 w-full sm:w-auto"
               >
                 {!COUNTRIES.some((c) => c.code === settings.country) && (
                   <option value={settings.country}>{settings.country}</option>
@@ -458,7 +458,7 @@ export default function SettingsPage() {
             <div className="border-t border-border-subtle" />
 
             {/* Show Spoilers */}
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between gap-4 py-3">
               <div>
                 <p className="text-sm font-medium">Show Spoilers</p>
                 <p className="text-xs text-text-secondary mt-0.5">Reveal episode titles and descriptions</p>
@@ -481,7 +481,7 @@ export default function SettingsPage() {
             <p className="text-xs text-text-secondary mb-5">Select the services you subscribe to.</p>
 
             {providersLoading ? (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {Array.from({ length: 12 }).map((_, i) => (
                   <div key={i} className="h-[84px] rounded-xl bg-surface animate-pulse" />
                 ))}
@@ -491,7 +491,7 @@ export default function SettingsPage() {
             ) : providers.length === 0 ? (
               <p className="text-xs text-text-muted">No providers found for your country.</p>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {CURATED_PROVIDER_IDS
                   .map((id) => providers.find((p) => p.provider_id === id))
                   .filter((p): p is NonNullable<typeof p> => p !== undefined)
@@ -535,7 +535,7 @@ export default function SettingsPage() {
               <h2 className="text-base font-semibold text-danger">Danger Zone</h2>
             </div>
 
-            <div className="flex items-center justify-between py-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3">
               <div>
                 <p className="text-sm font-medium">Clear All Library Data</p>
                 <p className="text-xs text-text-secondary mt-0.5">Permanently removes all items, ratings, and episode progress</p>
@@ -543,7 +543,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleClear}
                 disabled={clearing}
-                className="shrink-0 ml-4 px-3 py-1.5 bg-danger/15 text-danger rounded-lg text-sm font-medium hover:bg-danger/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="shrink-0 sm:ml-4 px-3 py-1.5 bg-danger/15 text-danger rounded-lg text-sm font-medium hover:bg-danger/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {clearing ? 'Clearing…' : 'Clear all'}
               </button>
