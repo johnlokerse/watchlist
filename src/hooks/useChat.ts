@@ -1,6 +1,17 @@
 import { useState, useCallback, useRef } from 'react';
 import type { WatchedItem } from '../db/models';
 
+function generateUUID(): string {
+  if (typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // Fallback for non-secure contexts (plain HTTP)
+  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) => {
+    const n = Number(c);
+    return (n ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (n / 4)))).toString(16);
+  });
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -29,8 +40,8 @@ export function useChat() {
   }, []);
 
   const sendMessage = useCallback(async (text: string, sid: string) => {
-    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: text };
-    const assistantId = crypto.randomUUID();
+    const userMsg: ChatMessage = { id: generateUUID(), role: 'user', content: text };
+    const assistantId = generateUUID();
     const assistantMsg: ChatMessage = { id: assistantId, role: 'assistant', content: '', isStreaming: true };
 
     setMessages((prev) => [...prev, userMsg, assistantMsg]);

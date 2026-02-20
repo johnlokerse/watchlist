@@ -68,6 +68,13 @@ app.post('/api/episodes/toggle', (req, res) => {
   res.json(queries.toggleEpisode(tmdbId, season, episode));
 });
 
+// POST /api/episodes/import — bulk INSERT OR IGNORE, used by JSON import
+app.post('/api/episodes/import', (req, res) => {
+  const { entries } = req.body as { entries: { tmdbId: number; season: number; episode: number }[] };
+  queries.bulkInsertEpisodes(entries ?? []);
+  res.json({ ok: true });
+});
+
 // POST /api/episodes/season — mark entire season watched
 app.post('/api/episodes/season', (req, res) => {
   const { tmdbId, season, episodes } = req.body;

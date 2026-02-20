@@ -1,0 +1,77 @@
+{
+  "id": 3572,
+  "name": "Season 1",
+  "season_number": 1,
+  "episodes": [
+    {
+      "id": 62085,
+      "episode_number": 1,
+      "name": "Pilot",
+      "overview": "Walter White, a chemistry teacher, discovers he has terminal lung cancer and partners with a former student to make money selling methamphetamine.",
+      "air_date": "2008-01-20",
+      "still_path": "/ydlY3iPfeOAvu8gVqrxPoMvzNCn.jpg",
+      "vote_average": 7.7,
+      "runtime": 58
+    },
+    {
+      "id": 62086,
+      "episode_number": 2,
+      "name": "Cat's in the Bag",
+      "overview": "Walter and Jesse try to tie up loose ends.",
+      "air_date": "2008-01-27",
+      "still_path": "/nEsJILsUm9EmjcBz5gCGH5XTFLW.jpg",
+      "vote_average": 7.7,
+      "runtime": 48
+    },
+    {
+      "id": 62087,
+      "episode_number": 3,
+      "name": "...And the Bag's in the River",
+      "overview": "Walter fights with his guilty conscience.",
+      "air_date": "2008-02-10",
+      "still_path": "/wTbRp7Mh3lB5Gk4O8PkGi5bS7H7.jpg",
+      "vote_average": 8.2,
+      "runtime": 48
+    },
+    {
+      "id": 62088,
+      "episode_number": 4,
+      "name": "Cancer Man",
+      "overview": "Walter tells his family about his cancer diagnosis.",
+      "air_date": "2008-02-17",
+      "still_path": "/sXqnj7mNpKLkqC6I3cQ1aBt9H.jpg",
+      "vote_average": 7.4,
+      "runtime": 48
+    },
+    {
+      "id": 62089,
+      "episode_number": 5,
+      "name": "Gray Matter",
+      "overview": "Walter's former business partners offer to pay for his cancer treatment.",
+      "air_date": "2008-02-24",
+      "still_path": "/4FJxT7MsM4meTtGbP5N3RRoiYgK.jpg",
+      "vote_average": 7.7,
+      "runtime": 48
+    },
+    {
+      "id": 62090,
+      "episode_number": 6,
+      "name": "Crazy Handful of Nothin'",
+      "overview": "Walter moves up to the next level.",
+      "air_date": "2008-03-02",
+      "still_path": "/d7GnlZUTBWExM5Rf7X3pE0tAFYV.jpg",
+      "vote_average": 9.0,
+      "runtime": 47
+    },
+    {
+      "id": 62091,
+      "episode_number": 7,
+      "name": "A No-Rough-Stuff-Type Deal",
+      "overview": "Walter and Jesse make plans to produce more meth.",
+      "air_date": "2008-03-09",
+      "still_path": "/6Y1Cb4kN1XBjmMTcnhQHknA3jlQ.jpg",
+      "vote_average": 8.1,
+      "runtime": 47
+    }
+  ]
+}

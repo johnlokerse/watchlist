@@ -12,30 +12,10 @@ export default function DiscoverPage() {
   return (
     <div className="space-y-8">
       <section>
-        <h1 className="text-2xl font-bold mb-4">Trending Movies</h1>
-        {movies.isLoading ? (
-          <ScrollRow>
-            {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
-          </ScrollRow>
-        ) : (
-          <ScrollRow>
-            {movies.data?.results.slice(0, 12).map((m) => (
-              <Card
-                key={m.id}
-                id={m.id}
-                title={m.title}
-                posterPath={m.poster_path}
-                releaseDate={m.release_date}
-                voteAverage={m.vote_average}
-                type="movie"
-              />
-            ))}
-          </ScrollRow>
-        )}
-      </section>
-
-      <section>
-        <h2 className="text-2xl font-bold mb-4">Trending Series</h2>
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Trending</p>
+          <h2 className="text-2xl font-bold">Shows</h2>
+        </div>
         {series.isLoading ? (
           <ScrollRow>
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
@@ -58,14 +38,17 @@ export default function DiscoverPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold mb-4">Anticipated Movies</h2>
-        {anticipatedMovies.isLoading ? (
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Trending</p>
+          <h2 className="text-2xl font-bold">Movies</h2>
+        </div>
+        {movies.isLoading ? (
           <ScrollRow>
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
           </ScrollRow>
         ) : (
           <ScrollRow>
-            {anticipatedMovies.data?.results.slice(0, 12).map((m) => (
+            {movies.data?.results.slice(0, 12).map((m) => (
               <Card
                 key={m.id}
                 id={m.id}
@@ -81,7 +64,10 @@ export default function DiscoverPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold mb-4">Anticipated Shows</h2>
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Anticipated</p>
+          <h2 className="text-2xl font-bold">Shows</h2>
+        </div>
         {anticipatedSeries.isLoading ? (
           <ScrollRow>
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
@@ -97,6 +83,32 @@ export default function DiscoverPage() {
                 releaseDate={s.first_air_date}
                 voteAverage={s.vote_average}
                 type="series"
+              />
+            ))}
+          </ScrollRow>
+        )}
+      </section>
+
+      <section>
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Anticipated</p>
+          <h2 className="text-2xl font-bold">Movies</h2>
+        </div>
+        {anticipatedMovies.isLoading ? (
+          <ScrollRow>
+            {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+          </ScrollRow>
+        ) : (
+          <ScrollRow>
+            {anticipatedMovies.data?.results.slice(0, 12).map((m) => (
+              <Card
+                key={m.id}
+                id={m.id}
+                title={m.title}
+                posterPath={m.poster_path}
+                releaseDate={m.release_date}
+                voteAverage={m.vote_average}
+                type="movie"
               />
             ))}
           </ScrollRow>

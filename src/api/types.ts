@@ -50,6 +50,9 @@ export interface TMDBSeriesDetail extends Omit<TMDBSeries, 'genre_ids'> {
   credits?: TMDBCredits;
   'watch/providers'?: TMDBWatchProvidersResponse;
   external_ids?: { imdb_id: string | null };
+  next_episode_to_air: TMDBNextEpisode | null;
+  last_episode_to_air: TMDBNextEpisode | null;
+  seasons?: TMDBSeasonSummary[];
 }
 
 export interface TMDBGenre {
@@ -105,6 +108,27 @@ export interface TMDBEpisode {
   still_path: string | null;
   vote_average: number;
   runtime: number | null;
+}
+
+export interface TMDBNextEpisode {
+  id: number;
+  name: string;
+  air_date: string | null;
+  episode_number: number;
+  season_number: number;
+  overview: string;
+  still_path: string | null;
+  runtime: number | null;
+}
+
+export interface TMDBSeasonSummary {
+  id: number;
+  name: string;
+  season_number: number;
+  episode_count: number;
+  air_date: string | null;
+  poster_path: string | null;
+  overview: string;
 }
 
 export interface TMDBSeason {

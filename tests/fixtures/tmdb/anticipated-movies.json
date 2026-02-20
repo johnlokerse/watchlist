@@ -1,0 +1,151 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "id": 870028,
+      "title": "The Accountant 2",
+      "overview": "Christian Wolff returns for another high-stakes mission involving money, math, and mayhem.",
+      "poster_path": "/lUvfTcOZiK0sdcX0WNLPbMyKjGm.jpg",
+      "backdrop_path": "/accountant2backdrop.jpg",
+      "release_date": "2025-04-23",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [28, 53, 80],
+      "popularity": 88.4
+    },
+    {
+      "id": 1087891,
+      "title": "The Amateur",
+      "overview": "A CIA cryptographer tracks the terrorists who killed his wife.",
+      "poster_path": "/SNEoUInCa5fAgwuEBMIMBGvkkh.jpg",
+      "backdrop_path": "/amateurbackdrop.jpg",
+      "release_date": "2025-04-09",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [28, 53],
+      "popularity": 72.1
+    },
+    {
+      "id": 1179684,
+      "title": "Amsterdamned II",
+      "overview": "The sequel to the cult Dutch thriller set in Amsterdam.",
+      "poster_path": "/dmdKhPXI7rFZAAInBQ7EPGDi2sS.jpg",
+      "backdrop_path": "/amsterdamned2backdrop.jpg",
+      "release_date": "2025-11-30",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [53, 80],
+      "popularity": 45.2
+    },
+    {
+      "id": 999001,
+      "title": "Mission: Impossible 8",
+      "overview": "Ethan Hunt faces his most dangerous mission yet.",
+      "poster_path": "/mi8poster.jpg",
+      "backdrop_path": "/mi8backdrop.jpg",
+      "release_date": "2025-05-23",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [28, 12, 53],
+      "popularity": 210.3
+    },
+    {
+      "id": 999002,
+      "title": "Avatar 3",
+      "overview": "Jake Sully and Neytiri explore new regions of Pandora.",
+      "poster_path": "/avatar3poster.jpg",
+      "backdrop_path": "/avatar3backdrop.jpg",
+      "release_date": "2025-12-19",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [28, 12, 878],
+      "popularity": 310.7
+    },
+    {
+      "id": 999003,
+      "title": "Black Panther 3",
+      "overview": "Wakanda faces new threats from beyond its borders.",
+      "poster_path": "/bp3poster.jpg",
+      "backdrop_path": "/bp3backdrop.jpg",
+      "release_date": "2026-02-13",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [28, 12, 878],
+      "popularity": 189.5
+    },
+    {
+      "id": 999004,
+      "title": "The Batman 2",
+      "overview": "Bruce Wayne continues his war on crime in Gotham City.",
+      "poster_path": "/batman2poster.jpg",
+      "backdrop_path": "/batman2backdrop.jpg",
+      "release_date": "2026-10-03",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [28, 80, 18],
+      "popularity": 225.1
+    },
+    {
+      "id": 999005,
+      "title": "Dune: Messiah",
+      "overview": "Paul Atreides navigates the politics and religion of a universe he has changed forever.",
+      "poster_path": "/dunemessiah.jpg",
+      "backdrop_path": "/dunemessiahbackdrop.jpg",
+      "release_date": "2026-03-20",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [878, 12, 18],
+      "popularity": 245.8
+    },
+    {
+      "id": 999006,
+      "title": "Jurassic World 4",
+      "overview": "Dinosaurs roam the earth once more as humanity struggles to coexist.",
+      "poster_path": "/jw4poster.jpg",
+      "backdrop_path": "/jw4backdrop.jpg",
+      "release_date": "2025-07-04",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [28, 12, 878],
+      "popularity": 178.4
+    },
+    {
+      "id": 999007,
+      "title": "Zootopia 2",
+      "overview": "Judy Hopps and Nick Wilde return for a new adventure in Zootopia.",
+      "poster_path": "/zootopia2poster.jpg",
+      "backdrop_path": "/zootopia2backdrop.jpg",
+      "release_date": "2025-11-26",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [16, 35, 12],
+      "popularity": 192.3
+    },
+    {
+      "id": 999008,
+      "title": "Spider-Man 4",
+      "overview": "Peter Parker swings back into action.",
+      "poster_path": "/spidey4poster.jpg",
+      "backdrop_path": "/spidey4backdrop.jpg",
+      "release_date": "2026-07-24",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [28, 12, 878],
+      "popularity": 312.6
+    },
+    {
+      "id": 999009,
+      "title": "Fantastic Four",
+      "overview": "Marvel's first family makes their MCU debut.",
+      "poster_path": "/ff2025poster.jpg",
+      "backdrop_path": "/ff2025backdrop.jpg",
+      "release_date": "2025-07-25",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [28, 12, 878],
+      "popularity": 287.4
+    }
+  ],
+  "total_pages": 50,
+  "total_results": 982
+}

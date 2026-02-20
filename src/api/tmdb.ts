@@ -1,8 +1,9 @@
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useQuery, useInfiniteQuery, useQueries } from '@tanstack/react-query';
 import { TMDB_BASE_URL, TMDB_API_TOKEN, STALE_TIME_LIST, STALE_TIME_DETAIL } from '../utils/constants';
 import type {
   TMDBMovie, TMDBMovieDetail, TMDBSeries, TMDBSeriesDetail,
-  TMDBGenre, TMDBPagedResponse, TMDBSeason,
+  TMDBGenre, TMDBPagedResponse, TMDBSeason, TMDBProvider,
 } from './types';
 
 async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): Promise<T> {
@@ -171,4 +172,58 @@ export function useSeasonDetail(seriesId: number | undefined, season: number) {
     enabled: !!seriesId && season > 0,
     staleTime: STALE_TIME_DETAIL,
   });
+}
+
+export function useSeriesDetailBatch(ids: number[]) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: ['series', id],
+      queryFn: () => tmdbFetch<TMDBSeriesDetail>(`/tv/${id}`),
+      enabled: id > 0,
+      staleTime: STALE_TIME_DETAIL,
+    })),
+  });
+}
+
+// --- Watch Providers ---
+
+export function useAvailableProviders(country: string) {
+  const results = useQueries({
+    queries: [
+      {
+        queryKey: ['watch-providers', 'movie', country],
+        queryFn: () =>
+          tmdbFetch<{ results: TMDBProvider[] }>('/watch/providers/movie', { watch_region: country }),
+        staleTime: STALE_TIME_LIST,
+        enabled: !!country,
+      },
+      {
+        queryKey: ['watch-providers', 'tv', country],
+        queryFn: () =>
+          tmdbFetch<{ results: TMDBProvider[] }>('/watch/providers/tv', { watch_region: country }),
+        staleTime: STALE_TIME_LIST,
+        enabled: !!country,
+      },
+    ],
+  });
+
+  const isLoading = results.some((r) => r.isLoading);
+  const isError = results.some((r) => r.isError);
+
+  const providers = useMemo(() => {
+    const seen = new Set<number>();
+    const merged: TMDBProvider[] = [];
+    for (const result of results) {
+      for (const p of result.data?.results ?? []) {
+        if (!seen.has(p.provider_id)) {
+          seen.add(p.provider_id);
+          merged.push(p);
+        }
+      }
+    }
+    return merged.sort((a, b) => a.display_priority - b.display_priority);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results[0].data, results[1].data]);
+
+  return { providers, isLoading, isError };
 }

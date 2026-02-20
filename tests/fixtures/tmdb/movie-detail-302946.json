@@ -1,0 +1,137 @@
+{
+  "id": 302946,
+  "title": "The Accountant",
+  "overview": "As a math savant uncooks the books for a new client, he must also evade a Treasury agent investigating him while being targeted by a more dangerous party.",
+  "poster_path": "/fceheXB5fC4WrLVuWJ6OZv9FXYr.jpg",
+  "backdrop_path": "/dIWDPABMTRqdQeaSnMPZXFUNGPw.jpg",
+  "release_date": "2016-10-13",
+  "vote_average": 7.3,
+  "vote_count": 8900,
+  "popularity": 142.5,
+  "runtime": 128,
+  "tagline": "Calculate your options.",
+  "status": "Released",
+  "imdb_id": "tt2140479",
+  "genres": [
+    { "id": 28, "name": "Action" },
+    { "id": 53, "name": "Thriller" },
+    { "id": 80, "name": "Crime" }
+  ],
+  "credits": {
+    "cast": [
+      {
+        "id": 5292,
+        "name": "Ben Affleck",
+        "character": "Christian Wolff",
+        "profile_path": "/nXMzvVF6A1y3VisZNrVLzpRCX0H.jpg",
+        "order": 0
+      },
+      {
+        "id": 17029,
+        "name": "Anna Kendrick",
+        "character": "Dana Cummings",
+        "profile_path": "/3eDDHmOXZKxFoLBMWqjBQFc5HyU.jpg",
+        "order": 1
+      },
+      {
+        "id": 2963,
+        "name": "J.K. Simmons",
+        "character": "Raymond King",
+        "profile_path": "/9kWxTgMEKqnv9oAHGBcEFqeovOZ.jpg",
+        "order": 2
+      },
+      {
+        "id": 11101,
+        "name": "Jon Bernthal",
+        "character": "Braxton",
+        "profile_path": "/l9JDhJCWF0dSo6M9GBWZ4W8eFzr.jpg",
+        "order": 3
+      },
+      {
+        "id": 8394,
+        "name": "Jeffrey Tambor",
+        "character": "Francis Silverberg",
+        "profile_path": "/jBKcilWHhlyJ0G2c4H1J8bTEJ4a.jpg",
+        "order": 4
+      },
+      {
+        "id": 32660,
+        "name": "John Lithgow",
+        "character": "Lamar Black",
+        "profile_path": "/dAqDIyiHPRaUMhcTfz4LKrNL8tq.jpg",
+        "order": 5
+      }
+    ],
+    "crew": [
+      {
+        "id": 56217,
+        "name": "Gavin O'Connor",
+        "job": "Director",
+        "department": "Directing",
+        "profile_path": null
+      },
+      {
+        "id": 16483,
+        "name": "Bill Dubuque",
+        "job": "Screenplay",
+        "department": "Writing",
+        "profile_path": null
+      },
+      {
+        "id": 88794,
+        "name": "Mark Williams",
+        "job": "Producer",
+        "department": "Production",
+        "profile_path": null
+      }
+    ]
+  },
+  "watch/providers": {
+    "results": {
+      "NL": {
+        "flatrate": [
+          {
+            "provider_id": 8,
+            "provider_name": "Netflix",
+            "logo_path": "/t2yyOv40HZeVlLjYsCsPHnWLk4W.jpg",
+            "display_priority": 1
+          },
+          {
+            "provider_id": 119,
+            "provider_name": "Amazon Prime Video",
+            "logo_path": "/68MNrwlkpF7WnmNPXLah69CR5xh.jpg",
+            "display_priority": 2
+          }
+        ],
+        "rent": [
+          {
+            "provider_id": 2,
+            "provider_name": "Apple TV",
+            "logo_path": "/4j0PNHkMr5ax3IA8tjtxcmPU3QT.jpg",
+            "display_priority": 3
+          }
+        ],
+        "buy": [
+          {
+            "provider_id": 3,
+            "provider_name": "Google Play Movies",
+            "logo_path": "/tbEdFQDwx5LEVr8WpSeXQSIirVq.jpg",
+            "display_priority": 4
+          }
+        ],
+        "link": "https://www.justwatch.com/nl/film/the-accountant"
+      },
+      "US": {
+        "flatrate": [
+          {
+            "provider_id": 8,
+            "provider_name": "Netflix",
+            "logo_path": "/t2yyOv40HZeVlLjYsCsPHnWLk4W.jpg",
+            "display_priority": 1
+          }
+        ],
+        "link": "https://www.justwatch.com/us/movie/the-accountant"
+      }
+    }
+  }
+}

@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, '..', 'data', 'movie-tracker.db');
+const dbPath = process.env.TEST_DB_PATH ?? path.join(__dirname, '..', 'data', 'movie-tracker.db');
 
 const db = new Database(dbPath);
 
@@ -93,6 +93,10 @@ const stmts = {
   clearAll: db.prepare(`DELETE FROM watched_items`),
   clearProgress: db.prepare(`DELETE FROM series_progress`),
   clearEpisodes: db.prepare(`DELETE FROM watched_episodes`),
+
+  // export
+  getAllProgress: db.prepare(`SELECT * FROM series_progress`),
+  getAllEpisodes: db.prepare(`SELECT * FROM watched_episodes`),
 };
 
 export interface WatchedItemRow {
@@ -256,13 +260,37 @@ export const queries = {
     tx();
   },
 
+  /** Bulk INSERT OR IGNORE — used by the JSON import flow. */
+  bulkInsertEpisodes(entries: { tmdbId: number; season: number; episode: number }[]) {
+    const tx = db.transaction(() => {
+      for (const e of entries) {
+        stmts.insertEpisode.run(e.tmdbId, e.season, e.episode);
+      }
+    });
+    tx();
+  },
+
   exportAll() {
     const items = (stmts.getAllItems.all() as WatchedItemRow[]).map(rowToItem);
-    return items.map(({ tmdbId, title, contentType, status, posterPath, releaseDate, userRating, notes }) => ({
-      tmdbId, title, contentType, status, posterPath, releaseDate,
-      ...(userRating != null && { userRating }),
-      ...(notes && { notes }),
+    const progress = (stmts.getAllProgress.all() as {
+      id: number; watchedItemId: number; tmdbId: number;
+      currentSeason: number; currentEpisode: number;
+      totalSeasons: number; totalEpisodes: number;
+    }[]).map(({ tmdbId, currentSeason, currentEpisode, totalSeasons, totalEpisodes }) => ({
+      tmdbId, currentSeason, currentEpisode, totalSeasons, totalEpisodes,
     }));
+    const episodes = (stmts.getAllEpisodes.all() as {
+      id: number; tmdbId: number; season: number; episode: number;
+    }[]).map(({ tmdbId, season, episode }) => ({ tmdbId, season, episode }));
+    return {
+      items: items.map(({ tmdbId, title, contentType, status, posterPath, releaseDate, userRating, notes }) => ({
+        tmdbId, title, contentType, status, posterPath, releaseDate,
+        ...(userRating != null && { userRating }),
+        ...(notes && { notes }),
+      })),
+      progress,
+      episodes,
+    };
   },
 };
 

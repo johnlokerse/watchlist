@@ -45,13 +45,15 @@ export default function SeriesDetailPage() {
   const imdbId = series.external_ids?.imdb_id;
 
   const handleAddToLibrary = async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const isFutureRelease = !!series.first_air_date && series.first_air_date > today;
     const itemId = await addToLibrary({
       tmdbId: series.id,
       contentType: 'series',
       title: series.name,
       posterPath: series.poster_path,
       releaseDate: series.first_air_date ?? null,
-      status: 'watching',
+      status: isFutureRelease ? 'plan_to_watch' : 'watching',
       userRating: null,
       notes: '',
       genreIds: series.genres.map((g) => g.id),

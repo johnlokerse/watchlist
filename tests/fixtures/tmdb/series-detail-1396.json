@@ -1,0 +1,143 @@
+{
+  "id": 1396,
+  "name": "Breaking Bad",
+  "overview": "When Walter White, a New Mexico chemistry teacher, is diagnosed with Stage III cancer and given a prognosis of only two years left to live, he becomes filled with a sense of fearlessness and decides to team up with a former student, Jesse Pinkman, to manufacture and sell methamphetamine.",
+  "poster_path": "/ggFHVNu6YYI5L9pCfOacjizRGt.jpg",
+  "backdrop_path": "/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg",
+  "first_air_date": "2008-01-20",
+  "vote_average": 9.5,
+  "vote_count": 12500,
+  "popularity": 298.4,
+  "number_of_seasons": 5,
+  "number_of_episodes": 62,
+  "episode_run_time": [47, 48],
+  "tagline": "All Hail the King",
+  "status": "Ended",
+  "genres": [
+    { "id": 18, "name": "Drama" },
+    { "id": 80, "name": "Crime" }
+  ],
+  "networks": [
+    { "id": 174, "name": "AMC", "logo_path": "/pmvRmATOCaDykQWhxTQi6DwxLVP.jpg" }
+  ],
+  "created_by": [
+    { "id": 66633, "name": "Vince Gilligan", "profile_path": "/z08yRnCxJIcNQDUnHHLtVQCCFBJ.jpg" }
+  ],
+  "seasons": [
+    {
+      "id": 3572,
+      "name": "Season 1",
+      "season_number": 1,
+      "episode_count": 7,
+      "air_date": "2008-01-20",
+      "poster_path": "/1BP4xYv9ZG4ZVHkL7ocOziBbSYH.jpg",
+      "overview": "High school chemistry teacher Walter White's life is suddenly transformed by a dire medical diagnosis."
+    },
+    {
+      "id": 3573,
+      "name": "Season 2",
+      "season_number": 2,
+      "episode_count": 13,
+      "air_date": "2009-03-08",
+      "poster_path": "/e3oGYpoTUhOFK0BJflagu6TXRn.jpg",
+      "overview": "Walter's cancer is in remission but his drug empire grows more dangerous."
+    },
+    {
+      "id": 3575,
+      "name": "Season 3",
+      "season_number": 3,
+      "episode_count": 13,
+      "air_date": "2010-03-21",
+      "poster_path": "/ff1pEWToWiHDFzTfIJCHXPHFUYM.jpg",
+      "overview": "Walt and Jesse go further into the drug trade as dangers close in."
+    },
+    {
+      "id": 3576,
+      "name": "Season 4",
+      "season_number": 4,
+      "episode_count": 13,
+      "air_date": "2011-07-17",
+      "poster_path": "/5ewrnKp4TboU4iDTco4pnMgRqJL.jpg",
+      "overview": "Walt must deal with a major new threat: Gus Fring."
+    },
+    {
+      "id": 3578,
+      "name": "Season 5",
+      "season_number": 5,
+      "episode_count": 16,
+      "air_date": "2012-07-15",
+      "poster_path": "/r3z70vunihrAkjILQKWHX4B6vkH.jpg",
+      "overview": "Walter White becomes the most dangerous drug kingpin in the Southwest."
+    }
+  ],
+  "next_episode_to_air": null,
+  "last_episode_to_air": {
+    "id": 62161,
+    "name": "Felina",
+    "air_date": "2013-09-29",
+    "episode_number": 16,
+    "season_number": 5,
+    "overview": "Walter White's journey comes to an end.",
+    "still_path": "/pA0YwyhvdDXP3BEFO0Vxtn0p4CB.jpg",
+    "runtime": 56
+  },
+  "external_ids": {
+    "imdb_id": "tt0903747"
+  },
+  "credits": {
+    "cast": [
+      {
+        "id": 17419,
+        "name": "Bryan Cranston",
+        "character": "Walter White",
+        "profile_path": "/oHefNFR7P6yHKqVRyV2VKXDWC6D.jpg",
+        "order": 0
+      },
+      {
+        "id": 84497,
+        "name": "Aaron Paul",
+        "character": "Jesse Pinkman",
+        "profile_path": "/aRc5WE74RjRuJ9JF4OgnnJJAaVW.jpg",
+        "order": 1
+      },
+      {
+        "id": 1216199,
+        "name": "Anna Gunn",
+        "character": "Skyler White",
+        "profile_path": "/adppyeu1a4REN3khtgmXOiPFxsH.jpg",
+        "order": 2
+      },
+      {
+        "id": 151633,
+        "name": "Dean Norris",
+        "character": "Hank Schrader",
+        "profile_path": "/2gPjLWIyrWnADtfCu6RJF3PBhaJ.jpg",
+        "order": 3
+      }
+    ],
+    "crew": [
+      {
+        "id": 66633,
+        "name": "Vince Gilligan",
+        "job": "Creator",
+        "department": "Writing",
+        "profile_path": "/z08yRnCxJIcNQDUnHHLtVQCCFBJ.jpg"
+      }
+    ]
+  },
+  "watch/providers": {
+    "results": {
+      "NL": {
+        "flatrate": [
+          {
+            "provider_id": 8,
+            "provider_name": "Netflix",
+            "logo_path": "/t2yyOv40HZeVlLjYsCsPHnWLk4W.jpg",
+            "display_priority": 1
+          }
+        ],
+        "link": "https://www.justwatch.com/nl/serie/breaking-bad"
+      }
+    }
+  }
+}

@@ -29,3 +29,4 @@ src/db/seed.ts
 *.sln
 *.sw?
 data/
+test-results/

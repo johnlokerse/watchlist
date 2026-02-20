@@ -1,0 +1,151 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "id": 302946,
+      "title": "The Accountant",
+      "overview": "A math savant with more affinity for numbers than people works as a forensic accountant for dangerous criminal organizations.",
+      "poster_path": "/fceheXB5fC4WrLVuWJ6OZv9FXYr.jpg",
+      "backdrop_path": "/dIWDPABMTRqdQeaSnMPZXFUNGPw.jpg",
+      "release_date": "2016-10-13",
+      "vote_average": 7.3,
+      "vote_count": 8900,
+      "genre_ids": [28, 53, 80],
+      "popularity": 142.5
+    },
+    {
+      "id": 157336,
+      "title": "Interstellar",
+      "overview": "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
+      "poster_path": "/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
+      "backdrop_path": "/xJHokMbljvjADYdit5fK5VQsXEG.jpg",
+      "release_date": "2014-11-05",
+      "vote_average": 8.4,
+      "vote_count": 33000,
+      "genre_ids": [12, 18, 878],
+      "popularity": 198.3
+    },
+    {
+      "id": 27205,
+      "title": "Inception",
+      "overview": "A thief who steals corporate secrets through dream-sharing technology is given the inverse task of planting an idea.",
+      "poster_path": "/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
+      "backdrop_path": "/s3TBrRGB1iav7gFOCNx3H31MoES.jpg",
+      "release_date": "2010-07-16",
+      "vote_average": 8.3,
+      "vote_count": 35000,
+      "genre_ids": [28, 878, 12],
+      "popularity": 164.2
+    },
+    {
+      "id": 155,
+      "title": "The Dark Knight",
+      "overview": "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.",
+      "poster_path": "/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
+      "backdrop_path": "/nMKdUUepR0i5zn0y1T4CejMGeVb.jpg",
+      "release_date": "2008-07-18",
+      "vote_average": 8.5,
+      "vote_count": 32000,
+      "genre_ids": [28, 80, 18],
+      "popularity": 177.1
+    },
+    {
+      "id": 550,
+      "title": "Fight Club",
+      "overview": "An insomniac office worker and a devil-may-care soap maker form an underground fight club that evolves into an anarchist organization.",
+      "poster_path": "/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
+      "backdrop_path": "/hZkgoQYus5vegHoetLkCJzb17zJ.jpg",
+      "release_date": "1999-10-15",
+      "vote_average": 8.4,
+      "vote_count": 28000,
+      "genre_ids": [18],
+      "popularity": 122.8
+    },
+    {
+      "id": 680,
+      "title": "Pulp Fiction",
+      "overview": "The lives of two mob hitmen, a boxer, a gangster and his wife, and a pair of diner bandits intertwine in four tales of violence and redemption.",
+      "poster_path": "/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg",
+      "backdrop_path": "/suaEOtk1N1sgg2MTM7oZd2cfVp3.jpg",
+      "release_date": "1994-09-10",
+      "vote_average": 8.5,
+      "vote_count": 27000,
+      "genre_ids": [80, 18],
+      "popularity": 115.3
+    },
+    {
+      "id": 278,
+      "title": "The Shawshank Redemption",
+      "overview": "Framed in the 1940s for the double murder of his wife and her lover, upstanding banker Andy Dufresne begins a new life at the Shawshank State Penitentiary.",
+      "poster_path": "/lyQBXzOQSuE59IsHyhrp0qIiPAz.jpg",
+      "backdrop_path": "/kXfqcdQKsToO0OUXHcrrNCHDBzO.jpg",
+      "release_date": "1994-09-23",
+      "vote_average": 8.7,
+      "vote_count": 25000,
+      "genre_ids": [18, 80],
+      "popularity": 108.6
+    },
+    {
+      "id": 238,
+      "title": "The Godfather",
+      "overview": "Spanning the years 1945 to 1955, a chronicle of the fictional Italian-American Corleone crime family.",
+      "poster_path": "/3bhkrj58Vtu7enYsLegHnDmni1E.jpg",
+      "backdrop_path": "/tmU7GeKVybMWFButWEGl2M4GeiP.jpg",
+      "release_date": "1972-03-24",
+      "vote_average": 8.7,
+      "vote_count": 20000,
+      "genre_ids": [18, 80],
+      "popularity": 98.7
+    },
+    {
+      "id": 872585,
+      "title": "Oppenheimer",
+      "overview": "The story of J. Robert Oppenheimer's role in the development of the atomic bomb during World War II.",
+      "poster_path": "/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
+      "backdrop_path": "/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg",
+      "release_date": "2023-07-21",
+      "vote_average": 8.1,
+      "vote_count": 15000,
+      "genre_ids": [18, 36],
+      "popularity": 185.4
+    },
+    {
+      "id": 667538,
+      "title": "Transformers: Rise of the Beasts",
+      "overview": "When a new faction of Transformers — the Maximals — join Optimus Prime and the Autobots as allies.",
+      "poster_path": "/gPbM0MK8CP8A174rmUwGsADNYKD.jpg",
+      "backdrop_path": "/bz66a19bR6BKsbY8gSZCM4etJiK.jpg",
+      "release_date": "2023-06-09",
+      "vote_average": 6.0,
+      "vote_count": 4200,
+      "genre_ids": [28, 12, 878],
+      "popularity": 95.2
+    },
+    {
+      "id": 346698,
+      "title": "Barbie",
+      "overview": "Barbie and Ken are having the time of their lives in the colorful and seemingly perfect world of Barbie Land.",
+      "poster_path": "/iuFNMS8vlbNBMFC31xxO5j46bVs.jpg",
+      "backdrop_path": "/nHf61UzkfFno5X1ofIhugCPus2R.jpg",
+      "release_date": "2023-07-21",
+      "vote_average": 7.1,
+      "vote_count": 9800,
+      "genre_ids": [35, 12],
+      "popularity": 160.8
+    },
+    {
+      "id": 385687,
+      "title": "Fast X",
+      "overview": "Dom Toretto and his family are targeted by the son of drug kingpin Hernan Reyes.",
+      "poster_path": "/fiVW06jE7z9YnO4trhaMEdclSiC.jpg",
+      "backdrop_path": "/4XM8DUTQb3lhLemJC51Jx4a2EuA.jpg",
+      "release_date": "2023-05-19",
+      "vote_average": 7.0,
+      "vote_count": 5600,
+      "genre_ids": [28, 12],
+      "popularity": 88.3
+    }
+  ],
+  "total_pages": 500,
+  "total_results": 10000
+}

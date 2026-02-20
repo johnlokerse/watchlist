@@ -60,7 +60,7 @@ export default function ScrollRow({ children }: Props) {
           ? (children as ReactNode[]).map((child, i) => (
               <div
                 key={i}
-                className="flex-none w-[calc((100%-5*1rem)/6)]"
+                className="flex-none w-[calc((100%-2rem)/2.5)] sm:w-[calc((100%-2rem)/3)] md:w-[calc((100%-3rem)/4)] lg:w-[calc((100%-4rem)/5)] xl:w-[calc((100%-5rem)/6)]"
                 style={{ scrollSnapAlign: 'start' }}
               >
                 {child}

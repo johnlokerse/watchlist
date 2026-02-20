@@ -1,0 +1,151 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "id": 999101,
+      "name": "The Last of Us Season 2",
+      "overview": "Joel and Ellie continue their journey in a post-apocalyptic world.",
+      "poster_path": "/tlou2poster.jpg",
+      "backdrop_path": "/tlou2backdrop.jpg",
+      "first_air_date": "2025-04-13",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [10765, 18, 10759],
+      "popularity": 320.5
+    },
+    {
+      "id": 999102,
+      "name": "Wednesday Season 2",
+      "overview": "Wednesday Addams returns to Nevermore Academy.",
+      "poster_path": "/wednesday2poster.jpg",
+      "backdrop_path": "/wednesday2backdrop.jpg",
+      "first_air_date": "2025-08-06",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [18, 35, 9648],
+      "popularity": 288.1
+    },
+    {
+      "id": 999103,
+      "name": "Severance Season 2",
+      "overview": "The Lumon employees face new challenges after the events of Season 1.",
+      "poster_path": "/severance2poster.jpg",
+      "backdrop_path": "/severance2backdrop.jpg",
+      "first_air_date": "2025-01-17",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [18, 9648, 10765],
+      "popularity": 245.9
+    },
+    {
+      "id": 999104,
+      "name": "The Bear Season 4",
+      "overview": "Carmen and his team continue to transform The Beef.",
+      "poster_path": "/bear4poster.jpg",
+      "backdrop_path": "/bear4backdrop.jpg",
+      "first_air_date": "2025-07-01",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [18, 35],
+      "popularity": 198.7
+    },
+    {
+      "id": 999105,
+      "name": "Andor Season 2",
+      "overview": "Cassian Andor's journey toward becoming a rebel leader continues.",
+      "poster_path": "/andor2poster.jpg",
+      "backdrop_path": "/andor2backdrop.jpg",
+      "first_air_date": "2025-04-22",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [10765, 18, 28],
+      "popularity": 218.4
+    },
+    {
+      "id": 999106,
+      "name": "Daredevil: Born Again",
+      "overview": "Matt Murdock takes on Wilson Fisk in a new chapter for Marvel's street-level hero.",
+      "poster_path": "/daredevilposter.jpg",
+      "backdrop_path": "/daredevilbackdrop.jpg",
+      "first_air_date": "2025-03-04",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [10765, 18, 28],
+      "popularity": 265.3
+    },
+    {
+      "id": 999107,
+      "name": "Succession Season 5",
+      "overview": "The Roy family's power struggle continues.",
+      "poster_path": "/succession5poster.jpg",
+      "backdrop_path": "/succession5backdrop.jpg",
+      "first_air_date": "2026-01-01",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [18],
+      "popularity": 156.8
+    },
+    {
+      "id": 999108,
+      "name": "Squid Game Season 3",
+      "overview": "The deadly games continue with new contestants.",
+      "poster_path": "/squidgame3poster.jpg",
+      "backdrop_path": "/squidgame3backdrop.jpg",
+      "first_air_date": "2025-06-27",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [18, 9648, 10759],
+      "popularity": 310.2
+    },
+    {
+      "id": 999109,
+      "name": "Peaky Blinders Movie",
+      "overview": "The Shelby family faces their greatest test in this feature-length conclusion.",
+      "poster_path": "/peakyfilmposter.jpg",
+      "backdrop_path": "/peakyfilmbackdrop.jpg",
+      "first_air_date": "2025-09-12",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [18, 80],
+      "popularity": 187.5
+    },
+    {
+      "id": 999110,
+      "name": "Rings of Power Season 3",
+      "overview": "The Second Age of Middle-earth continues.",
+      "poster_path": "/roposter.jpg",
+      "backdrop_path": "/robackdrop.jpg",
+      "first_air_date": "2026-09-01",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [10765, 18, 12],
+      "popularity": 145.3
+    },
+    {
+      "id": 999111,
+      "name": "White Lotus Season 3",
+      "overview": "A new resort, new guests, and new secrets unfold in Thailand.",
+      "poster_path": "/wl3poster.jpg",
+      "backdrop_path": "/wl3backdrop.jpg",
+      "first_air_date": "2025-02-16",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [18, 9648, 35],
+      "popularity": 232.1
+    },
+    {
+      "id": 999112,
+      "name": "House of the Dragon Season 3",
+      "overview": "The Dance of the Dragons reaches its devastating conclusion.",
+      "poster_path": "/hotd3poster.jpg",
+      "backdrop_path": "/hotd3backdrop.jpg",
+      "first_air_date": "2026-06-01",
+      "vote_average": 0.0,
+      "vote_count": 0,
+      "genre_ids": [10765, 18, 10759],
+      "popularity": 198.7
+    }
+  ],
+  "total_pages": 30,
+  "total_results": 588
+}

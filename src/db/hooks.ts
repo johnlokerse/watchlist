@@ -162,7 +162,17 @@ export async function markSeasonWatched(tmdbId: number, season: number, episodes
 }
 
 export async function exportLibrary() {
-  return apiFetch<unknown[]>('/library/export');
+  return apiFetch<{
+    items: unknown[];
+    progress: unknown[];
+    episodes: unknown[];
+  }>('/library/export');
+}
+
+export async function bulkImportEpisodes(entries: { tmdbId: number; season: number; episode: number }[]) {
+  if (!entries.length) return;
+  await apiFetch('/episodes/import', { method: 'POST', body: JSON.stringify({ entries }) });
+  triggerInvalidate();
 }
 
 export async function clearLibrary() {
