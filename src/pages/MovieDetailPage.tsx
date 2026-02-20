@@ -195,7 +195,7 @@ export default function MovieDetailPage() {
         <CastCrewTab cast={movie.credits.cast} crew={movie.credits.crew} />
       )}
       {activeTab === 'providers' && (
-        <WatchProvidersTab providers={providers} country={settings.country} />
+        <WatchProvidersTab providers={providers} country={settings.country} userServiceIds={settings.streamingServices} />
       )}
     </div>
   );
