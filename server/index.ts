@@ -103,6 +103,17 @@ app.get('/api/library/export', (_req, res) => {
   res.json(queries.exportAll());
 });
 
+// GET /api/settings — get all settings
+app.get('/api/settings', (_req, res) => {
+  res.json(queries.getSettings());
+});
+
+// PUT /api/settings — save all settings
+app.put('/api/settings', (req, res) => {
+  queries.saveSettings(req.body);
+  res.json({ ok: true });
+});
+
 const client = new CopilotClient();
 
 try {

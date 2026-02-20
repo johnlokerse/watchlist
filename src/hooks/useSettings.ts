@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DEFAULT_COUNTRY } from '../utils/constants';
 import { applyTheme } from '../utils/themes';
 
@@ -9,26 +9,45 @@ interface AppSettings {
   streamingServices: number[];
 }
 
-const STORAGE_KEY = 'app-settings';
+const DEFAULTS: AppSettings = { country: DEFAULT_COUNTRY, showSpoilers: false, theme: 'default', streamingServices: [] };
+const THEME_KEY = 'app-theme-cache';
 
-function loadSettings(): AppSettings {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed: AppSettings = JSON.parse(stored);
-      // Apply the persisted theme synchronously before first render
-      applyTheme(parsed.theme ?? 'default');
-      return { country: parsed.country ?? DEFAULT_COUNTRY, showSpoilers: parsed.showSpoilers ?? false, theme: parsed.theme ?? 'default', streamingServices: parsed.streamingServices ?? [] };
-    }
-  } catch { /* ignore */ }
-  return { country: DEFAULT_COUNTRY, showSpoilers: false, theme: 'default', streamingServices: [] };
+// Apply cached theme immediately to avoid flash on load
+const cachedTheme = localStorage.getItem(THEME_KEY) ?? 'default';
+applyTheme(cachedTheme);
+
+function mergeDefaults(partial: Partial<AppSettings>): AppSettings {
+  return {
+    country: partial.country ?? DEFAULTS.country,
+    showSpoilers: partial.showSpoilers ?? DEFAULTS.showSpoilers,
+    theme: partial.theme ?? DEFAULTS.theme,
+    streamingServices: partial.streamingServices ?? DEFAULTS.streamingServices,
+  };
 }
 
 export function useSettings() {
-  const [settings, setSettingsState] = useState<AppSettings>(loadSettings);
+  const [settings, setSettingsState] = useState<AppSettings>(() => mergeDefaults({ theme: cachedTheme }));
+  const initialized = useRef(false);
 
+  // Load settings from server on mount
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((data: Partial<AppSettings>) => {
+        const merged = mergeDefaults(data);
+        setSettingsState(merged);
+        applyTheme(merged.theme);
+        localStorage.setItem(THEME_KEY, merged.theme);
+        initialized.current = true;
+      })
+      .catch(() => { initialized.current = true; });
+  }, []);
+
+  // Persist to server whenever settings change (skip the initial default state)
+  useEffect(() => {
+    if (!initialized.current) return;
+    fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) });
+    localStorage.setItem(THEME_KEY, settings.theme);
   }, [settings]);
 
   useEffect(() => {
@@ -36,6 +55,7 @@ export function useSettings() {
   }, [settings.theme]);
 
   const updateSettings = useCallback((updates: Partial<AppSettings>) => {
+    initialized.current = true;
     setSettingsState((prev) => ({ ...prev, ...updates }));
   }, []);
 

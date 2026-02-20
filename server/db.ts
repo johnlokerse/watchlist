@@ -45,6 +45,11 @@ db.exec(`
     episode INTEGER NOT NULL,
     UNIQUE(tmdbId, season, episode)
   );
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
 `);
 
 // Prepared statements for performance
@@ -88,6 +93,11 @@ const stmts = {
   insertEpisode: db.prepare(`INSERT OR IGNORE INTO watched_episodes (tmdbId, season, episode) VALUES (?, ?, ?)`),
   deleteEpisode: db.prepare(`DELETE FROM watched_episodes WHERE id = ?`),
   deleteSeasonEpisodes: db.prepare(`DELETE FROM watched_episodes WHERE tmdbId = ? AND season = ?`),
+
+  // settings
+  getSetting: db.prepare(`SELECT value FROM settings WHERE key = ?`),
+  getAllSettings: db.prepare(`SELECT key, value FROM settings`),
+  upsertSetting: db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`),
 
   // bulk / migration
   clearAll: db.prepare(`DELETE FROM watched_items`),
@@ -265,6 +275,24 @@ export const queries = {
     const tx = db.transaction(() => {
       for (const e of entries) {
         stmts.insertEpisode.run(e.tmdbId, e.season, e.episode);
+      }
+    });
+    tx();
+  },
+
+  getSettings(): Record<string, unknown> {
+    const rows = stmts.getAllSettings.all() as { key: string; value: string }[];
+    const result: Record<string, unknown> = {};
+    for (const { key, value } of rows) {
+      try { result[key] = JSON.parse(value); } catch { result[key] = value; }
+    }
+    return result;
+  },
+
+  saveSettings(settings: Record<string, unknown>) {
+    const tx = db.transaction(() => {
+      for (const [key, value] of Object.entries(settings)) {
+        stmts.upsertSetting.run(key, JSON.stringify(value));
       }
     });
     tx();
