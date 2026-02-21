@@ -201,6 +201,10 @@ app.post('/api/chat/message', async (req, res) => {
     return;
   }
 
+  // Disable Nagle's algorithm so each res.write() is sent immediately as its own TCP packet
+  req.socket.setNoDelay(true);
+  req.socket.setKeepAlive(true);
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -212,9 +216,12 @@ app.post('/api/chat/message', async (req, res) => {
 
   // Subscribe to delta events for real streaming
   let accumulated = '';
+  let deltaCount = 0;
   const unsubDelta = session.on('assistant.message_delta', (event) => {
     const content = event.data.deltaContent;
     if (content) {
+      deltaCount++;
+      if (deltaCount === 1) console.log(`[chat] streaming started (first delta: "${content.substring(0, 30)}")`);
       accumulated += content;
       send({ type: 'delta', content });
     }
@@ -226,10 +233,19 @@ app.post('/api/chat/message', async (req, res) => {
     // sendAndWait is reliable; delta events above provide streaming if supported
     const result = await session.sendAndWait({ prompt: message }, 90_000);
 
-    // If no deltas arrived, send the full response at once
+    // If no deltas arrived, simulate streaming word-by-word so the chat doesn't pop in all at once
     if (!accumulated) {
+      console.log('[chat] no delta events received — falling back to word-by-word streaming');
       const content = result?.data?.content ?? 'No response received.';
-      send({ type: 'delta', content });
+      const words = content.split(/(\s+)/);
+      for (const word of words) {
+        if (word) {
+          send({ type: 'delta', content: word });
+          await new Promise<void>((resolve) => setTimeout(resolve, 20));
+        }
+      }
+    } else {
+      console.log(`[chat] streaming complete (${deltaCount} delta events)`);
     }
 
     send({ type: 'done' });
