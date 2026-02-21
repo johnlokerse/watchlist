@@ -2,6 +2,8 @@
 
 A responsive React web app to track movies and series you've watched, discover upcoming releases with countdown timers, find where to watch content, and get personalized AI recommendations.
 
+![Watchlist Screenshot](./images/watchlist_header.png)
+
 ## Features
 
 - **Upcoming** — Browse upcoming movies & series with live "X days" countdown badges
@@ -30,6 +32,8 @@ A responsive React web app to track movies and series you've watched, discover u
 ## GitHub Copilot SDK
 
 The AI chat feature is built on the [`@github/copilot-sdk`](https://www.npmjs.com/package/@github/copilot-sdk) package. On startup, the Express server initialises a `CopilotClient` and exposes a streaming chat API that the frontend consumes via Server-Sent Events.
+
+![Copilot SDK Integration](./images/NobodySequel.gif)
 
 Key integration points:
 
