@@ -125,7 +125,7 @@ export default function ChatMessage({ role, content, isStreaming, onAdd }: Props
             {[0, 1, 2].map((i) => (
               <span
                 key={i}
-                className="w-1 h-1 rounded-full bg-current opacity-60 animate-bounce"
+                className="w-1.5 h-1.5 rounded-full bg-current opacity-70 animate-dot-bounce"
                 style={{ animationDelay: `${i * 150}ms` }}
               />
             ))}
