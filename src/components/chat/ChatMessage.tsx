@@ -121,7 +121,7 @@ export default function ChatMessage({ role, content, isStreaming, onAdd }: Props
       >
         {content ? renderMarkdown(content, onAdd) : null}
         {isStreaming && (
-          <span className="inline-block w-1.5 h-3.5 bg-current opacity-70 ml-0.5 animate-pulse rounded-sm" />
+          <span className="inline-block ml-1 animate-spin-slow">🎬</span>
         )}
       </div>
     </div>
