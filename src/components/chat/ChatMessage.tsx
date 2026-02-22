@@ -121,7 +121,15 @@ export default function ChatMessage({ role, content, isStreaming, onAdd }: Props
       >
         {content ? renderMarkdown(content, onAdd) : null}
         {isStreaming && (
-          <span className="inline-block ml-1 animate-spin-slow">🎬</span>
+          <span className="inline-flex items-center gap-0.5 ml-1">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="w-1 h-1 rounded-full bg-current opacity-60 animate-bounce"
+                style={{ animationDelay: `${i * 150}ms` }}
+              />
+            ))}
+          </span>
         )}
       </div>
     </div>
