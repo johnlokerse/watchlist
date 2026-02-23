@@ -2,14 +2,18 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { DEFAULT_COUNTRY } from '../utils/constants';
 import { applyTheme } from '../utils/themes';
 
-interface AppSettings {
+export interface AppSettings {
   country: string;
   showSpoilers: boolean;
   theme: string;
   streamingServices: number[];
+  openrouterEnabled: boolean;
+  openrouterApiKey: string;
+  openrouterModel: string;
+  openrouterModels: string[];
 }
 
-const DEFAULTS: AppSettings = { country: DEFAULT_COUNTRY, showSpoilers: false, theme: 'default', streamingServices: [] };
+const DEFAULTS: AppSettings = { country: DEFAULT_COUNTRY, showSpoilers: false, theme: 'default', streamingServices: [], openrouterEnabled: false, openrouterApiKey: '', openrouterModel: '', openrouterModels: [] };
 const THEME_KEY = 'app-theme-cache';
 
 // Apply cached theme immediately to avoid flash on load
@@ -22,6 +26,10 @@ function mergeDefaults(partial: Partial<AppSettings>): AppSettings {
     showSpoilers: partial.showSpoilers ?? DEFAULTS.showSpoilers,
     theme: partial.theme ?? DEFAULTS.theme,
     streamingServices: partial.streamingServices ?? DEFAULTS.streamingServices,
+    openrouterEnabled: partial.openrouterEnabled ?? DEFAULTS.openrouterEnabled,
+    openrouterApiKey: partial.openrouterApiKey ?? DEFAULTS.openrouterApiKey,
+    openrouterModel: partial.openrouterModel ?? DEFAULTS.openrouterModel,
+    openrouterModels: partial.openrouterModels ?? DEFAULTS.openrouterModels,
   };
 }
 

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useChat } from '../../hooks/useChat';
+import { useSettings } from '../../hooks/useSettings';
 import { addToLibrary } from '../../db/hooks';
 import ChatPanel from './ChatPanel';
 import { TMDB_BASE_URL, TMDB_API_TOKEN } from '../../utils/constants';
@@ -9,14 +10,15 @@ export default function CopilotChat() {
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
+  const { settings, updateSettings } = useSettings();
   const { sessionId, messages, isStreaming, error, createSession, sendMessage, destroySession } = useChat();
 
-  const initSession = useCallback(() => {
+  const initSession = useCallback((modelOverride?: string) => {
     if (sessionId || isCreatingSession) return;
     setIsCreatingSession(true);
     setSessionError(null);
     // Library context is now read from SQLite on the server side
-    createSession([])
+    createSession([], modelOverride)
       .catch((err) => {
         console.error('Failed to create chat session:', err);
         setSessionError(String(err));
@@ -35,6 +37,19 @@ export default function CopilotChat() {
   useEffect(() => {
     return () => { destroySession(); };
   }, [destroySession]);
+
+  const handleModelChange = useCallback(async (id: string) => {
+    updateSettings({ openrouterModel: id });
+    await destroySession();
+    setIsCreatingSession(true);
+    setSessionError(null);
+    createSession([], id)
+      .catch((err) => {
+        console.error('Failed to create chat session after model switch:', err);
+        setSessionError(String(err));
+      })
+      .finally(() => setIsCreatingSession(false));
+  }, [updateSettings, destroySession, createSession]);
 
   const handleSend = useCallback(
     (text: string) => {
@@ -92,6 +107,9 @@ export default function CopilotChat() {
               onClose={handleClose}
               onRetry={initSession}
               onAdd={handleAdd}
+              pinnedModels={settings.openrouterModels}
+              activeModel={settings.openrouterModel}
+              onModelChange={handleModelChange}
             />
           </div>
         </>

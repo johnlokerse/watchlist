@@ -26,11 +26,11 @@ export function useChat() {
   const [error, setError] = useState<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
 
-  const createSession = useCallback(async (library: WatchedItem[]) => {
+  const createSession = useCallback(async (library: WatchedItem[], modelOverride?: string) => {
     const res = await fetch('/api/chat/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ library }),
+      body: JSON.stringify({ library, ...(modelOverride ? { model: modelOverride } : {}) }),
     });
     if (!res.ok) throw new Error(`Failed to create session: ${res.status}`);
     const data = await res.json() as { sessionId: string };

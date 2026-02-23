@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { clearLibrary, addToLibrary, exportLibrary, updateSeriesProgress, bulkImportEpisodes } from '../db/hooks';
 import type { WatchedStatus, ContentType } from '../db/models';
 import { useSettings } from '../hooks/useSettings';
@@ -162,6 +162,202 @@ function MonitorIcon() {
   );
 }
 
+function SparklesIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+      <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      className={`w-4 h-4 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0 text-accent">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+// ── Model picker combobox ─────────────────────────────────────────────────────
+
+interface ModelPickerProps {
+  models: { id: string; name: string }[];
+  values: string[];
+  onChange: (ids: string[]) => void;
+  disabled?: boolean;
+  loading?: boolean;
+}
+
+function groupModels(models: { id: string; name: string }[], term: string) {
+  const lower = term.toLowerCase();
+  const filtered = lower
+    ? models.filter((m) => m.name.toLowerCase().includes(lower) || m.id.toLowerCase().includes(lower))
+    : models;
+  const groups = new Map<string, { id: string; name: string }[]>();
+  for (const m of filtered) {
+    const provider = m.id.includes('/') ? m.id.split('/')[0] : 'Other';
+    const label = provider.charAt(0).toUpperCase() + provider.slice(1);
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label)!.push(m);
+  }
+  return { groups, total: filtered.length };
+}
+
+function ModelPicker({ models, values, onChange, disabled, loading }: ModelPickerProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const firstSelectedRef = useRef<HTMLButtonElement>(null);
+
+  const { groups, total } = groupModels(models, search);
+
+  const triggerLabel = loading
+    ? 'Loading models…'
+    : values.length === 0
+      ? 'Select models'
+      : values.length === 1
+        ? (models.find((m) => m.id === values[0])?.name ?? values[0])
+        : `${values.length} models selected`;
+
+  // Close on outside click
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen]);
+
+  // Auto-focus search and scroll first selected item into view when opening
+  useEffect(() => {
+    if (!isOpen) { setSearch(''); return; }
+    searchRef.current?.focus();
+    setTimeout(() => firstSelectedRef.current?.scrollIntoView({ block: 'nearest' }), 0);
+  }, [isOpen]);
+
+  const handleToggle = (id: string) => {
+    const next = values.includes(id) ? values.filter((v) => v !== id) : [...values, id];
+    onChange(next);
+    // Re-focus search so the user can keep typing after selecting a model
+    requestAnimationFrame(() => searchRef.current?.focus());
+  };
+
+  const handleRemoveChip = (id: string) => {
+    onChange(values.filter((v) => v !== id));
+  };
+
+  return (
+    <div ref={containerRef} className="relative space-y-2">
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => !disabled && setIsOpen((o) => !o)}
+        onKeyDown={(e) => e.key === 'Escape' && setIsOpen(false)}
+        disabled={disabled}
+        className="w-full flex items-center justify-between gap-2 bg-surface border border-border-subtle rounded-lg px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-accent/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:border-accent/40"
+      >
+        <span className={values.length > 0 ? 'text-text-primary' : 'text-text-muted'}>
+          {triggerLabel}
+        </span>
+        <ChevronDownIcon open={isOpen} />
+      </button>
+
+      {/* Selected chips */}
+      {values.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {values.map((id) => {
+            const name = models.find((m) => m.id === id)?.name ?? id.split('/').pop() ?? id;
+            return (
+              <span
+                key={id}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-xs font-medium"
+              >
+                {name}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveChip(id)}
+                  className="hover:text-danger transition-colors leading-none"
+                  aria-label={`Remove ${name}`}
+                >
+                  ×
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Dropdown panel */}
+      {isOpen && (
+        <div className="absolute z-50 mt-1 w-full bg-surface-raised border border-border-subtle rounded-xl shadow-lg flex flex-col overflow-hidden"
+          style={{ maxHeight: '300px' }}>
+
+          {/* Search input */}
+          <div className="p-2 border-b border-border-subtle shrink-0">
+            <input
+              ref={searchRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Escape' && setIsOpen(false)}
+              placeholder="Filter models…"
+              className="w-full bg-surface border border-border-subtle rounded-lg px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+            />
+          </div>
+
+          {/* Grouped list */}
+          <div className="overflow-y-auto overscroll-contain">
+            {total === 0 ? (
+              <p className="px-4 py-3 text-sm text-text-muted">No models match "{search}"</p>
+            ) : (
+              Array.from(groups.entries()).map(([provider, providerModels]) => (
+                <div key={provider}>
+                  <p className="px-3 pt-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted select-none">
+                    {provider}
+                  </p>
+                  {providerModels.map((m, idx) => {
+                    const isSelected = values.includes(m.id);
+                    const isFirstSelected = isSelected && values.indexOf(m.id) === 0 && idx === 0;
+                    return (
+                      <button
+                        key={m.id}
+                        ref={isFirstSelected ? firstSelectedRef : undefined}
+                        type="button"
+                        onClick={() => handleToggle(m.id)}
+                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left transition-colors ${
+                          isSelected
+                            ? 'bg-accent/10 text-text-primary'
+                            : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
+                        }`}
+                      >
+                        <span className="truncate">{m.name || m.id}</span>
+                        {isSelected && <CheckIcon />}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Toggle switch ─────────────────────────────────────────────────────────────
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
@@ -195,6 +391,35 @@ export default function SettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { providers, isLoading: providersLoading, isError: providersError } = useAvailableProviders(settings.country);
+
+  // OpenRouter model list
+  const [orModels, setOrModels] = useState<{ id: string; name: string }[]>([]);
+  const [orModelsLoading, setOrModelsLoading] = useState(false);
+  const [orModelsError, setOrModelsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!settings.openrouterEnabled || settings.openrouterApiKey.length < 10) {
+      setOrModels([]);
+      setOrModelsError(null);
+      return;
+    }
+    setOrModelsLoading(true);
+    setOrModelsError(null);
+    fetch('/api/chat/models')
+      .then((r) => {
+        if (!r.ok) throw new Error(`Failed to fetch models (${r.status})`);
+        return r.json();
+      })
+      .then((data: { id: string; name: string }[]) => {
+        setOrModels(data);
+        setOrModelsLoading(false);
+      })
+      .catch((err) => {
+        setOrModelsError(err instanceof Error ? err.message : String(err));
+        setOrModels([]);
+        setOrModelsLoading(false);
+      });
+  }, [settings.openrouterEnabled, settings.openrouterApiKey]);
 
   const toggleProvider = (id: number) => {
     const current = settings.streamingServices;
@@ -468,6 +693,89 @@ export default function SettingsPage() {
                 onChange={() => updateSettings({ showSpoilers: !settings.showSpoilers })}
               />
             </div>
+          </div>
+
+          {/* ── AI Assistant ── */}
+          <div className="bg-surface-raised rounded-xl border border-border-subtle p-6">
+            <div className="flex items-center gap-2.5 mb-5">
+              <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
+                <SparklesIcon />
+              </div>
+              <h2 className="text-base font-semibold">AI Assistant</h2>
+            </div>
+
+            {/* Toggle */}
+            <div className="flex items-center justify-between gap-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Use OpenRouter</p>
+                <p className="text-xs text-text-secondary mt-0.5">Use your own API key instead of GitHub Copilot models</p>
+              </div>
+              <Toggle
+                checked={settings.openrouterEnabled}
+                onChange={() => updateSettings({ openrouterEnabled: !settings.openrouterEnabled })}
+              />
+            </div>
+
+            {settings.openrouterEnabled && (
+              <>
+                <div className="border-t border-border-subtle" />
+
+                {/* API Key */}
+                <div className="py-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium">API Key</p>
+                      <p className="text-xs text-text-secondary mt-0.5">
+                        Get yours at{' '}
+                        <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                          openrouter.ai/keys
+                        </a>
+                      </p>
+                    </div>
+                    <input
+                      type="password"
+                      value={settings.openrouterApiKey}
+                      onChange={(e) => updateSettings({ openrouterApiKey: e.target.value })}
+                      placeholder="sk-or-..."
+                      className="bg-surface border border-border-subtle rounded-lg px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 sm:ml-4 shrink-0 w-full sm:w-56"
+                    />
+                  </div>
+                </div>
+
+                {settings.openrouterApiKey.length >= 10 && (
+                  <>
+                    <div className="border-t border-border-subtle" />
+
+                    {/* Model selector */}
+                    <div className="py-3">
+                      <p className="text-sm font-medium mb-1">Model</p>
+                      <p className="text-xs text-text-secondary mb-2">
+                        {orModelsLoading ? 'Loading models…' : orModelsError ? 'Failed to load models' : `${orModels.length} models available`}
+                      </p>
+                      <ModelPicker
+                        models={orModels}
+                        values={settings.openrouterModels}
+                        onChange={(ids) => {
+                          // Keep openrouterModel in sync — always points to an active pinned model
+                          const activeModel =
+                            ids.length === 0
+                              ? ''
+                              : ids.includes(settings.openrouterModel)
+                                ? settings.openrouterModel
+                                : ids[0];
+                          updateSettings({ openrouterModels: ids, openrouterModel: activeModel });
+                        }}
+                        disabled={orModelsLoading || orModels.length === 0}
+                        loading={orModelsLoading}
+                      />
+                    </div>
+                    {orModelsError && (
+                      <p className="text-xs text-danger pb-2">{orModelsError}</p>
+                    )}
+                  </>
+                )}
+              </>
+            )}
           </div>
 
           {/* ── Streaming Services ── */}

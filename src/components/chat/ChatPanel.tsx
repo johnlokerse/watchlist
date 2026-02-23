@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { ChatMessage } from '../../hooks/useChat';
+import { useSettings } from '../../hooks/useSettings';
 import ChatMessageBubble from './ChatMessage';
 
 const STARTER_QUESTIONS = [
@@ -8,6 +9,77 @@ const STARTER_QUESTIONS = [
   'What sci-fi have I not finished yet?',
   'Any hidden gems in my watchlist?',
 ];
+
+// ── Inline model switcher for the chat header ─────────────────────────────────
+
+interface HeaderModelPickerProps {
+  pinnedModels: string[];
+  activeModel: string;
+  onModelChange: (id: string) => void;
+  disabled: boolean;
+}
+
+function HeaderModelPicker({ pinnedModels, activeModel, onModelChange, disabled }: HeaderModelPickerProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const shortName = (id: string) => id.split('/').pop() ?? id;
+  const displayName = shortName(activeModel || pinnedModels[0] || '');
+  const canSwitch = pinnedModels.length > 1;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  if (!canSwitch) {
+    return <span className="font-medium text-text-primary">{displayName}</span>;
+  }
+
+  return (
+    <div ref={containerRef} className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen((o) => !o)}
+        disabled={disabled}
+        className="inline-flex items-center gap-0.5 font-medium text-text-primary hover:text-accent transition-colors disabled:opacity-60"
+      >
+        {displayName}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          className={`w-3 h-3 shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-1 bg-surface-raised border border-border-subtle rounded-lg shadow-lg py-1 z-50 min-w-[140px]">
+          {pinnedModels.map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => { onModelChange(id); setOpen(false); }}
+              className={`w-full px-3 py-1.5 text-xs text-left transition-colors ${
+                id === activeModel
+                  ? 'text-accent bg-accent/10 font-medium'
+                  : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
+              }`}
+            >
+              {shortName(id)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Chat panel ────────────────────────────────────────────────────────────────
 
 interface Props {
   messages: ChatMessage[];
@@ -19,12 +91,16 @@ interface Props {
   onClose: () => void;
   onRetry: () => void;
   onAdd: (tmdbId: number, type: 'movie' | 'tv', title: string) => Promise<void>;
+  pinnedModels: string[];
+  activeModel: string;
+  onModelChange: (id: string) => void;
 }
 
-export default function ChatPanel({ messages, isStreaming, error, isCreatingSession, sessionError, onSend, onClose, onRetry, onAdd }: Props) {
+export default function ChatPanel({ messages, isStreaming, error, isCreatingSession, sessionError, onSend, onClose, onRetry, onAdd, pinnedModels, activeModel, onModelChange }: Props) {
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { settings } = useSettings();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -50,16 +126,30 @@ export default function ChatPanel({ messages, isStreaming, error, isCreatingSess
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🎬</span>
-          <div>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-lg shrink-0">🎬</span>
+          <div className="min-w-0">
             <p className="text-sm font-semibold text-text-primary">Watchlist Assistant</p>
-            <p className="text-xs text-text-muted">Powered by GitHub Copilot - claude-sonnet-4.6</p>
+            <p className="text-xs text-text-muted flex items-center gap-1 flex-wrap">
+              {settings.openrouterEnabled && (pinnedModels.length > 0 || activeModel) ? (
+                <>
+                  <span>Powered by OpenRouter via GitHub Copilot -</span>
+                  <HeaderModelPicker
+                    pinnedModels={pinnedModels}
+                    activeModel={activeModel}
+                    onModelChange={onModelChange}
+                    disabled={isStreaming || isCreatingSession}
+                  />
+                </>
+              ) : (
+                'Powered by GitHub Copilot - claude-sonnet-4.6'
+              )}
+            </p>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg hover:bg-surface-overlay"
+          className="text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg hover:bg-surface-overlay shrink-0"
           aria-label="Close"
         >
           ✕

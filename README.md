@@ -11,7 +11,7 @@ A responsive React web app to track movies and series you've watched, discover u
 - **Discover** — Trending movies & series from TMDB
 - **Detail Pages** — Rich metadata: poster, backdrop, overview, cast & crew, where to watch (streaming/rent/buy)
 - **Search** — Search TMDB from the library page to find and add new content
-- **AI Copilot** — Personalized movie & series recommendations powered by the GitHub Copilot SDK, with full access to your library context
+- **AI Copilot** — Personalized movie & series recommendations powered by the GitHub Copilot SDK (or OpenRouter via BYOK), with full access to your library context
 - **Export / Import** — Back up and restore your library as JSON
 - **Responsive** — Mobile-first design with bottom nav on mobile, top nav on desktop
 

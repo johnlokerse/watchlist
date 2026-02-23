@@ -114,13 +114,44 @@ app.put('/api/settings', (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Chat models endpoint ──────────────────────────────────────────
+app.get('/api/chat/models', async (req, res) => {
+  const allSettings = queries.getSettings() as Record<string, unknown>;
+  const enabled = allSettings.openrouterEnabled === true;
+  const apiKey = typeof allSettings.openrouterApiKey === 'string' ? allSettings.openrouterApiKey : '';
+
+  if (enabled && apiKey) {
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models', {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!response.ok) {
+        res.status(response.status).json({ error: `OpenRouter API error: ${response.statusText}` });
+        return;
+      }
+      const body = (await response.json()) as { data: { id: string; name: string }[] };
+      const models = (body.data ?? []).map((m) => ({ id: m.id, name: m.name }));
+      res.json(models);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+    return;
+  }
+
+  // Fallback: return Copilot models (populated after client.start())
+  res.json(copilotModels);
+});
+
+let copilotModels: { id: string; name: string }[] = [];
+
 const client = new CopilotClient();
 
 try {
   await client.start();
   console.log('✓ Copilot SDK client started');
   const models = await client.listModels();
-  console.log('Available models:', models.map((m: { id: string }) => m.id).join(', '));
+  copilotModels = models.map((m: { id: string }) => ({ id: m.id, name: m.id }));
+  console.log('Available models:', copilotModels.map((m) => m.id).join(', '));
 } catch (err) {
   console.error('✗ Failed to start Copilot SDK — is the Copilot CLI installed?', err);
   process.exit(1);
@@ -162,8 +193,21 @@ app.post('/api/chat/session', async (req, res) => {
     // Read library from SQLite — cast needed because SQLite stores dates as ISO strings
     const library = queries.getAllItems();
 
-    const session = await client.createSession({
-      model: 'claude-sonnet-4.6',
+    // Optional model override passed directly in the request body
+    // (used when switching models in the chat to avoid a race with PUT /api/settings)
+    const modelOverride = typeof req.body.model === 'string' && req.body.model ? req.body.model : null;
+
+    // Check if OpenRouter is configured
+    const allSettings = queries.getSettings() as Record<string, unknown>;
+    const openrouterEnabled = allSettings.openrouterEnabled === true;
+    const openrouterApiKey = typeof allSettings.openrouterApiKey === 'string' ? allSettings.openrouterApiKey : '';
+    const openrouterModel = typeof allSettings.openrouterModel === 'string' ? allSettings.openrouterModel : '';
+
+    // Resolve the model to use: request-body override > DB setting > default
+    const resolvedModel = modelOverride ?? (openrouterEnabled && openrouterModel ? openrouterModel : 'claude-sonnet-4.6');
+
+    const sessionConfig: Parameters<typeof client.createSession>[0] = {
+      model: resolvedModel,
       streaming: true,
       tools: tmdbTools,
       systemMessage: {
@@ -182,7 +226,18 @@ Guidelines:
 - Format suggestions as short lists: linked title, one-sentence pitch, and why it matches their taste.
 - If the user asks about a specific upcoming title, search for it on TMDB first to get its ID, then use getSimilar/getRecommendations.`,
       },
-    });
+    };
+
+    // Inject OpenRouter provider when enabled and we have an API key
+    if (openrouterEnabled && openrouterApiKey) {
+      (sessionConfig as Record<string, unknown>).provider = {
+        type: 'openai',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        apiKey: openrouterApiKey,
+      };
+    }
+
+    const session = await client.createSession(sessionConfig);
 
     sessions.set(session.sessionId, session);
     res.json({ sessionId: session.sessionId });
