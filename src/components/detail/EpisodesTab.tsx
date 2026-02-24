@@ -7,9 +7,10 @@ interface Props {
   tmdbId: number;
   totalSeasons: number;
   initialSeason?: number;
+  onEpisodeWatched?: (season: number, episode: number) => void;
 }
 
-export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1 }: Props) {
+export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, onEpisodeWatched }: Props) {
   const [season, setSeason] = useState(initialSeason);
   const { data, isLoading } = useSeasonDetail(tmdbId, season);
   const watchedEpisodes = useWatchedEpisodes(tmdbId, season);
@@ -25,6 +26,10 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1 }:
       markSeasonWatched(tmdbId, season, []);
     } else {
       markSeasonWatched(tmdbId, season, watchableEpisodes.map((e) => e.episode_number));
+      if (onEpisodeWatched && watchableEpisodes.length > 0) {
+        const lastEp = watchableEpisodes[watchableEpisodes.length - 1];
+        onEpisodeWatched(season, lastEp.episode_number + 1);
+      }
     }
   };
 
@@ -72,7 +77,13 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1 }:
             return (
               <button
                 key={ep.episode_number}
-                onClick={() => !isFuture && toggleEpisodeWatched(tmdbId, season, ep.episode_number)}
+                onClick={() => {
+                  if (!isFuture) {
+                    toggleEpisodeWatched(tmdbId, season, ep.episode_number);
+                    if (!watched) onEpisodeWatched?.(season, ep.episode_number + 1);
+                    else onEpisodeWatched?.(season, ep.episode_number);
+                  }
+                }}
                 disabled={isFuture}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition ${
                   isFuture

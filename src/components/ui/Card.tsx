@@ -15,6 +15,7 @@ interface Props {
   subtitle?: string;
   compact?: boolean;
   status?: WatchedStatus | null;
+  progressLabel?: string;
 }
 
 function statusLabel(status: WatchedStatus): string | null {
@@ -24,7 +25,7 @@ function statusLabel(status: WatchedStatus): string | null {
 }
 
 export default function Card({
-  id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact, status,
+  id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact, status, progressLabel,
 }: Props) {
   const url = posterUrl(posterPath, 'w342');
   const linkTo = type === 'movie' ? `/movie/${id}` : `/series/${id}`;
@@ -60,6 +61,11 @@ export default function Card({
         {voteAverage != null && voteAverage > 0 && (
           <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm text-xs font-semibold px-2 py-0.5 rounded-md text-yellow-400">
             ★ {voteAverage.toFixed(1)}
+          </div>
+        )}
+        {progressLabel && (
+          <div className="absolute bottom-2 right-2 bg-surface-overlay/90 backdrop-blur-sm text-xs font-semibold px-2 py-0.5 rounded-md text-accent">
+            {progressLabel}
           </div>
         )}
       </div>

@@ -276,6 +276,7 @@ export default function SeriesDetailPage() {
           tmdbId={series.id}
           totalSeasons={series.number_of_seasons}
           initialSeason={progress?.currentSeason ?? 1}
+          onEpisodeWatched={handleProgressChange}
         />
       )}
       {activeTab === 'cast' && series.credits && (

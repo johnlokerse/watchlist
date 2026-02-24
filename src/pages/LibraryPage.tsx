@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import { useWatchedItems } from '../db/hooks';
+import { useWatchedItems, useSeriesProgress } from '../db/hooks';
 import { useSearchMovies, useSearchSeries } from '../api/tmdb';
 import { useDebounce } from '../hooks/useDebounce';
-import type { ContentType, WatchedStatus } from '../db/models';
+import type { ContentType, WatchedItem, WatchedStatus } from '../db/models';
 import type { TMDBMovie, TMDBSeries } from '../api/types';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import SearchBar from '../components/ui/SearchBar';
@@ -10,6 +10,23 @@ import FilterBar from '../components/ui/FilterBar';
 import Card from '../components/ui/Card';
 import CardGrid from '../components/ui/CardGrid';
 import SkeletonCard from '../components/ui/SkeletonCard';
+
+function WatchingSeriesCard({ item }: { item: WatchedItem }) {
+  const progress = useSeriesProgress(item.tmdbId);
+  const progressLabel =
+    progress && progress.currentEpisode > 0
+      ? `S${progress.currentSeason}E${progress.currentEpisode}`
+      : undefined;
+  return (
+    <Card
+      id={item.tmdbId}
+      title={item.title}
+      posterPath={item.posterPath}
+      type={item.contentType}
+      progressLabel={progressLabel}
+    />
+  );
+}
 
 const MOVIE_STATUS_FILTERS = [
   { label: 'Watched', value: 'watched' },
@@ -141,9 +158,13 @@ export default function LibraryPage() {
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Watching</h2>
                   <CardGrid>
-                    {watchingItems.map((item) => (
-                      <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                    ))}
+                    {watchingItems.map((item) =>
+                      item.contentType === 'series' ? (
+                        <WatchingSeriesCard key={item.id} item={item} />
+                      ) : (
+                        <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
+                      ),
+                    )}
                   </CardGrid>
                 </div>
               )}
