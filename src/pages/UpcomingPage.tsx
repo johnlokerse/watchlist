@@ -9,6 +9,7 @@ import SkeletonCard from '../components/ui/SkeletonCard';
 type ContentTab = 'movies' | 'series';
 
 const UPCOMING_STATUSES = new Set(['Returning Series', 'In Production', 'Planned']);
+const ENDED_STATUSES = new Set(['Ended', 'Canceled']);
 
 function seriesStatusLabel(status: string): string {
   switch (status) {
@@ -37,9 +38,9 @@ export default function UpcomingPage() {
     series.length > 0 &&
     seriesDetailQueries.some((q) => q.isLoading);
 
-  const { upcomingEpisodes, announcedSeries } = useMemo(() => {
+  const { upcomingEpisodes, announcedSeries, endedSeries } = useMemo(() => {
     if (!series || series.length === 0) {
-      return { upcomingEpisodes: [], announcedSeries: [] };
+      return { upcomingEpisodes: [], announcedSeries: [], endedSeries: [] };
     }
 
     const withDetails = series.map((item, idx) => ({
@@ -69,7 +70,15 @@ export default function UpcomingPage() {
       })
       .sort((a, b) => a.item.title.localeCompare(b.item.title));
 
-    return { upcomingEpisodes, announcedSeries };
+    // Series that have ended or been canceled
+    const endedSeries = withDetails
+      .filter(({ detail }) => {
+        if (!detail) return false;
+        return ENDED_STATUSES.has(detail.status);
+      })
+      .sort((a, b) => a.item.title.localeCompare(b.item.title));
+
+    return { upcomingEpisodes, announcedSeries, endedSeries };
   }, [series, seriesDetailQueries, today]);
 
   const moviesItems = movies;
@@ -165,7 +174,7 @@ export default function UpcomingPage() {
                 Series on your watchlist with upcoming episodes will appear here.
               </p>
             </div>
-          ) : upcomingEpisodes.length === 0 && announcedSeries.length === 0 ? (
+          ) : upcomingEpisodes.length === 0 && announcedSeries.length === 0 && endedSeries.length === 0 ? (
             <div className="text-center py-16 text-text-muted">
               <p className="text-4xl mb-2">✅</p>
               <p className="font-medium mb-1">All caught up</p>
@@ -211,6 +220,27 @@ export default function UpcomingPage() {
                         type="series"
                         showCountdown={false}
                         subtitle={seriesStatusLabel(detail!.status)}
+                      />
+                    ))}
+                  </CardGrid>
+                </div>
+              )}
+
+              {endedSeries.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Ended</h2>
+                  <CardGrid>
+                    {endedSeries.map(({ item, detail }) => (
+                      <Card
+                        key={item.id}
+                        id={item.tmdbId}
+                        title={item.title}
+                        posterPath={item.posterPath}
+                        releaseDate=""
+                        voteAverage={0}
+                        type="series"
+                        showCountdown={false}
+                        subtitle={detail!.status}
                       />
                     ))}
                   </CardGrid>

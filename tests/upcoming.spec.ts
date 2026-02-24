@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { setupTMDBMocks } from './helpers/mock-tmdb';
-import { seedMovie, clearLibrary } from './helpers/seed';
+import { setupTMDBMocks, seriesDetail1396 } from './helpers/mock-tmdb';
+import { seedMovie, seedSeries, clearLibrary } from './helpers/seed';
 
 test.beforeEach(async ({ request }) => {
   await clearLibrary(request);
@@ -61,5 +61,42 @@ test.describe('Upcoming Page', () => {
     await page.goto('/upcoming');
     await page.getByRole('tab', { name: 'Series' }).click();
     await expect(page.getByText('Nothing upcoming yet')).toBeVisible();
+  });
+
+  test('watching series with upcoming episode appears on Series tab', async ({ page, request }) => {
+    await seedSeries(request, { status: 'watching' });
+    await setupTMDBMocks(page);
+
+    // Override the series detail mock to return a future next_episode_to_air date (LIFO wins)
+    const futureFixture = {
+      ...seriesDetail1396,
+      status: 'Returning Series',
+      next_episode_to_air: {
+        id: 99999,
+        name: 'Future Episode',
+        overview: '',
+        air_date: '2099-01-01',
+        episode_number: 1,
+        season_number: 6,
+      },
+    };
+    await page.route('**/api.themoviedb.org/3/tv/1396*', (route) =>
+      route.fulfill({ json: futureFixture }),
+    );
+
+    await page.goto('/upcoming');
+    await page.getByRole('tab', { name: 'Series' }).click();
+    await expect(page.getByText('Breaking Bad')).toBeVisible();
+  });
+
+  test('ended section shows series with Ended TMDB status', async ({ page, request }) => {
+    // Breaking Bad (tmdbId 1396) already has status: "Ended" in the fixture
+    await seedSeries(request, { status: 'watching' });
+    await setupTMDBMocks(page);
+
+    await page.goto('/upcoming');
+    await page.getByRole('tab', { name: 'Series' }).click();
+    await expect(page.getByRole('heading', { name: 'Ended' })).toBeVisible();
+    await expect(page.getByText('Breaking Bad')).toBeVisible();
   });
 });

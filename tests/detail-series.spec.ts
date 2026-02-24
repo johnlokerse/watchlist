@@ -150,4 +150,87 @@ test.describe('Series Detail Page', () => {
     await expect(page.getByText('Series not found.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Go back' })).toBeVisible();
   });
+
+  test('clicking a rating star saves the rating via API', async ({ page, request }) => {
+    await seedSeries(request, { status: 'watching' });
+    await setupTMDBMocks(page);
+    await page.goto('/series/1396');
+    await page.getByRole('group', { name: 'Rating' }).getByRole('button', { name: '8 stars' }).click();
+    const res = await request.get('/api/library/1396/series');
+    const item = await res.json() as { userRating: number };
+    expect(item.userRating).toBe(8);
+  });
+
+  test('saving notes persists via API', async ({ page, request }) => {
+    await seedSeries(request, { status: 'watching' });
+    await setupTMDBMocks(page);
+    await page.goto('/series/1396');
+    const notesInput = page.getByPlaceholder('Add personal notes...');
+    await notesInput.fill('Incredible series');
+    await page.getByRole('button', { name: 'Save' }).click();
+    const res = await request.get('/api/library/1396/series');
+    const item = await res.json() as { notes: string };
+    expect(item.notes).toBe('Incredible series');
+  });
+
+  test('saved notes persist after re-navigation', async ({ page, request }) => {
+    await seedSeries(request, { status: 'watching' });
+    await setupTMDBMocks(page);
+    await page.goto('/series/1396');
+    const notesInput = page.getByPlaceholder('Add personal notes...');
+    await notesInput.fill('Remember this one');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await page.goto('/library');
+    await page.goto('/series/1396');
+    await expect(page.getByPlaceholder('Add personal notes...')).toHaveValue('Remember this one');
+  });
+
+  test('updating season progress input persists via API', async ({ page, request }) => {
+    await seedSeries(request, { status: 'watching' });
+    await setupTMDBMocks(page);
+    await page.goto('/series/1396');
+    // Fill the Season number input (first number input in the Progress section)
+    const seasonInput = page.locator('label').filter({ hasText: 'Season' }).locator('~ input[type="number"], + input[type="number"]');
+    await seasonInput.fill('3');
+    // Trigger blur so the onChange fires and the PATCH request is sent
+    await seasonInput.blur();
+    const res = await request.get('/api/progress/1396');
+    const progress = await res.json() as { currentSeason: number } | null;
+    expect(progress?.currentSeason).toBe(3);
+  });
+
+  test('toggling an episode marks it watched and updates counter', async ({ page, request }) => {
+    await seedSeries(request, { status: 'watching' });
+    await setupTMDBMocks(page);
+    await page.goto('/series/1396');
+    await page.getByRole('button', { name: 'Episodes' }).click();
+    // Counter starts at 0/7
+    const counter = page.locator('span').filter({ hasText: /\d+\/\d+ watched/ });
+    await expect(counter).toContainText('0/7 watched');
+    // Toggle the Pilot episode
+    await page.getByRole('button', { name: /Pilot/i }).click();
+    await expect(counter).toContainText('1/7 watched');
+  });
+
+  test('Mark all watched button marks all episodes and updates counter', async ({ page, request }) => {
+    await seedSeries(request, { status: 'watching' });
+    await setupTMDBMocks(page);
+    await page.goto('/series/1396');
+    await page.getByRole('button', { name: 'Episodes' }).click();
+    await page.getByRole('button', { name: /Mark all watched/i }).click();
+    const counter = page.locator('span').filter({ hasText: /\d+\/\d+ watched/ });
+    await expect(counter).toContainText('7/7 watched');
+  });
+
+  test('Unmark all button resets episode counter to 0', async ({ page, request }) => {
+    await seedSeries(request, { status: 'watching' });
+    await setupTMDBMocks(page);
+    await page.goto('/series/1396');
+    await page.getByRole('button', { name: 'Episodes' }).click();
+    // Mark all first, then unmark
+    await page.getByRole('button', { name: /Mark all watched/i }).click();
+    await page.getByRole('button', { name: /Unmark all/i }).click();
+    const counter = page.locator('span').filter({ hasText: /\d+\/\d+ watched/ });
+    await expect(counter).toContainText('0/7 watched');
+  });
 });

@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { setupTMDBMocks } from './helpers/mock-tmdb';
+import { seedMovie, seedSeries, clearLibrary } from './helpers/seed';
+
+test.beforeEach(async ({ request }) => {
+  await clearLibrary(request);
+});
 
 test.describe('Discover Page', () => {
   test('shows four content sections', async ({ page }) => {
@@ -59,5 +64,21 @@ test.describe('Discover Page', () => {
     await page.goto('/discover');
     await page.getByText('Breaking Bad').first().click();
     await expect(page).toHaveURL('/series/1396');
+  });
+
+  test('watched movie shows "Watched" badge overlay on discover card', async ({ page, request }) => {
+    await seedMovie(request, { status: 'watched' });
+    await setupTMDBMocks(page);
+    await page.goto('/discover');
+    // The Card component renders a "Watched" overlay when status === 'watched'
+    // The Discover page fetches library to pass status prop to each Card
+    await expect(page.getByText('Watched').first()).toBeVisible();
+  });
+
+  test('watching series shows "In Library" badge overlay on discover card', async ({ page, request }) => {
+    await seedSeries(request, { status: 'watching' });
+    await setupTMDBMocks(page);
+    await page.goto('/discover');
+    await expect(page.getByText('In Library').first()).toBeVisible();
   });
 });

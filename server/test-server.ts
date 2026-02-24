@@ -83,6 +83,17 @@ app.post('/api/episodes/season', (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Settings ───────────────────────────────────────────────────────
+
+app.get('/api/settings', (_req, res) => {
+  res.json(queries.getSettings());
+});
+
+app.put('/api/settings', (req, res) => {
+  queries.saveSettings(req.body);
+  res.json({ ok: true });
+});
+
 app.post('/api/migrate', (req, res) => {
   try {
     queries.migrate(req.body);

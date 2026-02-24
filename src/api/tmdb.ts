@@ -37,7 +37,7 @@ export function useMovieDetail(id: number | undefined) {
     queryKey: ['movie', id],
     queryFn: () =>
       tmdbFetch<TMDBMovieDetail>(`/movie/${id}`, {
-        append_to_response: 'credits,watch/providers',
+        append_to_response: 'credits,watch/providers,videos',
       }),
     enabled: !!id,
     staleTime: STALE_TIME_DETAIL,
@@ -79,7 +79,7 @@ export function useSeriesDetail(id: number | undefined) {
     queryKey: ['series', id],
     queryFn: () =>
       tmdbFetch<TMDBSeriesDetail>(`/tv/${id}`, {
-        append_to_response: 'credits,watch/providers,external_ids',
+        append_to_response: 'credits,watch/providers,external_ids,videos',
       }),
     enabled: !!id,
     staleTime: STALE_TIME_DETAIL,

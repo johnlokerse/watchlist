@@ -8,9 +8,10 @@ import OverviewTab from '../components/detail/OverviewTab';
 import CastCrewTab from '../components/detail/CastCrewTab';
 import WatchProvidersTab from '../components/detail/WatchProvidersTab';
 import EpisodesTab from '../components/detail/EpisodesTab';
+import TrailerTab from '../components/detail/TrailerTab';
 import RatingStars from '../components/ui/RatingStars';
 
-type Tab = 'overview' | 'episodes' | 'cast' | 'providers';
+type Tab = 'overview' | 'episodes' | 'cast' | 'providers' | 'trailer';
 
 export default function SeriesDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -119,6 +120,7 @@ export default function SeriesDetailPage() {
     { id: 'episodes' as Tab, label: 'Episodes' },
     { id: 'cast' as Tab, label: 'Cast & Crew' },
     { id: 'providers' as Tab, label: 'Where to Watch' },
+    { id: 'trailer' as Tab, label: 'Trailer' },
   ];
 
   return (
@@ -261,6 +263,9 @@ export default function SeriesDetailPage() {
       )}
       {activeTab === 'providers' && (
         <WatchProvidersTab providers={providers} country={settings.country} userServiceIds={settings.streamingServices} />
+      )}
+      {activeTab === 'trailer' && (
+        <TrailerTab videos={series.videos?.results} />
       )}
     </div>
   );

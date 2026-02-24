@@ -21,6 +21,7 @@ export interface TMDBMovieDetail extends Omit<TMDBMovie, 'genre_ids'> {
   imdb_id: string | null;
   credits?: TMDBCredits;
   'watch/providers'?: TMDBWatchProvidersResponse;
+  videos?: TMDBVideosResponse;
 }
 
 // TMDB Series (list item)
@@ -49,6 +50,7 @@ export interface TMDBSeriesDetail extends Omit<TMDBSeries, 'genre_ids'> {
   created_by: { id: number; name: string; profile_path: string | null }[];
   credits?: TMDBCredits;
   'watch/providers'?: TMDBWatchProvidersResponse;
+  videos?: TMDBVideosResponse;
   external_ids?: { imdb_id: string | null };
   next_episode_to_air: TMDBNextEpisode | null;
   last_episode_to_air: TMDBNextEpisode | null;
@@ -143,4 +145,18 @@ export interface TMDBPagedResponse<T> {
   results: T[];
   total_pages: number;
   total_results: number;
+}
+
+export interface TMDBVideo {
+  id: string;
+  key: string;
+  name: string;
+  site: string;
+  type: string;
+  official: boolean;
+  published_at: string;
+}
+
+export interface TMDBVideosResponse {
+  results: TMDBVideo[];
 }

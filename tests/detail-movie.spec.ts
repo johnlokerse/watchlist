@@ -130,4 +130,52 @@ test.describe('Movie Detail Page', () => {
     await expect(page.getByText('Movie not found.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Go back' })).toBeVisible();
   });
+
+  test('clicking a rating star saves the rating via API', async ({ page, request }) => {
+    await seedMovie(request, { status: 'watched' });
+    await setupTMDBMocks(page);
+    await page.goto('/movie/302946');
+    // Click the 7-star button in the Rating group
+    await page.getByRole('group', { name: 'Rating' }).getByRole('button', { name: '7 stars' }).click();
+    // Verify the rating was persisted via the REST API
+    const res = await request.get('/api/library/302946/movie');
+    const item = await res.json() as { userRating: number };
+    expect(item.userRating).toBe(7);
+  });
+
+  test('saving notes persists via API', async ({ page, request }) => {
+    await seedMovie(request, { status: 'watched' });
+    await setupTMDBMocks(page);
+    await page.goto('/movie/302946');
+    const notesInput = page.getByPlaceholder('Add personal notes...');
+    await notesInput.fill('Great film');
+    await page.getByRole('button', { name: 'Save' }).click();
+    // Verify the note was persisted via the REST API
+    const res = await request.get('/api/library/302946/movie');
+    const item = await res.json() as { notes: string };
+    expect(item.notes).toBe('Great film');
+  });
+
+  test('saved notes persist after re-navigation', async ({ page, request }) => {
+    await seedMovie(request, { status: 'watched' });
+    await setupTMDBMocks(page);
+    await page.goto('/movie/302946');
+    const notesInput = page.getByPlaceholder('Add personal notes...');
+    await notesInput.fill('Persistent note');
+    await page.getByRole('button', { name: 'Save' }).click();
+    // Navigate away and back
+    await page.goto('/library');
+    await page.goto('/movie/302946');
+    await expect(page.getByPlaceholder('Add personal notes...')).toHaveValue('Persistent note');
+  });
+
+  test('changing status dropdown updates status via API', async ({ page, request }) => {
+    await seedMovie(request, { status: 'watched' });
+    await setupTMDBMocks(page);
+    await page.goto('/movie/302946');
+    await page.getByRole('combobox').selectOption('plan_to_watch');
+    const res = await request.get('/api/library/302946/movie');
+    const item = await res.json() as { status: string };
+    expect(item.status).toBe('plan_to_watch');
+  });
 });

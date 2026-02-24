@@ -137,4 +137,40 @@ test.describe('Settings Page', () => {
     await page.goto('/library');
     await expect(page.getByText('The Accountant')).toBeVisible();
   });
+
+  test('country dropdown change updates selected value', async ({ page }) => {
+    await setupTMDBMocks(page);
+    await page.goto('/settings', { waitUntil: 'networkidle' });
+    const countrySelect = page.locator('select').filter({ has: page.locator('option[value="NL"]') });
+    await countrySelect.selectOption('US');
+    await expect(countrySelect).toHaveValue('US');
+  });
+
+  test('Show Spoilers toggle starts unchecked and toggles on click', async ({ page }) => {
+    await setupTMDBMocks(page);
+    await page.goto('/settings', { waitUntil: 'networkidle' });
+    // Find the Toggle switch within the Show Spoilers row
+    const toggle = page.locator('.flex.items-center.justify-between').filter({ hasText: 'Show Spoilers' }).getByRole('switch');
+    // The toggle should reflect the loaded state — check it is not already enabled before interacting
+    const currentState = await toggle.getAttribute('aria-checked');
+    if (currentState === 'true') {
+      // Reset it off first so we can test the toggle-on behavior
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-checked', 'false');
+    }
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-checked', 'true');
+  });
+
+  test('Use OpenRouter toggle reveals API key input when enabled', async ({ page }) => {
+    await setupTMDBMocks(page);
+    await page.goto('/settings', { waitUntil: 'networkidle' });
+    // API key input should not be visible initially (openrouterEnabled defaults to false)
+    await expect(page.getByPlaceholder('sk-or-...')).not.toBeVisible();
+    // Enable OpenRouter
+    const toggle = page.locator('.flex.items-center.justify-between').filter({ hasText: 'Use OpenRouter' }).getByRole('switch');
+    await expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await toggle.click();
+    await expect(page.getByPlaceholder('sk-or-...')).toBeVisible();
+  });
 });

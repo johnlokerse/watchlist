@@ -7,9 +7,10 @@ import HeroBanner from '../components/detail/HeroBanner';
 import OverviewTab from '../components/detail/OverviewTab';
 import CastCrewTab from '../components/detail/CastCrewTab';
 import WatchProvidersTab from '../components/detail/WatchProvidersTab';
+import TrailerTab from '../components/detail/TrailerTab';
 import RatingStars from '../components/ui/RatingStars';
 
-type Tab = 'overview' | 'cast' | 'providers';
+type Tab = 'overview' | 'cast' | 'providers' | 'trailer';
 
 export default function MovieDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -89,6 +90,7 @@ export default function MovieDetailPage() {
     { id: 'overview' as Tab, label: 'Overview' },
     { id: 'cast' as Tab, label: 'Cast & Crew' },
     { id: 'providers' as Tab, label: 'Where to Watch' },
+    { id: 'trailer' as Tab, label: 'Trailer' },
   ];
 
   return (
@@ -196,6 +198,9 @@ export default function MovieDetailPage() {
       )}
       {activeTab === 'providers' && (
         <WatchProvidersTab providers={providers} country={settings.country} userServiceIds={settings.streamingServices} />
+      )}
+      {activeTab === 'trailer' && (
+        <TrailerTab videos={movie.videos?.results} />
       )}
     </div>
   );

@@ -38,6 +38,18 @@ export default function CopilotChat() {
     return () => { destroySession(); };
   }, [destroySession]);
 
+  // CMD+K (macOS) / CTRL+K (Windows/Linux) toggles the chat panel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleModelChange = useCallback(async (id: string) => {
     updateSettings({ openrouterModel: id });
     await destroySession();
@@ -122,7 +134,8 @@ export default function CopilotChat() {
             ? 'bg-surface-overlay text-text-secondary border border-border-subtle scale-95'
             : 'bg-accent hover:bg-accent-hover text-white scale-100 hover:scale-105'
         }`}
-        aria-label={isOpen ? 'Close assistant' : 'Open watch assistant'}
+        aria-label={isOpen ? 'Close assistant' : 'Open watch assistant (⌘K)'}
+        title={isOpen ? 'Close assistant' : 'Open watch assistant (⌘K / Ctrl+K)'}
       >
         {isOpen ? '✕' : '🎬'}
       </button>
