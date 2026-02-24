@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { posterUrl } from '../../utils/image';
 import { formatDate } from '../../utils/date';
 import CountdownBadge from './CountdownBadge';
+import type { WatchedStatus } from '../../db/models';
 
 interface Props {
   id: number;
@@ -13,10 +14,17 @@ interface Props {
   showCountdown?: boolean;
   subtitle?: string;
   compact?: boolean;
+  status?: WatchedStatus | null;
+}
+
+function statusLabel(status: WatchedStatus): string | null {
+  if (status === 'watched') return 'Watched';
+  if (status === 'plan_to_watch' || status === 'watching') return 'In Library';
+  return null;
 }
 
 export default function Card({
-  id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact,
+  id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact, status,
 }: Props) {
   const url = posterUrl(posterPath, 'w342');
   const linkTo = type === 'movie' ? `/movie/${id}` : `/series/${id}`;
@@ -37,6 +45,11 @@ export default function Card({
         ) : (
           <div className="w-full h-full flex items-center justify-center text-4xl text-text-muted">
             🎬
+          </div>
+        )}
+        {status && statusLabel(status) && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <span className="text-white font-bold text-lg drop-shadow">{statusLabel(status)}</span>
           </div>
         )}
         {showCountdown && releaseDate && (

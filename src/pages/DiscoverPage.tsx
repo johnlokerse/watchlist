@@ -1,4 +1,7 @@
+import { useMemo } from 'react';
 import { useTrendingMovies, useTrendingSeries, useAnticipatedMovies, useAnticipatedSeries } from '../api/tmdb';
+import { useWatchedItems } from '../db/hooks';
+import type { WatchedStatus } from '../db/models';
 import Card from '../components/ui/Card';
 import ScrollRow from '../components/ui/ScrollRow';
 import SkeletonCard from '../components/ui/SkeletonCard';
@@ -8,6 +11,16 @@ export default function DiscoverPage() {
   const series = useTrendingSeries();
   const anticipatedMovies = useAnticipatedMovies();
   const anticipatedSeries = useAnticipatedSeries();
+  const libraryItems = useWatchedItems();
+
+  // Build a map keyed by `${tmdbId}-${contentType}` for O(1) status lookups
+  const libraryMap = useMemo(() => {
+    const map = new Map<string, WatchedStatus>();
+    libraryItems?.forEach((item) => {
+      map.set(`${item.tmdbId}-${item.contentType}`, item.status);
+    });
+    return map;
+  }, [libraryItems]);
 
   return (
     <div className="space-y-8">
@@ -31,6 +44,7 @@ export default function DiscoverPage() {
                 releaseDate={s.first_air_date}
                 voteAverage={s.vote_average}
                 type="series"
+                status={libraryMap.get(`${s.id}-series`) ?? null}
               />
             ))}
           </ScrollRow>
@@ -57,6 +71,7 @@ export default function DiscoverPage() {
                 releaseDate={m.release_date}
                 voteAverage={m.vote_average}
                 type="movie"
+                status={libraryMap.get(`${m.id}-movie`) ?? null}
               />
             ))}
           </ScrollRow>
@@ -83,6 +98,7 @@ export default function DiscoverPage() {
                 releaseDate={s.first_air_date}
                 voteAverage={s.vote_average}
                 type="series"
+                status={libraryMap.get(`${s.id}-series`) ?? null}
               />
             ))}
           </ScrollRow>
@@ -109,6 +125,7 @@ export default function DiscoverPage() {
                 releaseDate={m.release_date}
                 voteAverage={m.vote_average}
                 type="movie"
+                status={libraryMap.get(`${m.id}-movie`) ?? null}
               />
             ))}
           </ScrollRow>

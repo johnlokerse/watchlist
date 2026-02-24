@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useWatchedItems } from '../db/hooks';
 import { useSearchMovies, useSearchSeries } from '../api/tmdb';
 import { useDebounce } from '../hooks/useDebounce';
-import type { ContentType } from '../db/models';
+import type { ContentType, WatchedStatus } from '../db/models';
 import type { TMDBMovie, TMDBSeries } from '../api/types';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import SearchBar from '../components/ui/SearchBar';
@@ -78,6 +78,13 @@ export default function LibraryPage() {
     }
     return seriesSearch.data?.pages.flatMap((p) => p.results) ?? [];
   }, [debouncedSearch, contentType, movieSearch.data, seriesSearch.data]);
+
+  // Map tmdbId → status for quick lookups in search results
+  const libraryMap = useMemo(() => {
+    const map = new Map<number, WatchedStatus>();
+    items?.forEach((item) => map.set(item.tmdbId, item.status));
+    return map;
+  }, [items]);
 
   const isSearching = debouncedSearch.length > 1;
   const searchLoading = contentType === 'movie' ? movieSearch.isLoading : seriesSearch.isLoading;
@@ -193,6 +200,7 @@ export default function LibraryPage() {
                     releaseDate={isMovie ? movie.release_date : tv.first_air_date}
                     voteAverage={item.vote_average}
                     type={contentType}
+                    status={libraryMap.get(item.id) ?? null}
                   />
                 );
               })}
