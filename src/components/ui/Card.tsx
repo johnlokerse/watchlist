@@ -12,10 +12,11 @@ interface Props {
   type: 'movie' | 'series';
   showCountdown?: boolean;
   subtitle?: string;
+  compact?: boolean;
 }
 
 export default function Card({
-  id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle,
+  id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact,
 }: Props) {
   const url = posterUrl(posterPath, 'w342');
   const linkTo = type === 'movie' ? `/movie/${id}` : `/series/${id}`;
@@ -49,15 +50,15 @@ export default function Card({
           </div>
         )}
       </div>
-      <div className="p-3">
-        <h3 className="text-sm font-semibold truncate group-hover:text-accent transition-colors">
+      <div className={compact ? 'p-1.5 sm:p-3' : 'p-3'}>
+        <h3 className={`${compact ? 'text-xs sm:text-sm' : 'text-sm'} font-semibold truncate group-hover:text-accent transition-colors`}>
           {title}
         </h3>
         {subtitle && (
-          <p className="text-xs text-text-muted mt-0.5 truncate">{subtitle}</p>
+          <p className={`text-xs text-text-muted mt-0.5 truncate ${compact ? 'hidden sm:block' : ''}`}>{subtitle}</p>
         )}
         {releaseDate && (
-          <p className="text-xs text-text-muted mt-1">{formatDate(releaseDate)}</p>
+          <p className={`text-xs text-text-muted mt-1 ${compact ? 'hidden sm:block' : ''}`}>{formatDate(releaseDate)}</p>
         )}
       </div>
     </Link>

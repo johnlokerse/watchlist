@@ -146,7 +146,7 @@ export default function LibraryPage() {
               {watchedItems.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Watched</h2>
-                  <CardGrid>
+                  <CardGrid compact>
                     {watchedItems.map((item) => (
                       <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
                     ))}
