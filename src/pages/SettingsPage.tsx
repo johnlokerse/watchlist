@@ -390,7 +390,7 @@ export default function SettingsPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const { providers, isLoading: providersLoading, isError: providersError } = useAvailableProviders(settings.country);
+  const { providers, isLoading: providersLoading, isError: providersError } = useAvailableProviders();
 
   // OpenRouter model list
   const [orModels, setOrModels] = useState<{ id: string; name: string }[]>([]);

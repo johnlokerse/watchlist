@@ -1,5 +1,5 @@
 export type ContentType = 'movie' | 'series';
-export type WatchedStatus = 'watched' | 'watching' | 'plan_to_watch' | 'dropped';
+export type WatchedStatus = 'watched' | 'watching' | 'plan_to_watch';
 
 export interface WatchedItem {
   id?: number;

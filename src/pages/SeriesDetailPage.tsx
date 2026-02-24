@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSeriesDetail } from '../api/tmdb';
 import { useWatchedItem, useSeriesProgress, addToLibrary, updateWatchedItem, removeFromLibrary, updateSeriesProgress } from '../db/hooks';
 import { useSettings } from '../hooks/useSettings';
+import type { WatchedStatus } from '../db/models';
 import HeroBanner from '../components/detail/HeroBanner';
 import OverviewTab from '../components/detail/OverviewTab';
 import CastCrewTab from '../components/detail/CastCrewTab';
@@ -23,6 +24,18 @@ export default function SeriesDetailPage() {
   const { settings } = useSettings();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [notes, setNotes] = useState('');
+  const [showAddDropdown, setShowAddDropdown] = useState(false);
+  const addDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addDropdownRef.current && !addDropdownRef.current.contains(e.target as Node)) {
+        setShowAddDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (isLoading) {
     return (
@@ -45,16 +58,14 @@ export default function SeriesDetailPage() {
   const providers = series['watch/providers']?.results?.[settings.country];
   const imdbId = series.external_ids?.imdb_id;
 
-  const handleAddToLibrary = async () => {
-    const today = new Date().toISOString().slice(0, 10);
-    const isFutureRelease = !!series.first_air_date && series.first_air_date > today;
+  const handleAddToLibrary = async (status: WatchedStatus) => {
     const itemId = await addToLibrary({
       tmdbId: series.id,
       contentType: 'series',
       title: series.name,
       posterPath: series.poster_path,
       releaseDate: series.first_air_date ?? null,
-      status: isFutureRelease ? 'plan_to_watch' : 'watching',
+      status,
       userRating: null,
       notes: '',
       genreIds: series.genres.map((g) => g.id),
@@ -69,6 +80,7 @@ export default function SeriesDetailPage() {
         totalEpisodes: series.number_of_episodes,
       });
     }
+    setShowAddDropdown(false);
   };
 
   const handleRate = async (rating: number) => {
@@ -147,7 +159,6 @@ export default function SeriesDetailPage() {
                 <option value="watched">Watched</option>
                 <option value="watching">Watching</option>
                 <option value="plan_to_watch">Plan to Watch</option>
-                <option value="dropped">Dropped</option>
               </select>
               <button
                 onClick={handleRemove}
@@ -157,12 +168,21 @@ export default function SeriesDetailPage() {
               </button>
             </>
           ) : (
-            <button
-              onClick={handleAddToLibrary}
-              className="px-4 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition"
-            >
-              + Add to Library
-            </button>
+            <div className="relative" ref={addDropdownRef}>
+              <button
+                onClick={() => setShowAddDropdown((v) => !v)}
+                className="px-4 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition flex items-center gap-1"
+              >
+                + Add to Library
+              </button>
+              {showAddDropdown && (
+                <div className="absolute left-0 top-full mt-1 bg-surface-raised border border-border-subtle rounded-lg shadow-lg z-10 min-w-max">
+                  <button onClick={() => handleAddToLibrary('watching')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition rounded-t-lg">Watching</button>
+                  <button onClick={() => handleAddToLibrary('watched')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition">Watched</button>
+                  <button onClick={() => handleAddToLibrary('plan_to_watch')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition rounded-b-lg">Plan to Watch</button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </HeroBanner>

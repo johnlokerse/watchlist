@@ -14,14 +14,12 @@ import SkeletonCard from '../components/ui/SkeletonCard';
 const MOVIE_STATUS_FILTERS = [
   { label: 'Watched', value: 'watched' },
   { label: 'Plan to Watch', value: 'plan_to_watch' },
-  { label: 'Dropped', value: 'dropped' },
 ];
 
 const SERIES_STATUS_FILTERS = [
   { label: 'Watched', value: 'watched' },
   { label: 'Watching', value: 'watching' },
   { label: 'Plan to Watch', value: 'plan_to_watch' },
-  { label: 'Dropped', value: 'dropped' },
 ];
 
 export default function LibraryPage() {
@@ -69,7 +67,6 @@ export default function LibraryPage() {
   const planToWatchItems = useMemo(() => filteredItems.filter((i) => i.status === 'plan_to_watch'), [filteredItems]);
   const watchedItems = useMemo(() => filteredItems.filter((i) => i.status === 'watched'), [filteredItems]);
   const watchingItems = useMemo(() => filteredItems.filter((i) => i.status === 'watching'), [filteredItems]);
-  const droppedItems = useMemo(() => filteredItems.filter((i) => i.status === 'dropped'), [filteredItems]);
 
   const tmdbResults = useMemo((): (TMDBMovie | TMDBSeries)[] => {
     if (!debouncedSearch) return [];
@@ -155,16 +152,6 @@ export default function LibraryPage() {
                   <h2 className="text-xl font-semibold">Watched</h2>
                   <CardGrid compact>
                     {watchedItems.map((item) => (
-                      <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                    ))}
-                  </CardGrid>
-                </div>
-              )}
-              {droppedItems.length > 0 && (
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Dropped</h2>
-                  <CardGrid>
-                    {droppedItems.map((item) => (
                       <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
                     ))}
                   </CardGrid>

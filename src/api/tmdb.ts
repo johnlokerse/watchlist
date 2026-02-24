@@ -187,22 +187,20 @@ export function useSeriesDetailBatch(ids: number[]) {
 
 // --- Watch Providers ---
 
-export function useAvailableProviders(country: string) {
+export function useAvailableProviders() {
   const results = useQueries({
     queries: [
       {
-        queryKey: ['watch-providers', 'movie', country],
+        queryKey: ['watch-providers', 'movie'],
         queryFn: () =>
-          tmdbFetch<{ results: TMDBProvider[] }>('/watch/providers/movie', { watch_region: country }),
+          tmdbFetch<{ results: TMDBProvider[] }>('/watch/providers/movie'),
         staleTime: STALE_TIME_LIST,
-        enabled: !!country,
       },
       {
-        queryKey: ['watch-providers', 'tv', country],
+        queryKey: ['watch-providers', 'tv'],
         queryFn: () =>
-          tmdbFetch<{ results: TMDBProvider[] }>('/watch/providers/tv', { watch_region: country }),
+          tmdbFetch<{ results: TMDBProvider[] }>('/watch/providers/tv'),
         staleTime: STALE_TIME_LIST,
-        enabled: !!country,
       },
     ],
   });

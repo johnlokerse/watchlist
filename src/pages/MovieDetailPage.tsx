@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMovieDetail } from '../api/tmdb';
 import { useWatchedItem, addToLibrary, updateWatchedItem, removeFromLibrary } from '../db/hooks';
 import { useSettings } from '../hooks/useSettings';
+import type { WatchedStatus } from '../db/models';
 import HeroBanner from '../components/detail/HeroBanner';
 import OverviewTab from '../components/detail/OverviewTab';
 import CastCrewTab from '../components/detail/CastCrewTab';
@@ -21,6 +22,18 @@ export default function MovieDetailPage() {
   const { settings } = useSettings();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [notes, setNotes] = useState('');
+  const [showAddDropdown, setShowAddDropdown] = useState(false);
+  const addDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addDropdownRef.current && !addDropdownRef.current.contains(e.target as Node)) {
+        setShowAddDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (isLoading) {
     return (
@@ -42,18 +55,19 @@ export default function MovieDetailPage() {
 
   const providers = movie['watch/providers']?.results?.[settings.country];
 
-  const handleAddToLibrary = async () => {
+  const handleAddToLibrary = async (status: WatchedStatus) => {
     await addToLibrary({
       tmdbId: movie.id,
       contentType: 'movie',
       title: movie.title,
       posterPath: movie.poster_path,
       releaseDate: movie.release_date ?? null,
-      status: 'watched',
+      status,
       userRating: null,
       notes: '',
       genreIds: movie.genres.map((g) => g.id),
     });
+    setShowAddDropdown(false);
   };
 
   const handleRate = async (rating: number) => {
@@ -116,7 +130,6 @@ export default function MovieDetailPage() {
               >
                 <option value="watched">Watched</option>
                 <option value="plan_to_watch">Plan to Watch</option>
-                <option value="dropped">Dropped</option>
               </select>
               <button
                 onClick={handleRemove}
@@ -126,12 +139,21 @@ export default function MovieDetailPage() {
               </button>
             </>
           ) : (
-            <button
-              onClick={handleAddToLibrary}
-              className="px-4 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition"
-            >
-              + Add to Library
-            </button>
+            <div className="relative" ref={addDropdownRef}>
+              <button
+                onClick={() => setShowAddDropdown((v) => !v)}
+                className="px-4 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition flex items-center gap-1"
+              >
+                + Add to Library
+              </button>
+              {showAddDropdown && (
+                <div className="absolute left-0 top-full mt-1 bg-surface-raised border border-border-subtle rounded-lg shadow-lg z-10 min-w-max">
+                  <button onClick={() => handleAddToLibrary('watched')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition rounded-t-lg">Watched</button>
+                  <button onClick={() => handleAddToLibrary('watching')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition">Watching</button>
+                  <button onClick={() => handleAddToLibrary('plan_to_watch')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition rounded-b-lg">Plan to Watch</button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </HeroBanner>

@@ -229,7 +229,7 @@ export default function UpcomingPage() {
               {endedSeries.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Ended</h2>
-                  <CardGrid>
+                  <CardGrid compact>
                     {endedSeries.map(({ item, detail }) => (
                       <Card
                         key={item.id}
@@ -241,6 +241,7 @@ export default function UpcomingPage() {
                         type="series"
                         showCountdown={false}
                         subtitle={detail!.status}
+                        compact
                       />
                     ))}
                   </CardGrid>
