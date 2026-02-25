@@ -89,6 +89,19 @@ test.describe('Upcoming Page', () => {
     await expect(page.getByText('Breaking Bad')).toBeVisible();
   });
 
+  test('back from series detail returns to Upcoming series tab', async ({ page, request }) => {
+    await seedSeries(request, { status: 'watching' });
+    await setupTMDBMocks(page);
+    await page.goto('/upcoming');
+    await page.getByRole('tab', { name: 'Series' }).click();
+    await expect(page).toHaveURL('/upcoming?tab=series');
+    await page.getByText('Breaking Bad').first().click();
+    await expect(page).toHaveURL('/series/1396');
+    await page.getByRole('button', { name: /Back/i }).click();
+    await expect(page).toHaveURL('/upcoming?tab=series');
+    await expect(page.getByRole('tab', { name: 'Series' })).toHaveAttribute('aria-selected', 'true');
+  });
+
   test('ended section shows series with Ended TMDB status', async ({ page, request }) => {
     // Breaking Bad (tmdbId 1396) already has status: "Ended" in the fixture
     await seedSeries(request, { status: 'watching' });

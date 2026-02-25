@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useWatchedItems, useSeriesProgress } from '../db/hooks';
 import { useSearchMovies, useSearchSeries } from '../api/tmdb';
 import { useDebounce } from '../hooks/useDebounce';
@@ -40,7 +41,16 @@ const SERIES_STATUS_FILTERS = [
 ];
 
 export default function LibraryPage() {
-  const [tab, setTab] = useState<'movies' | 'series'>('movies');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const tab: 'movies' | 'series' = tabParam === 'series' ? 'series' : 'movies';
+  const setTab = (nextTab: 'movies' | 'series') => {
+    if (nextTab === 'series') {
+      setSearchParams({ tab: 'series' });
+      return;
+    }
+    setSearchParams({});
+  };
   const [search, setSearch] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const debouncedSearch = useDebounce(search);

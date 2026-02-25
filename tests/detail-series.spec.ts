@@ -19,12 +19,15 @@ test.describe('Series Detail Page', () => {
     await expect(page.getByRole('button', { name: /Back/i })).toBeVisible();
   });
 
-  test('Back button navigates to previous page', async ({ page }) => {
+  test('Back button returns to Library Series tab when opened from series overview', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/library');
+    await page.getByRole('tab', { name: 'Series' }).click();
+    await expect(page).toHaveURL('/library?tab=series');
     await page.goto('/series/1396');
     await page.getByRole('button', { name: /Back/i }).click();
-    await expect(page).toHaveURL('/library');
+    await expect(page).toHaveURL('/library?tab=series');
+    await expect(page.getByRole('tab', { name: 'Series' })).toHaveAttribute('aria-selected', 'true');
   });
 
   test('shows Overview, Episodes, Cast & Crew, and Where to Watch tabs', async ({ page }) => {

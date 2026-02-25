@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useUpcomingFromLibrary, usePlannedMovies } from '../db/hooks';
 import { useSeriesDetailBatch } from '../api/tmdb';
 import SegmentedControl from '../components/ui/SegmentedControl';
@@ -21,7 +22,16 @@ function seriesStatusLabel(status: string): string {
 }
 
 export default function UpcomingPage() {
-  const [tab, setTab] = useState<ContentTab>('movies');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const tab: ContentTab = tabParam === 'series' ? 'series' : 'movies';
+  const setTab = (nextTab: ContentTab) => {
+    if (nextTab === 'series') {
+      setSearchParams({ tab: 'series' });
+      return;
+    }
+    setSearchParams({});
+  };
 
   const movies = useUpcomingFromLibrary('movie');
   const series = useUpcomingFromLibrary('series');
