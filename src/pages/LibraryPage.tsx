@@ -6,20 +6,40 @@ import { useDebounce } from '../hooks/useDebounce';
 import type { ContentType, WatchedItem, WatchedStatus } from '../db/models';
 import type { TMDBMovie, TMDBSeries } from '../api/types';
 import SegmentedControl from '../components/ui/SegmentedControl';
+import ViewToggle from '../components/ui/ViewToggle';
+import type { ViewMode } from '../components/ui/ViewToggle';
 import SearchBar from '../components/ui/SearchBar';
 import FilterBar from '../components/ui/FilterBar';
 import Card from '../components/ui/Card';
 import CardGrid from '../components/ui/CardGrid';
+import ListRow from '../components/ui/ListRow';
 import SkeletonCard from '../components/ui/SkeletonCard';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+
+function useSeriesProgressLabel(tmdbId: number) {
+  const progress = useSeriesProgress(tmdbId);
+  return progress && progress.currentEpisode > 0
+    ? `S${progress.currentSeason}E${progress.currentEpisode}`
+    : undefined;
+}
 
 function WatchingSeriesCard({ item }: { item: WatchedItem }) {
-  const progress = useSeriesProgress(item.tmdbId);
-  const progressLabel =
-    progress && progress.currentEpisode > 0
-      ? `S${progress.currentSeason}E${progress.currentEpisode}`
-      : undefined;
+  const progressLabel = useSeriesProgressLabel(item.tmdbId);
   return (
     <Card
+      id={item.tmdbId}
+      title={item.title}
+      posterPath={item.posterPath}
+      type={item.contentType}
+      progressLabel={progressLabel}
+    />
+  );
+}
+
+function WatchingSeriesListRow({ item }: { item: WatchedItem }) {
+  const progressLabel = useSeriesProgressLabel(item.tmdbId);
+  return (
+    <ListRow
       id={item.tmdbId}
       title={item.title}
       posterPath={item.posterPath}
@@ -53,6 +73,7 @@ export default function LibraryPage() {
   };
   const [search, setSearch] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useLocalStorage<ViewMode>('library-view', 'cards');
   const debouncedSearch = useDebounce(search);
 
   const contentType: ContentType = tab === 'movies' ? 'movie' : 'series';
@@ -128,11 +149,16 @@ export default function LibraryPage() {
       </div>
 
       <div className="space-y-3">
-        <SearchBar
-          value={search}
-          onChange={setSearch}
-          placeholder={`Search your ${tab} or find new ones...`}
-        />
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <SearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder={`Search your ${tab} or find new ones...`}
+            />
+          </div>
+          <ViewToggle value={viewMode} onChange={setViewMode} />
+        </div>
         <FilterBar
           filters={tab === 'movies' ? MOVIE_STATUS_FILTERS : SERIES_STATUS_FILTERS}
           selected={statusFilters}
@@ -157,35 +183,63 @@ export default function LibraryPage() {
             <div className="space-y-8">
               {planToWatchItems.length > 0 && (
                 <div className="space-y-4">
-                  <CardGrid>
-                    {planToWatchItems.map((item) => (
-                      <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                    ))}
-                  </CardGrid>
+                  {viewMode === 'cards' ? (
+                    <CardGrid>
+                      {planToWatchItems.map((item) => (
+                        <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
+                      ))}
+                    </CardGrid>
+                  ) : (
+                    <div className="divide-y divide-border-subtle">
+                      {planToWatchItems.map((item) => (
+                        <ListRow key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               {watchingItems.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Watching</h2>
-                  <CardGrid>
-                    {watchingItems.map((item) =>
-                      item.contentType === 'series' ? (
-                        <WatchingSeriesCard key={item.id} item={item} />
-                      ) : (
-                        <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                      ),
-                    )}
-                  </CardGrid>
+                  {viewMode === 'cards' ? (
+                    <CardGrid>
+                      {watchingItems.map((item) =>
+                        item.contentType === 'series' ? (
+                          <WatchingSeriesCard key={item.id} item={item} />
+                        ) : (
+                          <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
+                        ),
+                      )}
+                    </CardGrid>
+                  ) : (
+                    <div className="divide-y divide-border-subtle">
+                      {watchingItems.map((item) =>
+                        item.contentType === 'series' ? (
+                          <WatchingSeriesListRow key={item.id} item={item} />
+                        ) : (
+                          <ListRow key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
+                        ),
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {watchedItems.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Watched</h2>
-                  <CardGrid compact>
-                    {watchedItems.map((item) => (
-                      <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                    ))}
-                  </CardGrid>
+                  {viewMode === 'cards' ? (
+                    <CardGrid compact>
+                      {watchedItems.map((item) => (
+                        <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
+                      ))}
+                    </CardGrid>
+                  ) : (
+                    <div className="divide-y divide-border-subtle">
+                      {watchedItems.map((item) => (
+                        <ListRow key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
