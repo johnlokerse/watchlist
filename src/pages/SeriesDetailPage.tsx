@@ -23,7 +23,7 @@ export default function SeriesDetailPage() {
   const progress = useSeriesProgress(seriesId ?? 0);
   const { settings } = useSettings();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [notes, setNotes] = useState('');
+  const [editedNotesByItem, setEditedNotesByItem] = useState<Record<number, string>>({});
   const [showAddDropdown, setShowAddDropdown] = useState(false);
   const addDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +57,7 @@ export default function SeriesDetailPage() {
 
   const providers = series['watch/providers']?.results?.[settings.country];
   const imdbId = series.external_ids?.imdb_id;
+  const notes = watchedItem?.id ? (editedNotesByItem[watchedItem.id] ?? watchedItem.notes) : '';
 
   const handleAddToLibrary = async (status: WatchedStatus) => {
     const itemId = await addToLibrary({
@@ -227,8 +228,13 @@ export default function SeriesDetailPage() {
             <div className="flex gap-2">
               <input
                 type="text"
-                value={notes || watchedItem.notes}
-                onChange={(e) => setNotes(e.target.value)}
+                value={notes}
+                onChange={(e) => {
+                  const itemId = watchedItem?.id;
+                  if (!itemId) return;
+                  const value = e.target.value;
+                  setEditedNotesByItem((prev) => ({ ...prev, [itemId]: value }));
+                }}
                 placeholder="Add personal notes..."
                 className="flex-1 bg-surface border border-border-subtle rounded-lg px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
               />

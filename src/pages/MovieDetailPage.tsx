@@ -21,7 +21,7 @@ export default function MovieDetailPage() {
   const watchedItem = useWatchedItem(movieId ?? 0, 'movie');
   const { settings } = useSettings();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [notes, setNotes] = useState('');
+  const [editedNotesByItem, setEditedNotesByItem] = useState<Record<number, string>>({});
   const [showAddDropdown, setShowAddDropdown] = useState(false);
   const addDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -54,6 +54,7 @@ export default function MovieDetailPage() {
   }
 
   const providers = movie['watch/providers']?.results?.[settings.country];
+  const notes = watchedItem?.id ? (editedNotesByItem[watchedItem.id] ?? watchedItem.notes) : '';
 
   const handleAddToLibrary = async (status: WatchedStatus) => {
     await addToLibrary({
@@ -170,8 +171,13 @@ export default function MovieDetailPage() {
             <div className="flex gap-2">
               <input
                 type="text"
-                value={notes || watchedItem.notes}
-                onChange={(e) => setNotes(e.target.value)}
+                value={notes}
+                onChange={(e) => {
+                  const itemId = watchedItem?.id;
+                  if (!itemId) return;
+                  const value = e.target.value;
+                  setEditedNotesByItem((prev) => ({ ...prev, [itemId]: value }));
+                }}
                 placeholder="Add personal notes..."
                 className="flex-1 bg-surface border border-border-subtle rounded-lg px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
               />

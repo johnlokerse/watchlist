@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { clearLibrary, addToLibrary, exportLibrary, updateSeriesProgress, bulkImportEpisodes } from '../db/hooks';
+import { clearLibrary, addToLibrary, exportLibrary, updateSeriesProgress, bulkImportEpisodes, updateWatchedItem } from '../db/hooks';
 import type { WatchedStatus, ContentType } from '../db/models';
 import { useSettings } from '../hooks/useSettings';
 import { THEMES } from '../utils/themes';
@@ -494,6 +494,10 @@ export default function SettingsPage() {
         });
 
         if (!id) { skipped++; continue; }
+        await updateWatchedItem(id, {
+          userRating: entry.userRating ?? null,
+          notes: entry.notes ?? '',
+        });
         added++;
 
         if (entry.contentType === 'series') {
