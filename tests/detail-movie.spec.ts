@@ -60,6 +60,7 @@ test.describe('Movie Detail Page', () => {
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
     await page.getByRole('button', { name: '+ Add to Library' }).click();
+    await page.getByRole('button', { name: 'Watched' }).click();
     await expect(page.getByRole('combobox')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible();
   });
@@ -72,7 +73,7 @@ test.describe('Movie Detail Page', () => {
     await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible();
   });
 
-  test('status selector has Watched, Plan to Watch, Dropped options', async ({ page, request }) => {
+  test('status selector has Watched and Plan to Watch options', async ({ page, request }) => {
     await seedMovie(request, { status: 'watched' });
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
@@ -80,7 +81,6 @@ test.describe('Movie Detail Page', () => {
     await expect(select).toBeVisible();
     await expect(select.getByRole('option', { name: 'Watched' })).toBeAttached();
     await expect(select.getByRole('option', { name: 'Plan to Watch' })).toBeAttached();
-    await expect(select.getByRole('option', { name: 'Dropped' })).toBeAttached();
   });
 
   test('shows Your Rating section for library item', async ({ page, request }) => {

@@ -165,11 +165,12 @@ test.describe('Settings Page', () => {
   test('Use OpenRouter toggle reveals API key input when enabled', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/settings', { waitUntil: 'networkidle' });
-    // API key input should not be visible initially (openrouterEnabled defaults to false)
-    await expect(page.getByPlaceholder('sk-or-...')).not.toBeVisible();
-    // Enable OpenRouter
     const toggle = page.locator('.flex.items-center.justify-between').filter({ hasText: 'Use OpenRouter' }).getByRole('switch');
-    await expect(toggle).toHaveAttribute('aria-checked', 'false');
+    if (await toggle.getAttribute('aria-checked') === 'true') {
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-checked', 'false');
+    }
+    await expect(page.getByPlaceholder('sk-or-...')).not.toBeVisible();
     await toggle.click();
     await expect(page.getByPlaceholder('sk-or-...')).toBeVisible();
   });

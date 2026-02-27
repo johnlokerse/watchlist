@@ -63,6 +63,7 @@ test.describe('Series Detail Page', () => {
     await setupTMDBMocks(page);
     await page.goto('/series/1396');
     await page.getByRole('button', { name: '+ Add to Library' }).click();
+    await page.getByRole('button', { name: 'Watching' }).click();
     await expect(page.getByRole('combobox')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible();
   });
@@ -75,7 +76,7 @@ test.describe('Series Detail Page', () => {
     await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible();
   });
 
-  test('status selector has Watched, Watching, Plan to Watch, Dropped options', async ({
+  test('status selector has Watched, Watching, and Plan to Watch options', async ({
     page,
     request,
   }) => {
@@ -86,7 +87,6 @@ test.describe('Series Detail Page', () => {
     await expect(select.getByRole('option', { name: 'Watched' })).toBeAttached();
     await expect(select.getByRole('option', { name: 'Watching' })).toBeAttached();
     await expect(select.getByRole('option', { name: 'Plan to Watch' })).toBeAttached();
-    await expect(select.getByRole('option', { name: 'Dropped' })).toBeAttached();
   });
 
   test('shows Progress section with Season and Episode inputs', async ({ page, request }) => {

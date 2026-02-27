@@ -39,17 +39,15 @@ test.describe('Library Page', () => {
     await page.goto('/library');
     await expect(page.getByRole('button', { name: 'Watched' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Plan to Watch' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Dropped' })).toBeVisible();
   });
 
-  test('series tab has 4 filter pills including Watching', async ({ page }) => {
+  test('series tab has 3 filter pills including Watching', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/library');
     await page.getByRole('tab', { name: 'Series' }).click();
     await expect(page.getByRole('button', { name: 'Watched' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Watching' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Plan to Watch' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Dropped' })).toBeVisible();
   });
 
   test('search bar is visible with correct placeholder', async ({ page }) => {
@@ -87,15 +85,15 @@ test.describe('Library Page', () => {
       tmdbId: 157336,
       title: 'Interstellar',
       releaseDate: '2014-11-05',
-      status: 'dropped',
+      status: 'plan_to_watch',
     });
     await setupTMDBMocks(page);
     await page.goto('/library');
     // Both items visible initially
     await expect(page.getByText('The Accountant')).toBeVisible();
     await expect(page.getByText('Interstellar')).toBeVisible();
-    // Filter to only Dropped
-    await page.getByRole('button', { name: 'Dropped' }).click();
+    // Filter to only Plan to Watch
+    await page.getByRole('button', { name: 'Plan to Watch' }).click();
     await expect(page.getByText('Interstellar')).toBeVisible();
     await expect(page.getByText('The Accountant')).not.toBeVisible();
   });
@@ -164,5 +162,59 @@ test.describe('Library Page', () => {
     await page.getByRole('tab', { name: 'Series' }).click();
     await page.getByText('Breaking Bad').click();
     await expect(page).toHaveURL('/series/1396');
+  });
+
+  test('view toggle buttons are visible', async ({ page }) => {
+    await setupTMDBMocks(page);
+    await page.goto('/library');
+    await expect(page.getByTitle('Card view')).toBeVisible();
+    await expect(page.getByTitle('List view')).toBeVisible();
+  });
+
+  test('switching to list view shows items as rows', async ({ page, request }) => {
+    await seedMovie(request, { status: 'watched' });
+    await setupTMDBMocks(page);
+    await page.goto('/library');
+    // Default is card view
+    await expect(page.getByTitle('Card view')).toHaveAttribute('aria-pressed', 'true');
+    // Switch to list view
+    await page.getByTitle('List view').click();
+    await expect(page.getByTitle('List view')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByText('The Accountant')).toBeVisible();
+  });
+
+  test('view mode preference persists across page navigation', async ({ page, request }) => {
+    await seedMovie(request, { status: 'watched' });
+    await setupTMDBMocks(page);
+    await page.goto('/library');
+    // Switch to list view
+    await page.getByTitle('List view').click();
+    await expect(page.getByTitle('List view')).toHaveAttribute('aria-pressed', 'true');
+    // Navigate away and back
+    await page.goto('/discover');
+    await page.goto('/library');
+    // List view should still be active
+    await expect(page.getByTitle('List view')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('list view shows series with progress label', async ({ page, request }) => {
+    await seedSeries(request, { status: 'watching' });
+    await setupTMDBMocks(page);
+    await page.goto('/library');
+    await page.getByRole('tab', { name: 'Series' }).click();
+    await page.getByTitle('List view').click();
+    await expect(page.getByText('Breaking Bad')).toBeVisible();
+  });
+
+  test('switching back to card view from list view works', async ({ page, request }) => {
+    await seedMovie(request, { status: 'watched' });
+    await setupTMDBMocks(page);
+    await page.goto('/library');
+    // Switch to list, then back to cards
+    await page.getByTitle('List view').click();
+    await expect(page.getByTitle('List view')).toHaveAttribute('aria-pressed', 'true');
+    await page.getByTitle('Card view').click();
+    await expect(page.getByTitle('Card view')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByText('The Accountant')).toBeVisible();
   });
 });
