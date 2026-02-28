@@ -26,6 +26,7 @@ export default function SeriesDetailPage() {
   const [editedNotesByItem, setEditedNotesByItem] = useState<Record<number, string>>({});
   const [showAddDropdown, setShowAddDropdown] = useState(false);
   const addDropdownRef = useRef<HTMLDivElement>(null);
+  const tabInitRef = useRef<number | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -36,6 +37,22 @@ export default function SeriesDetailPage() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Reset tab when navigating to a different series
+  useEffect(() => {
+    setActiveTab('overview');
+    tabInitRef.current = null;
+  }, [seriesId]);
+
+  // Auto-switch to Episodes tab for in-progress series
+  useEffect(() => {
+    if (!seriesId || tabInitRef.current === seriesId) return;
+    if (watchedItem === undefined) return;
+    tabInitRef.current = seriesId;
+    if (watchedItem.status === 'watching') {
+      setActiveTab('episodes');
+    }
+  }, [watchedItem, seriesId]);
 
   if (isLoading) {
     return (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSeasonDetail } from '../../api/tmdb';
 import { useWatchedEpisodes, toggleEpisodeWatched, markSeasonWatched } from '../../db/hooks';
 import { formatDate } from '../../utils/date';
@@ -12,6 +12,10 @@ interface Props {
 
 export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, onEpisodeWatched }: Props) {
   const [season, setSeason] = useState(initialSeason);
+
+  useEffect(() => {
+    setSeason(initialSeason ?? 1);
+  }, [initialSeason]);
   const { data, isLoading } = useSeasonDetail(tmdbId, season);
   const watchedEpisodes = useWatchedEpisodes(tmdbId, season);
   const watchedSet = new Set(watchedEpisodes?.map((e) => e.episode) ?? []);
