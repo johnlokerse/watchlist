@@ -13,7 +13,7 @@ export default function AppShell() {
     <div className="min-h-screen flex flex-col">
       {/* Desktop top nav */}
       <header className="hidden md:block sticky top-0 z-50 bg-surface/95 backdrop-blur border-b border-border-subtle">
-        <nav className="max-w-7xl mx-auto px-6 h-14 flex items-center gap-1">
+        <nav className="max-w-[1600px] mx-auto px-6 h-14 flex items-center gap-1">
           <span className="font-bold text-lg mr-8 text-accent">🎬 Watchlist</span>
           {navItems.map((item) => (
             <NavLink
@@ -34,7 +34,7 @@ export default function AppShell() {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-6 py-4 pb-20 md:pb-6">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 md:px-6 md:pr-24 py-4 pb-20 md:pb-6">
         <Outlet />
       </main>
 

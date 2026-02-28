@@ -529,10 +529,10 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-5xl space-y-4">
+    <div className="space-y-4">
       <h1 className="text-2xl font-bold">Settings</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
 
         {/* ── Left column ── */}
         <div className="space-y-4">
@@ -782,6 +782,11 @@ export default function SettingsPage() {
             )}
           </div>
 
+        </div>{/* end right column (middle) */}
+
+        {/* ── Third column ── */}
+        <div className="space-y-4">
+
           {/* ── Streaming Services ── */}
           <div className="bg-surface-raised rounded-xl border border-border-subtle p-6">
             <div className="flex items-center gap-2.5 mb-2">
@@ -862,7 +867,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-        </div>{/* end right column */}
+        </div>{/* end third column */}
 
       </div>
     </div>
