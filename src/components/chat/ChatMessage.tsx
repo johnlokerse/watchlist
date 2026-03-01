@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface Props {
   role: 'user' | 'assistant';
@@ -14,6 +14,25 @@ function AddButton({ tmdbId, type, title, onAdd }: {
   onAdd: (tmdbId: number, type: 'movie' | 'tv', title: string) => Promise<void>;
 }) {
   const [state, setState] = useState<'idle' | 'loading' | 'added'>('idle');
+
+  useEffect(() => {
+    let cancelled = false;
+    const contentType = type === 'tv' ? 'series' : 'movie';
+
+    const checkExisting = async () => {
+      try {
+        const res = await fetch(`/api/library/${tmdbId}/${contentType}`);
+        if (!cancelled && res.ok) {
+          setState('added');
+        }
+      } catch (err) {
+        console.error('Failed to check watchlist status:', err);
+      }
+    };
+
+    void checkExisting();
+    return () => { cancelled = true; };
+  }, [tmdbId, type]);
 
   const handleClick = async () => {
     if (state !== 'idle') return;

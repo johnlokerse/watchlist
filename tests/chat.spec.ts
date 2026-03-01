@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { setupTMDBMocks } from './helpers/mock-tmdb';
-import { clearLibrary } from './helpers/seed';
+import { clearLibrary, seedMovie } from './helpers/seed';
 
 /**
  * Chat tests focus on the CopilotChat floating button and panel UI.
@@ -126,5 +126,37 @@ test.describe('CopilotChat', () => {
     // Verify the item was persisted in the library
     const res = await request.get('/api/library/302946/movie');
     expect(res.status()).toBe(200);
+  });
+
+  test('chat add-to-library link shows checkmark when item already exists', async ({ page, request }) => {
+    await clearLibrary(request);
+    await seedMovie(request, { tmdbId: 302946, status: 'plan_to_watch' });
+    await setupTMDBMocks(page);
+    await page.goto('/upcoming');
+
+    await page.route('**/api/chat/message', (route) => {
+      const body = [
+        `data: ${JSON.stringify({ type: 'delta', content: 'Try [The Accountant](add:movie/302946).' })}\n\n`,
+        `data: ${JSON.stringify({ type: 'done' })}\n\n`,
+      ].join('');
+      route.fulfill({
+        status: 200,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+        body,
+      });
+    });
+
+    await page.getByRole('button', { name: 'Open watch assistant' }).click();
+    const input = page.getByPlaceholder('Ask about your watchlist…');
+    await expect(input).toBeEnabled({ timeout: 5000 });
+    await input.fill('Recommend something');
+    await input.press('Enter');
+
+    await expect(page.getByText('The Accountant')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTitle('Added to watchlist')).toBeVisible({ timeout: 5000 });
   });
 });
