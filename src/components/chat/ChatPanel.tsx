@@ -90,13 +90,14 @@ interface Props {
   onSend: (text: string) => void;
   onClose: () => void;
   onRetry: () => void;
+  onNewChat: () => void;
   onAdd: (tmdbId: number, type: 'movie' | 'tv', title: string) => Promise<void>;
   pinnedModels: string[];
   activeModel: string;
   onModelChange: (id: string) => void;
 }
 
-export default function ChatPanel({ messages, isStreaming, error, isCreatingSession, sessionError, onSend, onClose, onRetry, onAdd, pinnedModels, activeModel, onModelChange }: Props) {
+export default function ChatPanel({ messages, isStreaming, error, isCreatingSession, sessionError, onSend, onClose, onRetry, onNewChat, onAdd, pinnedModels, activeModel, onModelChange }: Props) {
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -130,7 +131,7 @@ export default function ChatPanel({ messages, isStreaming, error, isCreatingSess
           <span className="text-lg shrink-0">🎬</span>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text-primary">Watchlist Assistant</p>
-            <p className="text-xs text-text-muted flex items-center gap-1 flex-wrap">
+            <div className="text-xs text-text-muted flex items-center gap-1 flex-wrap">
               {settings.openrouterEnabled && (pinnedModels.length > 0 || activeModel) ? (
                 <>
                   <span>Powered by OpenRouter via GitHub Copilot -</span>
@@ -144,7 +145,16 @@ export default function ChatPanel({ messages, isStreaming, error, isCreatingSess
               ) : (
                 'Powered by GitHub Copilot - claude-sonnet-4.6'
               )}
-            </p>
+            </div>
+            {!isEmpty && (
+              <button
+                onClick={onNewChat}
+                disabled={isStreaming || isCreatingSession}
+                className="text-xs text-text-muted hover:text-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                + New chat
+              </button>
+            )}
           </div>
         </div>
         <button

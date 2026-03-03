@@ -63,6 +63,18 @@ export default function CopilotChat() {
       .finally(() => setIsCreatingSession(false));
   }, [updateSettings, destroySession, createSession]);
 
+  const handleNewChat = useCallback(async () => {
+    await destroySession();
+    setIsCreatingSession(true);
+    setSessionError(null);
+    createSession([], settings.openrouterModel)
+      .catch((err) => {
+        console.error('Failed to create new chat session:', err);
+        setSessionError(String(err));
+      })
+      .finally(() => setIsCreatingSession(false));
+  }, [destroySession, createSession, settings.openrouterModel]);
+
   const handleSend = useCallback(
     (text: string) => {
       if (!sessionId) return;
@@ -118,6 +130,7 @@ export default function CopilotChat() {
               onSend={handleSend}
               onClose={handleClose}
               onRetry={initSession}
+              onNewChat={handleNewChat}
               onAdd={handleAdd}
               pinnedModels={settings.openrouterModels}
               activeModel={settings.openrouterModel}

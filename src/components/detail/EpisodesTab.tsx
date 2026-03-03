@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSeasonDetail } from '../../api/tmdb';
 import { useWatchedEpisodes, toggleEpisodeWatched, markSeasonWatched } from '../../db/hooks';
 import { formatDate } from '../../utils/date';
+import { useSettings } from '../../hooks/useSettings';
 
 interface Props {
   tmdbId: number;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, onEpisodeWatched }: Props) {
+  const { settings } = useSettings();
   const [season, setSeason] = useState(initialSeason);
 
   useEffect(() => {
@@ -89,7 +91,7 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, o
                   }
                 }}
                 disabled={isFuture}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition ${
+                className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition ${
                   isFuture
                     ? 'text-text-muted cursor-default'
                     : watched
@@ -99,12 +101,12 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, o
               >
                 {/* Checkbox / Coming badge */}
                 {isFuture ? (
-                  <span className="text-[10px] font-bold tracking-widest text-accent border border-accent/50 px-1.5 py-0.5 rounded flex-shrink-0">
+                  <span className="text-[10px] font-bold tracking-widest text-accent border border-accent/50 px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">
                     COMING
                   </span>
                 ) : (
                   <div
-                    className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition ${
+                    className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition mt-0.5 ${
                       watched ? 'bg-accent border-accent' : 'border-border-subtle'
                     }`}
                   >
@@ -117,12 +119,19 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, o
                 )}
 
                 {/* Episode number */}
-                <span className="text-xs text-text-muted w-6 flex-shrink-0">
+                <span className="text-xs text-text-muted w-6 flex-shrink-0 mt-0.5">
                   {ep.episode_number}
                 </span>
 
-                {/* Title */}
-                <span className="text-sm flex-1 truncate">{ep.name}</span>
+                {/* Title + optional overview */}
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm block truncate">{ep.name}</span>
+                  {settings.showSpoilers && ep.overview && (
+                    <p className="text-xs text-text-secondary leading-relaxed line-clamp-2 mt-0.5">
+                      {ep.overview}
+                    </p>
+                  )}
+                </div>
 
                 {/* Air date */}
                 {ep.air_date && (
