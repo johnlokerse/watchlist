@@ -125,7 +125,7 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, o
 
                 {/* Title + optional overview */}
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm block truncate">{ep.name}</span>
+                  <span className={`text-sm block ${settings.showSpoilers && ep.overview ? '' : 'truncate'}`}>{ep.name}</span>
                   {settings.showSpoilers && ep.overview && (
                     <p className="text-xs text-text-secondary leading-relaxed line-clamp-2 mt-0.5">
                       {ep.overview}
