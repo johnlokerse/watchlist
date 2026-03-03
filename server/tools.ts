@@ -143,4 +143,80 @@ export const tmdbTools = [
         .slice(0, 20);
     },
   }),
+
+  defineTool('getRatings', {
+    description: 'Get public TMDB ratings for a movie, or for every episode within a specific season of a TV series. For TV series, also returns season-level aggregates: overall average, rating trend across the season, and the highest/lowest rated episode. Use this when the user asks about public reception, the best or most exciting episode, worst episodes, or how ratings develop over a season.',
+    parameters: z.object({
+      id: z.number().describe('TMDB ID of the movie or TV series'),
+      type: z.enum(['movie', 'tv']).describe('movie or tv'),
+      seasonNumber: z
+        .number()
+        .optional()
+        .describe('Season number — required when type is "tv", ignored for movies'),
+    }),
+    handler: async ({ id, type, seasonNumber }) => {
+      if (type === 'movie') {
+        const data = await tmdbFetch(`/movie/${id}`);
+        return {
+          title: data.title as string,
+          voteAverage: data.vote_average as number,
+          voteCount: data.vote_count as number,
+          popularity: data.popularity as number,
+        };
+      }
+
+      // TV series — fetch all episodes for the requested season
+      if (seasonNumber === undefined) {
+        throw new Error('seasonNumber is required when type is "tv"');
+      }
+
+      const data = await tmdbFetch(`/tv/${id}/season/${seasonNumber}`);
+
+      const episodes = (data.episodes as Record<string, unknown>[])
+        .filter((e) => (e.vote_count as number) > 0)
+        .map((e) => ({
+          episode: e.episode_number as number,
+          name: e.name as string,
+          airDate: e.air_date as string,
+          voteAverage: e.vote_average as number,
+          voteCount: e.vote_count as number,
+        }));
+
+      if (episodes.length === 0) {
+        return {
+          seasonNumber,
+          episodes: [],
+          note: 'No public vote data is available for this season yet.',
+        };
+      }
+
+      const seasonAverage =
+        Math.round(
+          (episodes.reduce((sum, e) => sum + e.voteAverage, 0) / episodes.length) * 10,
+        ) / 10;
+
+      const sorted = [...episodes].sort((a, b) => b.voteAverage - a.voteAverage);
+      const highestRated = sorted[0];
+      const lowestRated = sorted[sorted.length - 1];
+
+      // Trend: compare the average of the first half vs the second half of the season
+      const mid = Math.floor(episodes.length / 2);
+      const firstHalfAvg =
+        episodes.slice(0, mid).reduce((s, e) => s + e.voteAverage, 0) / mid;
+      const secondHalfAvg =
+        episodes.slice(mid).reduce((s, e) => s + e.voteAverage, 0) / (episodes.length - mid);
+      const diff = secondHalfAvg - firstHalfAvg;
+      const trend: 'ascending' | 'descending' | 'stable' =
+        diff > 0.3 ? 'ascending' : diff < -0.3 ? 'descending' : 'stable';
+
+      return {
+        seasonNumber,
+        seasonAverage,
+        trend,
+        highestRated,
+        lowestRated,
+        episodes,
+      };
+    },
+  }),
 ];
