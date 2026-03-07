@@ -12,6 +12,7 @@ A responsive React web app to track movies and series you've watched, discover u
 - **Detail Pages** — Rich metadata: poster, backdrop, overview, cast & crew, where to watch (streaming/rent/buy)
 - **Search** — Search TMDB from the library page to find and add new content
 - **AI Copilot** — Personalized movie & series recommendations powered by the GitHub Copilot SDK (or OpenRouter via BYOK), with full access to your library context
+- **Episode Recap** — AI-generated recap for the last watched episode of any series
 - **Export / Import** — Back up and restore your library as JSON
 - **Responsive** — Mobile-first design with bottom nav on mobile, top nav on desktop
 
@@ -50,6 +51,13 @@ Key integration points:
   | `searchPerson`       | `name: string`                                        | Search for an actor, director, or crew member by name. Returns TMDB person ID, department, and known-for titles.                            |
   | `getPersonCredits`   | `personId: number`, `type: "movie" \| "tv" \| "both"` | Retrieve up to 20 most recent movie and/or TV credits for a person by their TMDB person ID.                                                 |
 
+### Episode Recap
+
+The Episode Recap feature (`POST /api/recap/episode`) uses a separate, simpler SDK integration — **1 premium request per recap as it uses Claude Sonnet 4.6**:
+
+1. The server fetches the episode summary from the free [TVMaze REST API](https://www.tvmaze.com/api).
+2. A single `createSession` + `sendAndWait` call rewrites the raw summary into a polished recap paragraph, with `streaming: true` so tokens are forwarded to the browser via SSE as they arrive.
+
 ## Getting Started
 
 ```bash
@@ -84,7 +92,7 @@ src/
 └── utils/        # Date helpers, image URL builders, constants
 
 server/
-├── index.ts      # Express app + REST API routes + Copilot SDK chat endpoints
+├── index.ts      # Express app + REST API routes + Copilot SDK chat & recap endpoints
 ├── db.ts         # better-sqlite3 database setup, schema, and prepared statements
 └── tools.ts      # Copilot SDK tool definitions (TMDB search, details, recommendations)
 
