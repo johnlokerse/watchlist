@@ -3,21 +3,44 @@ import { useSeasonDetail } from '../../api/tmdb';
 import { useWatchedEpisodes, toggleEpisodeWatched, markSeasonWatched } from '../../db/hooks';
 import { formatDate } from '../../utils/date';
 import { useSettings } from '../../hooks/useSettings';
+import RecapModal from './RecapModal';
 
 interface Props {
   tmdbId: number;
   totalSeasons: number;
   initialSeason?: number;
+  seriesTitle: string;
+  imdbId?: string;
   onEpisodeWatched?: (season: number, episode: number) => void;
 }
 
-export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, onEpisodeWatched }: Props) {
+interface RecapState {
+  isOpen: boolean;
+  isLoading: boolean;
+  isStreaming: boolean;
+  recap: string | null;
+  error: string | null;
+  episodeTitle: string;
+  episodeNumber: number;
+}
+
+export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, seriesTitle, imdbId, onEpisodeWatched }: Props) {
   const { settings } = useSettings();
   const [season, setSeason] = useState(initialSeason);
+  const [recapState, setRecapState] = useState<RecapState>({
+    isOpen: false,
+    isLoading: false,
+    isStreaming: false,
+    recap: null,
+    error: null,
+    episodeTitle: '',
+    episodeNumber: 0,
+  });
 
   useEffect(() => {
     setSeason(initialSeason ?? 1);
   }, [initialSeason]);
+
   const { data, isLoading } = useSeasonDetail(tmdbId, season);
   const watchedEpisodes = useWatchedEpisodes(tmdbId, season);
   const watchedSet = new Set(watchedEpisodes?.map((e) => e.episode) ?? []);
@@ -25,6 +48,10 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, o
   const today = new Date().toISOString().slice(0, 10);
   const watchableEpisodes = data?.episodes.filter((e) => !e.air_date || e.air_date <= today) ?? [];
   const allWatched = watchableEpisodes.length > 0 && watchableEpisodes.every((e) => watchedSet.has(e.episode_number));
+
+  // The last watched episode in the current season view
+  const lastWatchedEpisodeNumber =
+    watchedSet.size > 0 ? Math.max(...Array.from(watchedSet)) : null;
 
   const handleToggleAll = () => {
     if (!data) return;
@@ -37,6 +64,90 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, o
         onEpisodeWatched(season, lastEp.episode_number + 1);
       }
     }
+  };
+
+  const handleRecapClick = async (episodeNumber: number, episodeTitle: string) => {
+    setRecapState({
+      isOpen: true,
+      isLoading: true,
+      isStreaming: false,
+      recap: null,
+      error: null,
+      episodeTitle,
+      episodeNumber,
+    });
+
+    try {
+      const res = await fetch('/api/recap/episode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imdbId,
+          seasonNumber: season,
+          episodeNumber,
+          episodeTitle,
+          seriesTitle,
+        }),
+      });
+
+      if (!res.ok || !res.body) {
+        const data = await res.json() as { error?: string };
+        setRecapState((prev) => ({
+          ...prev,
+          isLoading: false,
+          isStreaming: false,
+          error: data.error ?? 'Failed to generate recap.',
+        }));
+        return;
+      }
+
+      // Switch from spinner to streaming text
+      setRecapState((prev) => ({ ...prev, isLoading: false, isStreaming: true }));
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const event = JSON.parse(line.slice(6)) as { type: string; content?: string; message?: string };
+
+          if (event.type === 'delta' && event.content) {
+            setRecapState((prev) => ({
+              ...prev,
+              recap: (prev.recap ?? '') + event.content,
+            }));
+          } else if (event.type === 'done') {
+            setRecapState((prev) => ({ ...prev, isStreaming: false }));
+          } else if (event.type === 'error') {
+            setRecapState((prev) => ({
+              ...prev,
+              isStreaming: false,
+              error: event.message ?? 'Failed to generate recap.',
+            }));
+          }
+        }
+      }
+    } catch {
+      setRecapState((prev) => ({
+        ...prev,
+        isLoading: false,
+        isStreaming: false,
+        error: 'Something went wrong. Please try again.',
+      }));
+    }
+  };
+
+  const handleCloseRecap = () => {
+    setRecapState((prev) => ({ ...prev, isOpen: false }));
   };
 
   return (
@@ -80,9 +191,11 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, o
           {data?.episodes.map((ep) => {
             const watched = watchedSet.has(ep.episode_number);
             const isFuture = !!ep.air_date && ep.air_date > today;
+            const isLastWatched = ep.episode_number === lastWatchedEpisodeNumber;
             return (
-              <button
+              <div
                 key={ep.episode_number}
+                data-episode={ep.episode_number}
                 onClick={() => {
                   if (!isFuture) {
                     toggleEpisodeWatched(tmdbId, season, ep.episode_number);
@@ -90,14 +203,13 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, o
                     else onEpisodeWatched?.(season, ep.episode_number);
                   }
                 }}
-                disabled={isFuture}
                 className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition ${
                   isFuture
                     ? 'text-text-muted cursor-default'
                     : watched
-                    ? 'bg-accent/10 text-text-primary'
-                    : 'hover:bg-surface-raised text-text-secondary hover:text-text-primary'
-                }`}
+                    ? 'bg-accent/10 text-text-primary cursor-pointer hover:bg-accent/15'
+                    : 'hover:bg-surface-raised text-text-secondary hover:text-text-primary cursor-pointer'
+                } ${isLastWatched ? 'ring-1 ring-accent/40' : ''}`}
               >
                 {/* Checkbox / Coming badge */}
                 {isFuture ? (
@@ -133,23 +245,55 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, o
                   )}
                 </div>
 
-                {/* Air date */}
-                {ep.air_date && (
-                  <span className="text-xs text-text-muted flex-shrink-0 hidden sm:block">
-                    {formatDate(ep.air_date)}
-                  </span>
-                )}
+                {/* Right column: date + runtime on top, recap button below */}
+                <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+                  <div className="flex items-center gap-2">
+                    {ep.air_date && (
+                      <span className="text-xs text-text-muted hidden sm:block">
+                        {formatDate(ep.air_date)}
+                      </span>
+                    )}
+                    {ep.runtime && (
+                      <span className="text-xs text-text-muted">
+                        {ep.runtime}m
+                      </span>
+                    )}
+                  </div>
 
-                {/* Runtime */}
-                {ep.runtime && (
-                  <span className="text-xs text-text-muted flex-shrink-0">
-                    {ep.runtime}m
-                  </span>
-                )}
-              </button>
+                  {isLastWatched && imdbId && settings.episodeRecapEnabled && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRecapClick(ep.episode_number, ep.name);
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 border border-accent/50 text-accent text-xs font-medium rounded-md hover:bg-accent/10 transition"
+                    >
+                      <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/>
+                      </svg>
+                      Recap
+                    </button>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>
+      )}
+
+      {/* Recap modal */}
+      {recapState.isOpen && (
+        <RecapModal
+          seriesTitle={seriesTitle}
+          seasonNumber={season}
+          episodeNumber={recapState.episodeNumber}
+          episodeTitle={recapState.episodeTitle}
+          recap={recapState.recap}
+          isLoading={recapState.isLoading}
+          isStreaming={recapState.isStreaming}
+          error={recapState.error}
+          onClose={handleCloseRecap}
+        />
       )}
     </div>
   );

@@ -697,6 +697,20 @@ export default function SettingsPage() {
                 onChange={() => updateSettings({ showSpoilers: !settings.showSpoilers })}
               />
             </div>
+
+            <div className="border-t border-border-subtle" />
+
+            {/* Episode Recap */}
+            <div className="flex items-center justify-between gap-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Episode Recap</p>
+                <p className="text-xs text-text-secondary mt-0.5">Show a Recap button on the last watched episode</p>
+              </div>
+              <Toggle
+                checked={settings.episodeRecapEnabled}
+                onChange={() => updateSettings({ episodeRecapEnabled: !settings.episodeRecapEnabled })}
+              />
+            </div>
           </div>
 
           {/* ── AI Assistant ── */}

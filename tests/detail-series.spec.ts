@@ -211,7 +211,7 @@ test.describe('Series Detail Page', () => {
     const counter = page.locator('span').filter({ hasText: /\d+\/\d+ watched/ });
     await expect(counter).toContainText('0/7 watched');
     // Toggle the Pilot episode
-    await page.getByRole('button', { name: /Pilot/i }).click();
+    await page.locator('[data-episode="1"]').click();
     await expect(counter).toContainText('1/7 watched');
   });
 

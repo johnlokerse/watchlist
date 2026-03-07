@@ -123,6 +123,20 @@ app.delete('/api/chat/session/:id', (_req, res) => {
   res.json({ ok: true });
 });
 
+// ── Stubbed Recap Endpoint ─────────────────────────────────────────
+
+app.post('/api/recap/episode', (_req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+  const recap =
+    "In this gripping episode, the tension reaches a breaking point as Walt makes a decision that will have far-reaching consequences. Jesse is forced to confront the reality of their situation while the walls close in around them. Meanwhile, Skyler grows increasingly suspicious of Walt's behavior, setting the stage for a dramatic confrontation.";
+  res.write(`data: ${JSON.stringify({ type: 'delta', content: recap })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+  res.end();
+});
+
 // ── Start ──────────────────────────────────────────────────────────
 
 const PORT = 3001;

@@ -324,6 +324,102 @@ app.delete('/api/chat/session/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/recap/episode — stream an AI episode recap via TVMaze + Copilot SDK (SSE)
+app.post('/api/recap/episode', async (req, res) => {
+  const { imdbId, seasonNumber, episodeNumber, episodeTitle, seriesTitle } = req.body as {
+    imdbId: string;
+    seasonNumber: number;
+    episodeNumber: number;
+    episodeTitle: string;
+    seriesTitle: string;
+  };
+
+  // Open the SSE stream immediately so the client sees a response right away
+  req.socket.setNoDelay(true);
+  req.socket.setKeepAlive(true);
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const send = (data: Record<string, unknown>) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  try {
+    // Step 1: Resolve TVMaze show ID from IMDb ID
+    const tvmazeShowRes = await fetch(`https://api.tvmaze.com/lookup/shows?imdb=${imdbId}`);
+    if (!tvmazeShowRes.ok) throw new Error('Series not found on TVMaze');
+    const tvmazeShow = await tvmazeShowRes.json() as { id: number };
+
+    // Step 2: Fetch the specific episode from TVMaze
+    const tvmazeEpRes = await fetch(
+      `https://api.tvmaze.com/shows/${tvmazeShow.id}/episodebynumber?season=${seasonNumber}&number=${episodeNumber}`
+    );
+    if (!tvmazeEpRes.ok) throw new Error('Episode not found on TVMaze');
+    const tvmazeEp = await tvmazeEpRes.json() as { summary?: string };
+
+    // Step 3: Strip HTML tags from TVMaze summary
+    const summary = (tvmazeEp.summary ?? '').replace(/<[^>]+>/g, '').trim();
+    if (!summary) throw new Error('No episode summary available for this episode');
+
+    // Step 4: Create a streaming Copilot session focused on recap writing
+    const session = await client.createSession({
+      model: 'claude-sonnet-4.6',
+      streaming: true,
+      systemMessage: {
+        content: `You are a TV episode recap writer. Your only job is to take an episode description and rewrite it as an engaging, present-tense recap paragraph of 3–5 sentences.
+
+Rules you must always follow:
+- ALWAYS write a recap. Never refuse, never say you lack information.
+- Use ONLY the provided description as your source — do not rely on training data or prior knowledge.
+- Expand the description into a vivid, readable recap: describe the tension, character reactions, and stakes implied by the description.
+- Write in the present tense ("Sam discovers…", "Tensions rise as…").
+- Do not add headers, labels, or meta-commentary. Output only the recap text.`,
+      },
+    });
+
+    // Step 5: Forward each delta chunk to the client as an SSE event
+    let accumulated = '';
+    const unsubDelta = session.on('assistant.message_delta', (event) => {
+      const content = event.data.deltaContent;
+      if (content) {
+        accumulated += content;
+        send({ type: 'delta', content });
+      }
+    });
+
+    // Step 6: Await full completion (delta events fire concurrently)
+    const result = await session.sendAndWait(
+      {
+        prompt: `Rewrite the following episode description as an engaging recap paragraph for ${seriesTitle} — Season ${seasonNumber}, Episode ${episodeNumber}: "${episodeTitle}"\n\nEpisode description:\n${summary}`,
+      },
+      30_000
+    );
+
+    unsubDelta();
+    await session.destroy().catch(() => {});
+
+    // Fallback: if no delta events fired, simulate word-by-word streaming
+    if (!accumulated) {
+      const fallback = result?.data?.content ?? 'Unable to generate recap.';
+      const words = fallback.split(/(\s+)/);
+      for (const word of words) {
+        send({ type: 'delta', content: word });
+        await new Promise<void>((resolve) => setTimeout(resolve, 20));
+      }
+    }
+
+    send({ type: 'done' });
+    res.end();
+  } catch (err) {
+    console.error('[recap] error:', err);
+    send({ type: 'error', message: err instanceof Error ? err.message : String(err) });
+    send({ type: 'done' });
+    res.end();
+  }
+});
+
 const PORT = 3001;
 
 // In production, serve the built Vite frontend from dist/

@@ -5,6 +5,7 @@ import { applyTheme } from '../utils/themes';
 export interface AppSettings {
   country: string;
   showSpoilers: boolean;
+  episodeRecapEnabled: boolean;
   theme: string;
   streamingServices: number[];
   openrouterEnabled: boolean;
@@ -13,7 +14,7 @@ export interface AppSettings {
   openrouterModels: string[];
 }
 
-const DEFAULTS: AppSettings = { country: DEFAULT_COUNTRY, showSpoilers: false, theme: 'default', streamingServices: [], openrouterEnabled: false, openrouterApiKey: '', openrouterModel: '', openrouterModels: [] };
+const DEFAULTS: AppSettings = { country: DEFAULT_COUNTRY, showSpoilers: false, episodeRecapEnabled: true, theme: 'default', streamingServices: [], openrouterEnabled: false, openrouterApiKey: '', openrouterModel: '', openrouterModels: [] };
 const THEME_KEY = 'app-theme-cache';
 
 // Apply cached theme immediately to avoid flash on load
@@ -24,6 +25,7 @@ function mergeDefaults(partial: Partial<AppSettings>): AppSettings {
   return {
     country: partial.country ?? DEFAULTS.country,
     showSpoilers: partial.showSpoilers ?? DEFAULTS.showSpoilers,
+    episodeRecapEnabled: partial.episodeRecapEnabled ?? DEFAULTS.episodeRecapEnabled,
     theme: partial.theme ?? DEFAULTS.theme,
     streamingServices: partial.streamingServices ?? DEFAULTS.streamingServices,
     openrouterEnabled: partial.openrouterEnabled ?? DEFAULTS.openrouterEnabled,
