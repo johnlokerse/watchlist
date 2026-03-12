@@ -99,6 +99,9 @@ const stmts = {
   getAllSettings: db.prepare(`SELECT key, value FROM settings`),
   upsertSetting: db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`),
 
+  countWatchedEpisodes: db.prepare(`SELECT COUNT(*) as count FROM watched_episodes WHERE tmdbId = ?`),
+  updateItemStatusByTmdb: db.prepare(`UPDATE watched_items SET status = ?, updatedAt = ? WHERE tmdbId = ? AND contentType = 'series'`),
+
   // bulk / migration
   clearAll: db.prepare(`DELETE FROM watched_items`),
   clearProgress: db.prepare(`DELETE FROM series_progress`),
@@ -130,6 +133,28 @@ function rowToItem(row: WatchedItemRow) {
     ...row,
     genreIds: JSON.parse(row.genreIds || '[]') as number[],
   };
+}
+
+/**
+ * After any episode insert/delete, check if the total watched episodes now
+ * equals the series' totalEpisodes. If so, auto-set status to 'watched'.
+ * If the series was 'watched' but an episode was removed, revert to 'watching'.
+ * Only acts when the current status is 'watching' or 'watched'.
+ */
+function checkAndUpdateSeriesStatus(tmdbId: number) {
+  const progress = stmts.getProgress.get(tmdbId) as { totalEpisodes: number } | undefined;
+  if (!progress || !progress.totalEpisodes) return;
+
+  const { count } = stmts.countWatchedEpisodes.get(tmdbId) as { count: number };
+  const item = stmts.getItemByTmdb.get(tmdbId, 'series') as WatchedItemRow | undefined;
+  if (!item) return;
+
+  if (item.status !== 'watching' && item.status !== 'watched') return;
+
+  const newStatus = count >= progress.totalEpisodes ? 'watched' : 'watching';
+  if (item.status !== newStatus) {
+    stmts.updateItemStatusByTmdb.run(newStatus, new Date().toISOString(), tmdbId);
+  }
 }
 
 export const queries = {
@@ -206,9 +231,11 @@ export const queries = {
     const existing = stmts.getEpisode.get(tmdbId, season, episode) as { id: number } | undefined;
     if (existing) {
       stmts.deleteEpisode.run(existing.id);
+      checkAndUpdateSeriesStatus(tmdbId);
       return { action: 'removed' };
     }
     stmts.insertEpisode.run(tmdbId, season, episode);
+    checkAndUpdateSeriesStatus(tmdbId);
     return { action: 'added' };
   },
 
@@ -220,6 +247,7 @@ export const queries = {
       }
     });
     tx();
+    checkAndUpdateSeriesStatus(tmdbId);
   },
 
   migrate(data: { items: unknown[]; progress: unknown[]; episodes: unknown[] }) {
