@@ -145,6 +145,7 @@ app.get('/api/chat/models', async (req, res) => {
 let copilotModels: { id: string; name: string }[] = [];
 
 const client = new CopilotClient();
+const approveAllPermissions = async () => ({ kind: 'approved' as const });
 
 try {
   await client.start();
@@ -210,6 +211,7 @@ app.post('/api/chat/session', async (req, res) => {
       model: resolvedModel,
       streaming: true,
       tools: tmdbTools,
+      onPermissionRequest: approveAllPermissions,
       systemMessage: {
         content: `You are a friendly movie and TV series recommendation assistant embedded in the user's personal watchlist app.
 
@@ -230,7 +232,7 @@ Guidelines:
 
     // Inject OpenRouter provider when enabled and we have an API key
     if (openrouterEnabled && openrouterApiKey) {
-      (sessionConfig as Record<string, unknown>).provider = {
+      sessionConfig.provider = {
         type: 'openai',
         baseUrl: 'https://openrouter.ai/api/v1',
         apiKey: openrouterApiKey,
@@ -318,7 +320,7 @@ app.post('/api/chat/message', async (req, res) => {
 app.delete('/api/chat/session/:id', async (req, res) => {
   const session = sessions.get(req.params.id);
   if (session) {
-    await session.destroy().catch(() => {});
+    await session.disconnect().catch(() => {});
     sessions.delete(req.params.id);
   }
   res.json({ ok: true });
@@ -367,6 +369,7 @@ app.post('/api/recap/episode', async (req, res) => {
     const session = await client.createSession({
       model: 'claude-sonnet-4.6',
       streaming: true,
+      onPermissionRequest: approveAllPermissions,
       systemMessage: {
         content: `You are a TV episode recap writer. Your only job is to take an episode description and rewrite it as an engaging, present-tense recap paragraph of 3–5 sentences.
 
@@ -398,7 +401,7 @@ Rules you must always follow:
     );
 
     unsubDelta();
-    await session.destroy().catch(() => {});
+    await session.disconnect().catch(() => {});
 
     // Fallback: if no delta events fired, simulate word-by-word streaming
     if (!accumulated) {
