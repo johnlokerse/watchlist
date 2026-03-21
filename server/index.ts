@@ -210,6 +210,7 @@ app.post('/api/chat/session', async (req, res) => {
     const sessionConfig: Parameters<typeof client.createSession>[0] = {
       model: resolvedModel,
       streaming: true,
+      workingDirectory: process.cwd(),
       tools: tmdbTools,
       onPermissionRequest: approveAllPermissions,
       systemMessage: {
@@ -316,7 +317,7 @@ app.post('/api/chat/message', async (req, res) => {
   }
 });
 
-// DELETE /api/chat/session/:id — clean up session
+// DELETE /api/chat/session/:id — disconnect session (history preserved on disk)
 app.delete('/api/chat/session/:id', async (req, res) => {
   const session = sessions.get(req.params.id);
   if (session) {
@@ -324,6 +325,88 @@ app.delete('/api/chat/session/:id', async (req, res) => {
     sessions.delete(req.params.id);
   }
   res.json({ ok: true });
+});
+
+// GET /api/chat/sessions — list all persisted sessions
+app.get('/api/chat/sessions', async (_req, res) => {
+  try {
+    const list = await client.listSessions({ cwd: process.cwd() });
+    const sorted = list.sort((a, b) => b.modifiedTime.getTime() - a.modifiedTime.getTime());
+    res.json(sorted.map((s) => ({
+      sessionId: s.sessionId,
+      startTime: s.startTime.toISOString(),
+      modifiedTime: s.modifiedTime.toISOString(),
+      summary: s.summary ?? null,
+    })));
+  } catch (err) {
+    console.error('Error listing sessions:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// POST /api/chat/session/resume — resume an existing session
+app.post('/api/chat/session/resume', async (req, res) => {
+  const { sessionId } = req.body as { sessionId: string };
+  if (!sessionId) {
+    res.status(400).json({ error: 'sessionId required' });
+    return;
+  }
+  try {
+    // Disconnect and remove from map if already active (prevents duplicate)
+    const existing = sessions.get(sessionId);
+    if (existing) {
+      await existing.disconnect().catch(() => {});
+      sessions.delete(sessionId);
+    }
+
+    const session = await client.resumeSession(sessionId, {
+      tools: tmdbTools,
+      onPermissionRequest: approveAllPermissions,
+      streaming: true,
+    });
+    sessions.set(session.sessionId, session);
+    res.json({ sessionId: session.sessionId });
+  } catch (err) {
+    console.error('Error resuming session:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// GET /api/chat/session/:id/messages — retrieve message history for a session
+app.get('/api/chat/session/:id/messages', async (req, res) => {
+  const sessionId = req.params.id;
+  let session = sessions.get(sessionId);
+
+  // If not currently active, resume it temporarily to fetch messages
+  if (!session) {
+    try {
+      session = await client.resumeSession(sessionId, {
+        tools: tmdbTools,
+        onPermissionRequest: approveAllPermissions,
+        streaming: true,
+      });
+      sessions.set(sessionId, session);
+    } catch (err) {
+      res.status(404).json({ error: 'Session not found or could not be resumed' });
+      return;
+    }
+  }
+
+  try {
+    const events = await session.getMessages();
+    const messages = events
+      .filter((e) => e.type === 'user.message' || e.type === 'assistant.message')
+      .map((e) => {
+        if (e.type === 'user.message') {
+          return { id: e.id, role: 'user' as const, content: (e.data as { content: string }).content };
+        }
+        return { id: e.id, role: 'assistant' as const, content: (e.data as { content: string }).content };
+      });
+    res.json(messages);
+  } catch (err) {
+    console.error('Error fetching messages:', err);
+    res.status(500).json({ error: String(err) });
+  }
 });
 
 // POST /api/recap/episode — stream an AI episode recap via TVMaze + Copilot SDK (SSE)
@@ -369,6 +452,7 @@ app.post('/api/recap/episode', async (req, res) => {
     const session = await client.createSession({
       model: 'claude-sonnet-4.6',
       streaming: true,
+      workingDirectory: process.cwd(),
       onPermissionRequest: approveAllPermissions,
       systemMessage: {
         content: `You are a TV episode recap writer. Your only job is to take an episode description and rewrite it as an engaging, present-tense recap paragraph of 3–5 sentences.

@@ -109,7 +109,12 @@ export function useChat() {
     setError(null);
   }, []);
 
+  const setActiveSessionId = useCallback((id: string) => {
+    setSessionId(id);
+    sessionIdRef.current = id;
+  }, []);
+
   const clearMessages = useCallback(() => setMessages([]), []);
 
-  return { sessionId, messages, isStreaming, error, createSession, sendMessage, destroySession, clearMessages };
+  return { sessionId, messages, isStreaming, error, createSession, sendMessage, destroySession, clearMessages, setMessages, setSessionId: setActiveSessionId };
 }

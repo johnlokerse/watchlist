@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { ChatMessage } from '../../hooks/useChat';
 import { useSettings } from '../../hooks/useSettings';
 import ChatMessageBubble from './ChatMessage';
+import ChatHistoryPanel from './ChatHistoryPanel';
+import type { SessionMeta } from '../../hooks/useChatHistory';
 
 const STARTER_QUESTIONS = [
   'What should I watch tonight?',
@@ -97,9 +99,14 @@ interface Props {
   onModelChange: (id: string) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  // Chat history (only used when isExpanded)
+  sessions: SessionMeta[];
+  activeSessionId: string | null;
+  isLoadingSessions: boolean;
+  onSelectSession: (sessionId: string) => void;
 }
 
-export default function ChatPanel({ messages, isStreaming, error, isCreatingSession, sessionError, onSend, onClose, onRetry, onNewChat, onAdd, pinnedModels, activeModel, onModelChange, isExpanded, onToggleExpand }: Props) {
+export default function ChatPanel({ messages, isStreaming, error, isCreatingSession, sessionError, onSend, onClose, onRetry, onNewChat, onAdd, pinnedModels, activeModel, onModelChange, isExpanded, onToggleExpand, sessions, activeSessionId, isLoadingSessions, onSelectSession }: Props) {
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -126,7 +133,20 @@ export default function ChatPanel({ messages, isStreaming, error, isCreatingSess
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-row h-full overflow-hidden">
+      {/* History sidebar — desktop expanded only */}
+      {isExpanded && (
+        <ChatHistoryPanel
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          isLoading={isLoadingSessions}
+          onSelect={onSelectSession}
+          onNewChat={onNewChat}
+        />
+      )}
+
+      {/* Main chat column */}
+      <div className="flex flex-col flex-1 min-w-0 h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle shrink-0">
         <div className="flex items-center gap-2 min-w-0">
@@ -274,6 +294,7 @@ export default function ChatPanel({ messages, isStreaming, error, isCreatingSess
           </button>
         </div>
         <p className="text-xs text-text-muted mt-1.5 text-center">Enter to send · Shift+Enter for new line</p>
+      </div>
       </div>
     </div>
   );

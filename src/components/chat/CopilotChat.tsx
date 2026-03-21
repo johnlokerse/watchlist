@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useChat } from '../../hooks/useChat';
 import { useSettings } from '../../hooks/useSettings';
+import { useChatHistory } from '../../hooks/useChatHistory';
 import { addToLibrary } from '../../db/hooks';
 import ChatPanel from './ChatPanel';
 import { TMDB_BASE_URL, TMDB_API_TOKEN } from '../../utils/constants';
-import { extractFlatrateProviderIds } from '../../utils/watchProviders';
 
 export default function CopilotChat() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,7 +13,8 @@ export default function CopilotChat() {
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   const { settings, updateSettings } = useSettings();
-  const { sessionId, messages, isStreaming, error, createSession, sendMessage, destroySession } = useChat();
+  const { sessionId, messages, isStreaming, error, createSession, sendMessage, destroySession, setMessages, setSessionId } = useChat();
+  const { sessions, isLoadingSessions, loadSessions, resumeSession } = useChatHistory();
 
   const initSession = useCallback((modelOverride?: string) => {
     if (sessionId || isCreatingSession) return;
@@ -34,6 +35,11 @@ export default function CopilotChat() {
     initSession();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  // Load session history whenever the panel expands
+  useEffect(() => {
+    if (isExpanded) loadSessions();
+  }, [isExpanded, loadSessions]);
 
   // Destroy session when component unmounts
   useEffect(() => {
@@ -77,6 +83,24 @@ export default function CopilotChat() {
       .finally(() => setIsCreatingSession(false));
   }, [destroySession, createSession, settings.openrouterModel]);
 
+  const handleSelectSession = useCallback(async (selectedId: string) => {
+    if (selectedId === sessionId) return;
+    try {
+      // Disconnect current session without destroying it
+      await destroySession();
+      setIsCreatingSession(true);
+      setSessionError(null);
+      const { sessionId: resumedId, messages: historicMessages } = await resumeSession(selectedId);
+      setSessionId(resumedId);
+      setMessages(historicMessages);
+    } catch (err) {
+      console.error('Failed to resume session:', err);
+      setSessionError(String(err));
+    } finally {
+      setIsCreatingSession(false);
+    }
+  }, [sessionId, destroySession, resumeSession, setSessionId, setMessages]);
+
   const handleSend = useCallback(
     (text: string) => {
       if (!sessionId) return;
@@ -112,12 +136,9 @@ export default function CopilotChat() {
         userRating: null,
         notes: '',
         genreIds: (data.genres as Array<{ id: number }> | undefined)?.map((g) => g.id) ?? data.genre_ids ?? [],
-        streamingProviderIds: extractFlatrateProviderIds(data['watch/providers'], settings.country),
-        providerCountry: settings.country,
-        providerSyncedAt: new Date().toISOString(),
       });
     },
-    [settings.country],
+    [],
   );
 
   const handleClose = useCallback(() => {
@@ -125,7 +146,9 @@ export default function CopilotChat() {
     setIsExpanded(false);
   }, []);
 
-  const handleToggleExpand = useCallback(() => setIsExpanded((e) => !e), []);
+  const handleToggleExpand = useCallback(() => {
+    setIsExpanded((e) => !e);
+  }, []);
 
   return (
     <>
@@ -158,6 +181,10 @@ export default function CopilotChat() {
               onModelChange={handleModelChange}
               isExpanded={isExpanded}
               onToggleExpand={handleToggleExpand}
+              sessions={sessions}
+              activeSessionId={sessionId}
+              isLoadingSessions={isLoadingSessions}
+              onSelectSession={handleSelectSession}
             />
           </div>
         </>
