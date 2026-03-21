@@ -50,6 +50,12 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS chat_sessions (
+    sessionId TEXT PRIMARY KEY,
+    tag       TEXT NOT NULL DEFAULT 'watchlist',
+    createdAt TEXT NOT NULL
+  );
 `);
 
 // Prepared statements for performance
@@ -98,6 +104,11 @@ const stmts = {
   getSetting: db.prepare(`SELECT value FROM settings WHERE key = ?`),
   getAllSettings: db.prepare(`SELECT key, value FROM settings`),
   upsertSetting: db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`),
+
+  // chat_sessions
+  insertChatSession: db.prepare(`INSERT OR IGNORE INTO chat_sessions (sessionId, tag, createdAt) VALUES (?, ?, ?)`),
+  getChatSessionIdsByTag: db.prepare(`SELECT sessionId FROM chat_sessions WHERE tag = ?`),
+  deleteChatSession: db.prepare(`DELETE FROM chat_sessions WHERE sessionId = ?`),
 
   countWatchedEpisodes: db.prepare(`SELECT COUNT(*) as count FROM watched_episodes WHERE tmdbId = ?`),
   updateItemStatusByTmdb: db.prepare(`UPDATE watched_items SET status = ?, updatedAt = ? WHERE tmdbId = ? AND contentType = 'series'`),
@@ -324,6 +335,18 @@ export const queries = {
       }
     });
     tx();
+  },
+
+  recordChatSession(sessionId: string, tag = 'watchlist') {
+    stmts.insertChatSession.run(sessionId, tag, new Date().toISOString());
+  },
+
+  getChatSessionIds(tag = 'watchlist'): string[] {
+    return (stmts.getChatSessionIdsByTag.all(tag) as { sessionId: string }[]).map((r) => r.sessionId);
+  },
+
+  removeChatSession(sessionId: string) {
+    stmts.deleteChatSession.run(sessionId);
   },
 
   exportAll() {

@@ -243,6 +243,7 @@ Guidelines:
     const session = await client.createSession(sessionConfig);
 
     sessions.set(session.sessionId, session);
+    queries.recordChatSession(session.sessionId);
     res.json({ sessionId: session.sessionId });
   } catch (err) {
     console.error('Error creating session:', err);
@@ -327,11 +328,13 @@ app.delete('/api/chat/session/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /api/chat/sessions — list all persisted sessions
+// GET /api/chat/sessions — list persisted sessions tagged to this app
 app.get('/api/chat/sessions', async (_req, res) => {
   try {
-    const list = await client.listSessions({ cwd: process.cwd() });
-    const sorted = list.sort((a, b) => b.modifiedTime.getTime() - a.modifiedTime.getTime());
+    const taggedIds = new Set(queries.getChatSessionIds());
+    const list = await client.listSessions();
+    const appSessions = list.filter((s) => taggedIds.has(s.sessionId));
+    const sorted = appSessions.sort((a, b) => b.modifiedTime.getTime() - a.modifiedTime.getTime());
     res.json(sorted.map((s) => ({
       sessionId: s.sessionId,
       startTime: s.startTime.toISOString(),
