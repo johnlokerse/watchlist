@@ -4,9 +4,11 @@ import { useSettings } from '../../hooks/useSettings';
 import { addToLibrary } from '../../db/hooks';
 import ChatPanel from './ChatPanel';
 import { TMDB_BASE_URL, TMDB_API_TOKEN } from '../../utils/constants';
+import { extractFlatrateProviderIds } from '../../utils/watchProviders';
 
 export default function CopilotChat() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
@@ -93,7 +95,9 @@ export default function CopilotChat() {
       } catch { /* proceed with add */ }
 
       const path = type === 'tv' ? `/tv/${tmdbId}` : `/movie/${tmdbId}`;
-      const res = await fetch(`${TMDB_BASE_URL}${path}`, {
+      const url = new URL(`${TMDB_BASE_URL}${path}`);
+      url.searchParams.set('append_to_response', 'watch/providers');
+      const res = await fetch(url.toString(), {
         headers: { Authorization: `Bearer ${TMDB_API_TOKEN}` },
       });
       const data = res.ok ? await res.json() : {};
@@ -108,19 +112,36 @@ export default function CopilotChat() {
         userRating: null,
         notes: '',
         genreIds: (data.genres as Array<{ id: number }> | undefined)?.map((g) => g.id) ?? data.genre_ids ?? [],
+        streamingProviderIds: extractFlatrateProviderIds(data['watch/providers'], settings.country),
+        providerCountry: settings.country,
+        providerSyncedAt: new Date().toISOString(),
       });
     },
-    [],
+    [settings.country],
   );
 
-  const handleClose = useCallback(() => setIsOpen(false), []);
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    setIsExpanded(false);
+  }, []);
+
+  const handleToggleExpand = useCallback(() => setIsExpanded((e) => !e), []);
 
   return (
     <>
       {isOpen && (
         <>
+          {/* Mobile backdrop */}
           <div className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
-          <div className="fixed z-50 bg-surface border border-border-subtle shadow-2xl inset-0 md:inset-auto md:bottom-24 md:right-6 md:w-[380px] md:h-[560px] md:rounded-2xl flex flex-col overflow-hidden">
+          {/* Desktop expanded backdrop */}
+          {isExpanded && (
+            <div className="hidden md:block fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={handleToggleExpand} />
+          )}
+          <div className={`fixed z-50 bg-surface border border-border-subtle shadow-2xl flex flex-col overflow-hidden inset-0 md:inset-auto md:rounded-2xl ${
+            isExpanded
+              ? 'md:top-[calc(3.5rem+1rem)] md:left-1/2 md:-translate-x-1/2 md:w-[min(1040px,92vw)] md:h-[calc(100vh-3.5rem-2rem)]'
+              : 'md:bottom-24 md:right-6 md:w-[380px] md:h-[560px]'
+          }`}>
             <ChatPanel
               messages={messages}
               isStreaming={isStreaming}
@@ -135,6 +156,8 @@ export default function CopilotChat() {
               pinnedModels={settings.openrouterModels}
               activeModel={settings.openrouterModel}
               onModelChange={handleModelChange}
+              isExpanded={isExpanded}
+              onToggleExpand={handleToggleExpand}
             />
           </div>
         </>
@@ -155,4 +178,3 @@ export default function CopilotChat() {
     </>
   );
 }
-

@@ -95,9 +95,11 @@ interface Props {
   pinnedModels: string[];
   activeModel: string;
   onModelChange: (id: string) => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
 }
 
-export default function ChatPanel({ messages, isStreaming, error, isCreatingSession, sessionError, onSend, onClose, onRetry, onNewChat, onAdd, pinnedModels, activeModel, onModelChange }: Props) {
+export default function ChatPanel({ messages, isStreaming, error, isCreatingSession, sessionError, onSend, onClose, onRetry, onNewChat, onAdd, pinnedModels, activeModel, onModelChange, isExpanded, onToggleExpand }: Props) {
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -157,13 +159,38 @@ export default function ChatPanel({ messages, isStreaming, error, isCreatingSess
             )}
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg hover:bg-surface-overlay shrink-0"
-          aria-label="Close"
-        >
-          ✕
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Expand / collapse — desktop only */}
+          <button
+            onClick={onToggleExpand}
+            className="hidden md:flex text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg hover:bg-surface-overlay"
+            aria-label={isExpanded ? 'Collapse chat' : 'Expand chat'}
+            title={isExpanded ? 'Collapse chat' : 'Expand chat'}
+          >
+            {isExpanded ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <polyline points="4 14 10 14 10 20" />
+                <polyline points="20 10 14 10 14 4" />
+                <line x1="10" y1="14" x2="3" y2="21" />
+                <line x1="21" y1="3" x2="14" y2="10" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <polyline points="15 3 21 3 21 9" />
+                <polyline points="9 21 3 21 3 15" />
+                <line x1="21" y1="3" x2="14" y2="10" />
+                <line x1="3" y1="21" x2="10" y2="14" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={onClose}
+            className="text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg hover:bg-surface-overlay"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
