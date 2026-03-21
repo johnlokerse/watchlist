@@ -404,7 +404,8 @@ app.get('/api/chat/session/:id/messages', async (req, res) => {
           return { id: e.id, role: 'user' as const, content: (e.data as { content: string }).content };
         }
         return { id: e.id, role: 'assistant' as const, content: (e.data as { content: string }).content };
-      });
+      })
+      .filter((m) => m.content && m.content.trim().length > 0);
     res.json(messages);
   } catch (err) {
     console.error('Error fetching messages:', err);
