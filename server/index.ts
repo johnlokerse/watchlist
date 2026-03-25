@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import { mkdirSync } from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { CopilotClient } from '@github/copilot-sdk';
@@ -144,7 +146,24 @@ app.get('/api/chat/models', async (req, res) => {
 
 let copilotModels: { id: string; name: string }[] = [];
 
-const client = new CopilotClient();
+function resolveWatchlistCopilotConfigDir() {
+  const override = process.env.WATCHLIST_COPILOT_CONFIG_DIR?.trim();
+  if (override) return path.resolve(override);
+
+  const copilotHome = process.env.COPILOT_HOME?.trim()
+    ? path.resolve(process.env.COPILOT_HOME.trim())
+    : path.join(os.homedir(), '.copilot');
+
+  return path.join(copilotHome, 'watchlist-sessions');
+}
+
+const watchlistCopilotConfigDir = resolveWatchlistCopilotConfigDir();
+const watchlistWorkingDirectory = path.resolve(process.cwd());
+mkdirSync(watchlistCopilotConfigDir, { recursive: true });
+
+const client = new CopilotClient({
+  cliArgs: ['--config-dir', watchlistCopilotConfigDir],
+});
 const approveAllPermissions = async () => ({ kind: 'approved' as const });
 
 try {
@@ -160,6 +179,14 @@ try {
 
 type ActiveSession = Awaited<ReturnType<typeof client.createSession>>;
 const sessions = new Map<string, ActiveSession>();
+
+async function listWatchlistSessions() {
+  return client.listSessions({ cwd: watchlistWorkingDirectory });
+}
+
+async function hasPersistedWatchlistSession(sessionId: string) {
+  return (await listWatchlistSessions()).some((session) => session.sessionId === sessionId);
+}
 
 interface LibraryItem {
   title: string;
@@ -210,7 +237,8 @@ app.post('/api/chat/session', async (req, res) => {
     const sessionConfig: Parameters<typeof client.createSession>[0] = {
       model: resolvedModel,
       streaming: true,
-      workingDirectory: process.cwd(),
+      workingDirectory: watchlistWorkingDirectory,
+      configDir: watchlistCopilotConfigDir,
       tools: tmdbTools,
       onPermissionRequest: approveAllPermissions,
       systemMessage: {
@@ -243,7 +271,6 @@ Guidelines:
     const session = await client.createSession(sessionConfig);
 
     sessions.set(session.sessionId, session);
-    queries.recordChatSession(session.sessionId);
     res.json({ sessionId: session.sessionId });
   } catch (err) {
     console.error('Error creating session:', err);
@@ -328,13 +355,11 @@ app.delete('/api/chat/session/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /api/chat/sessions — list persisted sessions tagged to this app
+// GET /api/chat/sessions — list persisted watchlist chat sessions for this app's working directory
 app.get('/api/chat/sessions', async (_req, res) => {
   try {
-    const taggedIds = new Set(queries.getChatSessionIds());
-    const list = await client.listSessions();
-    const appSessions = list.filter((s) => taggedIds.has(s.sessionId));
-    const sorted = appSessions.sort((a, b) => b.modifiedTime.getTime() - a.modifiedTime.getTime());
+    const list = await listWatchlistSessions();
+    const sorted = list.sort((a, b) => b.modifiedTime.getTime() - a.modifiedTime.getTime());
     res.json(sorted.map((s) => ({
       sessionId: s.sessionId,
       startTime: s.startTime.toISOString(),
@@ -360,12 +385,17 @@ app.post('/api/chat/session/resume', async (req, res) => {
     if (existing) {
       await existing.disconnect().catch(() => {});
       sessions.delete(sessionId);
+    } else if (!(await hasPersistedWatchlistSession(sessionId))) {
+      res.status(404).json({ error: 'Session not found' });
+      return;
     }
 
     const session = await client.resumeSession(sessionId, {
       tools: tmdbTools,
       onPermissionRequest: approveAllPermissions,
       streaming: true,
+      workingDirectory: watchlistWorkingDirectory,
+      configDir: watchlistCopilotConfigDir,
     });
     sessions.set(session.sessionId, session);
     res.json({ sessionId: session.sessionId });
@@ -382,14 +412,21 @@ app.get('/api/chat/session/:id/messages', async (req, res) => {
 
   // If not currently active, resume it temporarily to fetch messages
   if (!session) {
+    if (!(await hasPersistedWatchlistSession(sessionId))) {
+      res.status(404).json({ error: 'Session not found or could not be resumed' });
+      return;
+    }
+
     try {
       session = await client.resumeSession(sessionId, {
         tools: tmdbTools,
         onPermissionRequest: approveAllPermissions,
         streaming: true,
+        workingDirectory: watchlistWorkingDirectory,
+        configDir: watchlistCopilotConfigDir,
       });
       sessions.set(sessionId, session);
-    } catch (err) {
+    } catch {
       res.status(404).json({ error: 'Session not found or could not be resumed' });
       return;
     }
@@ -435,6 +472,9 @@ app.post('/api/recap/episode', async (req, res) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
+  let recapSession: ActiveSession | null = null;
+  let unsubDelta: (() => void) | undefined;
+
   try {
     // Step 1: Resolve TVMaze show ID from IMDb ID
     const tvmazeShowRes = await fetch(`https://api.tvmaze.com/lookup/shows?imdb=${imdbId}`);
@@ -453,10 +493,11 @@ app.post('/api/recap/episode', async (req, res) => {
     if (!summary) throw new Error('No episode summary available for this episode');
 
     // Step 4: Create a streaming Copilot session focused on recap writing
-    const session = await client.createSession({
+    recapSession = await client.createSession({
       model: 'claude-sonnet-4.6',
       streaming: true,
-      workingDirectory: process.cwd(),
+      workingDirectory: watchlistWorkingDirectory,
+      configDir: watchlistCopilotConfigDir,
       onPermissionRequest: approveAllPermissions,
       systemMessage: {
         content: `You are a TV episode recap writer. Your only job is to take an episode description and rewrite it as an engaging, present-tense recap paragraph of 3–5 sentences.
@@ -472,7 +513,7 @@ Rules you must always follow:
 
     // Step 5: Forward each delta chunk to the client as an SSE event
     let accumulated = '';
-    const unsubDelta = session.on('assistant.message_delta', (event) => {
+    unsubDelta = recapSession.on('assistant.message_delta', (event) => {
       const content = event.data.deltaContent;
       if (content) {
         accumulated += content;
@@ -481,15 +522,12 @@ Rules you must always follow:
     });
 
     // Step 6: Await full completion (delta events fire concurrently)
-    const result = await session.sendAndWait(
+    const result = await recapSession.sendAndWait(
       {
         prompt: `Rewrite the following episode description as an engaging recap paragraph for ${seriesTitle} — Season ${seasonNumber}, Episode ${episodeNumber}: "${episodeTitle}"\n\nEpisode description:\n${summary}`,
       },
       30_000
     );
-
-    unsubDelta();
-    await session.disconnect().catch(() => {});
 
     // Fallback: if no delta events fired, simulate word-by-word streaming
     if (!accumulated) {
@@ -502,11 +540,16 @@ Rules you must always follow:
     }
 
     send({ type: 'done' });
-    res.end();
   } catch (err) {
     console.error('[recap] error:', err);
     send({ type: 'error', message: err instanceof Error ? err.message : String(err) });
     send({ type: 'done' });
+  } finally {
+    unsubDelta?.();
+    if (recapSession) {
+      await recapSession.disconnect().catch(() => {});
+      await client.deleteSession(recapSession.sessionId).catch(() => {});
+    }
     res.end();
   }
 });
