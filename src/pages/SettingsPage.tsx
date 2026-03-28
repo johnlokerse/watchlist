@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { clearLibrary, addToLibrary, exportLibrary, updateSeriesProgress, bulkImportEpisodes, updateWatchedItem } from '../db/hooks';
 import type { WatchedStatus, ContentType } from '../db/models';
 import { useSettings } from '../hooks/useSettings';
+import type { CoverSize } from '../hooks/useSettings';
 import { THEMES } from '../utils/themes';
 import { useAvailableProviders } from '../api/tmdb';
 import { logoUrl } from '../utils/image';
@@ -577,6 +578,31 @@ export default function SettingsPage() {
                 </div>
               );
             })}
+
+            <div className="border-t border-border-subtle mt-2 pt-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium">Cover Size</p>
+                  <p className="text-xs text-text-secondary mt-0.5">Adjust the size of poster covers</p>
+                </div>
+                <div className="inline-flex bg-surface rounded-lg p-1 gap-1" role="group" aria-label="Cover size">
+                  {([['small', 'S'], ['medium', 'M'], ['large', 'L']] as [CoverSize, string][]).map(([size, label]) => (
+                    <button
+                      key={size}
+                      aria-pressed={settings.coverSize === size}
+                      onClick={() => updateSettings({ coverSize: size })}
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                        settings.coverSize === size
+                          ? 'bg-accent text-white shadow-sm'
+                          : 'text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* ── Library Data ── */}
