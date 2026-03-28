@@ -63,7 +63,7 @@ const SERIES_STATUS_FILTERS = [
 
 export default function LibraryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { settings } = useSettings();
+  const { settings, updateSettings } = useSettings();
   const tabParam = searchParams.get('tab');
   const tab: 'movies' | 'series' = tabParam === 'series' ? 'series' : 'movies';
   const setTab = (nextTab: 'movies' | 'series') => {
@@ -159,7 +159,12 @@ export default function LibraryPage() {
               placeholder={`Search your ${tab} or find new ones...`}
             />
           </div>
-          <ViewToggle value={viewMode} onChange={setViewMode} />
+          <ViewToggle
+            value={viewMode}
+            onChange={setViewMode}
+            coverSize={settings.coverSize}
+            onCoverSizeChange={(size) => updateSettings({ coverSize: size })}
+          />
         </div>
         <FilterBar
           filters={tab === 'movies' ? MOVIE_STATUS_FILTERS : SERIES_STATUS_FILTERS}
