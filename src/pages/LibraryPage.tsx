@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useWatchedItems, useSeriesProgress } from '../db/hooks';
 import { useSearchMovies, useSearchSeries } from '../api/tmdb';
 import { useDebounce } from '../hooks/useDebounce';
+import { useSettings } from '../hooks/useSettings';
 import type { ContentType, WatchedItem, WatchedStatus } from '../db/models';
 import type { TMDBMovie, TMDBSeries } from '../api/types';
 import SegmentedControl from '../components/ui/SegmentedControl';
@@ -62,6 +63,7 @@ const SERIES_STATUS_FILTERS = [
 
 export default function LibraryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { settings, updateSettings } = useSettings();
   const tabParam = searchParams.get('tab');
   const tab: 'movies' | 'series' = tabParam === 'series' ? 'series' : 'movies';
   const setTab = (nextTab: 'movies' | 'series') => {
@@ -157,7 +159,12 @@ export default function LibraryPage() {
               placeholder={`Search your ${tab} or find new ones...`}
             />
           </div>
-          <ViewToggle value={viewMode} onChange={setViewMode} />
+          <ViewToggle
+            value={viewMode}
+            onChange={setViewMode}
+            coverSize={settings.coverSize}
+            onCoverSizeChange={(size) => updateSettings({ coverSize: size })}
+          />
         </div>
         <FilterBar
           filters={tab === 'movies' ? MOVIE_STATUS_FILTERS : SERIES_STATUS_FILTERS}
@@ -170,7 +177,7 @@ export default function LibraryPage() {
       {!isSearching && (
         <>
           {!items ? (
-            <CardGrid>
+            <CardGrid coverSize={settings.coverSize}>
               {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
             </CardGrid>
           ) : filteredItems.length === 0 ? (
@@ -184,7 +191,7 @@ export default function LibraryPage() {
               {planToWatchItems.length > 0 && (
                 <div className="space-y-4">
                   {viewMode === 'cards' ? (
-                    <CardGrid>
+                    <CardGrid coverSize={settings.coverSize}>
                       {planToWatchItems.map((item) => (
                         <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
                       ))}
@@ -202,7 +209,7 @@ export default function LibraryPage() {
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Watching</h2>
                   {viewMode === 'cards' ? (
-                    <CardGrid>
+                    <CardGrid coverSize={settings.coverSize}>
                       {watchingItems.map((item) =>
                         item.contentType === 'series' ? (
                           <WatchingSeriesCard key={item.id} item={item} />
@@ -228,7 +235,7 @@ export default function LibraryPage() {
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Watched</h2>
                   {viewMode === 'cards' ? (
-                    <CardGrid compact>
+                    <CardGrid compact coverSize={settings.coverSize}>
                       {watchedItems.map((item) => (
                         <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
                       ))}
@@ -252,13 +259,13 @@ export default function LibraryPage() {
         <div className="space-y-3">
           <h2 className="text-lg font-semibold text-text-secondary">Search Results</h2>
           {searchLoading ? (
-            <CardGrid>
+            <CardGrid coverSize={settings.coverSize}>
               {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
             </CardGrid>
           ) : tmdbResults.length === 0 ? (
             <p className="text-text-muted py-8 text-center">No results found for "{debouncedSearch}"</p>
           ) : (
-            <CardGrid>
+            <CardGrid coverSize={settings.coverSize}>
               {tmdbResults.map((item) => {
                 const isMovie = 'title' in item;
                 const movie = item as TMDBMovie;

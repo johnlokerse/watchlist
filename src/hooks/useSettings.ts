@@ -2,11 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { DEFAULT_COUNTRY } from '../utils/constants';
 import { applyTheme } from '../utils/themes';
 
+export type CoverSize = 'small' | 'medium' | 'large';
+
 export interface AppSettings {
   country: string;
   showSpoilers: boolean;
   episodeRecapEnabled: boolean;
   theme: string;
+  coverSize: CoverSize;
   streamingServices: number[];
   openrouterEnabled: boolean;
   openrouterApiKey: string;
@@ -14,7 +17,7 @@ export interface AppSettings {
   openrouterModels: string[];
 }
 
-const DEFAULTS: AppSettings = { country: DEFAULT_COUNTRY, showSpoilers: false, episodeRecapEnabled: true, theme: 'default', streamingServices: [], openrouterEnabled: false, openrouterApiKey: '', openrouterModel: '', openrouterModels: [] };
+const DEFAULTS: AppSettings = { country: DEFAULT_COUNTRY, showSpoilers: false, episodeRecapEnabled: true, theme: 'default', coverSize: 'medium', streamingServices: [], openrouterEnabled: false, openrouterApiKey: '', openrouterModel: '', openrouterModels: [] };
 const THEME_KEY = 'app-theme-cache';
 
 // Apply cached theme immediately to avoid flash on load
@@ -27,6 +30,7 @@ function mergeDefaults(partial: Partial<AppSettings>): AppSettings {
     showSpoilers: partial.showSpoilers ?? DEFAULTS.showSpoilers,
     episodeRecapEnabled: partial.episodeRecapEnabled ?? DEFAULTS.episodeRecapEnabled,
     theme: partial.theme ?? DEFAULTS.theme,
+    coverSize: partial.coverSize ?? DEFAULTS.coverSize,
     streamingServices: partial.streamingServices ?? DEFAULTS.streamingServices,
     openrouterEnabled: partial.openrouterEnabled ?? DEFAULTS.openrouterEnabled,
     openrouterApiKey: partial.openrouterApiKey ?? DEFAULTS.openrouterApiKey,
