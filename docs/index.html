@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watchlist — Your Movie & Series Tracker</title>
+  <meta name="description" content="Track what you watch, discover what's next, and get AI-powered recommendations — all in one beautiful, responsive app.">
+  <meta property="og:title" content="Watchlist — Your Movie & Series Tracker">
+  <meta property="og:description" content="Track what you watch, discover what's next, and get AI-powered recommendations.">
+  <meta property="og:image" content="assets/images/watchlist_header.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <div class="nav-container">
+      <a href="#" class="logo">
+        <span>🎬</span> Watchlist
+      </a>
+      <a href="https://github.com/johnlokerse/watchlist" target="_blank" rel="noopener" class="btn btn-outline">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 4px;">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        View on GitHub
+      </a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        Now available on GitHub
+      </div>
+      <h1>Your personal movie & series tracker</h1>
+      <p>Track what you watch, discover what's next, and get AI-powered recommendations — all in one beautiful, responsive app.</p>
+      <div class="hero-buttons">
+        <a href="https://github.com/johnlokerse/watchlist" target="_blank" rel="noopener" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          View on GitHub
+        </a>
+      </div>
+    </div>
+    <div class="hero-screenshot">
+      <img src="assets/images/watchlist_header.png" alt="Watchlist app screenshot showing upcoming movies with countdown badges">
+    </div>
+  </section>
+
+  <!-- Tagline Bar -->
+  <div class="tagline-bar">
+    <div class="tagline-content">
+      <div class="tagline-item">
+        <span class="tagline-icon">🤖</span>
+        AI Copilot
+      </div>
+      <div class="tagline-item">
+        <span class="tagline-icon">📅</span>
+        Upcoming Countdowns
+      </div>
+      <div class="tagline-item">
+        <span class="tagline-icon">📚</span>
+        Your Library
+      </div>
+      <div class="tagline-item">
+        <span class="tagline-icon">📱</span>
+        Responsive Design
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature Showcase: AI Copilot -->
+  <section class="section">
+    <div class="feature-showcase">
+      <div class="feature-text">
+        <h3>Chat with AI about your watchlist</h3>
+        <p>Get personalized recommendations, find similar titles, and discover hidden gems — all powered by your own library data. The Copilot SDK searches live TMDB data so suggestions are always fresh and relevant, never hallucinated.</p>
+      </div>
+      <div class="feature-media">
+        <video autoplay loop muted playsinline preload="metadata" poster="assets/images/NobodySequel.gif">
+          <source src="assets/videos/NobodySequel.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Showcase: Smart Recommendations -->
+  <section class="section section-alt">
+    <div class="feature-showcase reverse">
+      <div class="feature-text">
+        <h3>Recommendations based on your taste</h3>
+        <p>Ask the AI to suggest movies or series based on what you love. It understands your watch history, ratings, and preferences to surface titles you'll actually want to watch next.</p>
+      </div>
+      <div class="feature-media">
+        <video autoplay loop muted playsinline preload="metadata">
+          <source src="assets/videos/RecommendationsBasedOnTaste.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Showcase: Discover & Track -->
+  <section class="section">
+    <div class="feature-showcase">
+      <div class="feature-text">
+        <h3>Discover trending titles & rich metadata</h3>
+        <p>Search TMDB's vast catalog, view detailed info on cast & crew, check where to watch across streaming services, and keep track of it all in your personal library.</p>
+      </div>
+      <div class="feature-media">
+        <video autoplay loop muted playsinline preload="metadata">
+          <source src="assets/videos/Scream7Example.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Showcase: Mobile First -->
+  <section class="section section-alt">
+    <div class="feature-showcase reverse">
+      <div class="feature-text">
+        <h3>Works beautifully on every device</h3>
+        <p>Built mobile-first with a seamless experience on your phone. Bottom navigation, touch-friendly cards, and responsive layouts ensure you can manage your watchlist anywhere.</p>
+      </div>
+      <div class="feature-media">
+        <video autoplay loop muted playsinline preload="metadata">
+          <source src="assets/videos/WorksOnMobile.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Grid -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Everything you need to track your watchlist</h2>
+      <p>A powerful set of features designed for movie and series enthusiasts.</p>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-icon">📚</div>
+        <h4>Library Tracking</h4>
+        <p>Track movies and series with watched, watching, and plan-to-watch statuses. Add ratings and personal notes.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">⏰</div>
+        <h4>Upcoming Countdowns</h4>
+        <p>Live countdown badges for upcoming releases so you never miss a premiere.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">📺</div>
+        <h4>Watch Providers</h4>
+        <p>See where to stream, rent, or buy any title across popular services.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">💾</div>
+        <h4>Export & Import</h4>
+        <p>Back up and restore your entire library as JSON. Your data, always portable.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <h2>Ready to track your next watch?</h2>
+    <p>Open source, free to use, and ready to deploy.</p>
+    <a href="https://github.com/johnlokerse/watchlist" target="_blank" rel="noopener" class="btn btn-primary">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 6px;">
+        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+      </svg>
+      View on GitHub
+    </a>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>© 2025 Watchlist. Built with React, Vite & Express. <a href="https://github.com/johnlokerse/watchlist" target="_blank" rel="noopener">View on GitHub</a>.</p>
+  </footer>
+
+</body>
+</html>
