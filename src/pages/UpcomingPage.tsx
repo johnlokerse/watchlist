@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useUpcomingFromLibrary, usePlannedMovies } from '../db/hooks';
 import { useSeriesDetailBatch } from '../api/tmdb';
+import { useSettings } from '../hooks/useSettings';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import Card from '../components/ui/Card';
 import CardGrid from '../components/ui/CardGrid';
@@ -23,6 +24,7 @@ function seriesStatusLabel(status: string): string {
 
 export default function UpcomingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { settings } = useSettings();
   const tabParam = searchParams.get('tab');
   const tab: ContentTab = tabParam === 'series' ? 'series' : 'movies';
   const setTab = (nextTab: ContentTab) => {
@@ -123,7 +125,7 @@ export default function UpcomingPage() {
               </p>
             </div>
           ) : (
-            <CardGrid>
+            <CardGrid coverSize={settings.coverSize}>
               {moviesItems.map((item) => (
                 <Card
                   key={item.id}
@@ -142,7 +144,7 @@ export default function UpcomingPage() {
           {plannedMovies !== undefined && plannedMovies.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">Planned</h2>
-              <CardGrid>
+              <CardGrid coverSize={settings.coverSize}>
                 {plannedMovies.map((item) => (
                   <Card
                     key={item.id}
@@ -170,7 +172,7 @@ export default function UpcomingPage() {
                 <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
               </div>
             ) : (
-              <CardGrid>
+              <CardGrid coverSize={settings.coverSize}>
                 {series.map((item) => (
                   <SkeletonCard key={item.id} />
                 ))}
@@ -195,7 +197,7 @@ export default function UpcomingPage() {
           ) : (
             <div className="space-y-8">
               {upcomingEpisodes.length > 0 && (
-                <CardGrid>
+                <CardGrid coverSize={settings.coverSize}>
                   {upcomingEpisodes.map(({ item, detail }) => {
                     const nextEp = detail!.next_episode_to_air!;
                     return (
@@ -218,7 +220,7 @@ export default function UpcomingPage() {
               {announcedSeries.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Announced</h2>
-                  <CardGrid>
+                  <CardGrid coverSize={settings.coverSize}>
                     {announcedSeries.map(({ item, detail }) => (
                       <Card
                         key={item.id}
@@ -239,7 +241,7 @@ export default function UpcomingPage() {
               {endedSeries.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Ended</h2>
-                  <CardGrid compact>
+                  <CardGrid compact coverSize={settings.coverSize}>
                     {endedSeries.map(({ item, detail }) => (
                       <Card
                         key={item.id}

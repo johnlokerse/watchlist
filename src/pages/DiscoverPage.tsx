@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useTrendingMovies, useTrendingSeries, useAnticipatedMovies, useAnticipatedSeries } from '../api/tmdb';
 import { useWatchedItems } from '../db/hooks';
+import { useSettings } from '../hooks/useSettings';
 import type { WatchedStatus } from '../db/models';
 import Card from '../components/ui/Card';
 import ScrollRow from '../components/ui/ScrollRow';
@@ -12,6 +13,7 @@ export default function DiscoverPage() {
   const anticipatedMovies = useAnticipatedMovies();
   const anticipatedSeries = useAnticipatedSeries();
   const libraryItems = useWatchedItems();
+  const { settings } = useSettings();
 
   // Build a map keyed by `${tmdbId}-${contentType}` for O(1) status lookups
   const libraryMap = useMemo(() => {
@@ -30,11 +32,11 @@ export default function DiscoverPage() {
           <h2 className="text-2xl font-bold">Shows</h2>
         </div>
         {series.isLoading ? (
-          <ScrollRow>
+          <ScrollRow coverSize={settings.coverSize}>
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
           </ScrollRow>
         ) : (
-          <ScrollRow>
+          <ScrollRow coverSize={settings.coverSize}>
             {series.data?.results.slice(0, 12).map((s) => (
               <Card
                 key={s.id}
@@ -57,11 +59,11 @@ export default function DiscoverPage() {
           <h2 className="text-2xl font-bold">Movies</h2>
         </div>
         {movies.isLoading ? (
-          <ScrollRow>
+          <ScrollRow coverSize={settings.coverSize}>
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
           </ScrollRow>
         ) : (
-          <ScrollRow>
+          <ScrollRow coverSize={settings.coverSize}>
             {movies.data?.results.slice(0, 12).map((m) => (
               <Card
                 key={m.id}
@@ -84,11 +86,11 @@ export default function DiscoverPage() {
           <h2 className="text-2xl font-bold">Shows</h2>
         </div>
         {anticipatedSeries.isLoading ? (
-          <ScrollRow>
+          <ScrollRow coverSize={settings.coverSize}>
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
           </ScrollRow>
         ) : (
-          <ScrollRow>
+          <ScrollRow coverSize={settings.coverSize}>
             {anticipatedSeries.data?.results.slice(0, 12).map((s) => (
               <Card
                 key={s.id}
@@ -111,11 +113,11 @@ export default function DiscoverPage() {
           <h2 className="text-2xl font-bold">Movies</h2>
         </div>
         {anticipatedMovies.isLoading ? (
-          <ScrollRow>
+          <ScrollRow coverSize={settings.coverSize}>
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
           </ScrollRow>
         ) : (
-          <ScrollRow>
+          <ScrollRow coverSize={settings.coverSize}>
             {anticipatedMovies.data?.results.slice(0, 12).map((m) => (
               <Card
                 key={m.id}

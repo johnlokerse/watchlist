@@ -1,10 +1,18 @@
 import { useRef, useState, useEffect, type ReactNode } from 'react';
+import type { CoverSize } from '../../hooks/useSettings';
 
 interface Props {
   children: ReactNode;
+  coverSize?: CoverSize;
 }
 
-export default function ScrollRow({ children }: Props) {
+const ITEM_WIDTH_CLASSES: Record<CoverSize, string> = {
+  small: 'flex-none w-[calc((100%-2rem)/3.5)] sm:w-[calc((100%-2rem)/4)] md:w-[calc((100%-3rem)/5)] lg:w-[calc((100%-4rem)/6)] xl:w-[calc((100%-5rem)/7)]',
+  medium: 'flex-none w-[calc((100%-2rem)/2.5)] sm:w-[calc((100%-2rem)/3)] md:w-[calc((100%-3rem)/4)] lg:w-[calc((100%-4rem)/5)] xl:w-[calc((100%-5rem)/6)]',
+  large: 'flex-none w-[calc((100%-2rem)/1.8)] sm:w-[calc((100%-2rem)/2.2)] md:w-[calc((100%-3rem)/3)] lg:w-[calc((100%-4rem)/4)] xl:w-[calc((100%-5rem)/5)]',
+};
+
+export default function ScrollRow({ children, coverSize = 'medium' }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -60,7 +68,7 @@ export default function ScrollRow({ children }: Props) {
           ? (children as ReactNode[]).map((child, i) => (
               <div
                 key={i}
-                className="flex-none w-[calc((100%-2rem)/2.5)] sm:w-[calc((100%-2rem)/3)] md:w-[calc((100%-3rem)/4)] lg:w-[calc((100%-4rem)/5)] xl:w-[calc((100%-5rem)/6)]"
+                className={ITEM_WIDTH_CLASSES[coverSize]}
                 style={{ scrollSnapAlign: 'start' }}
               >
                 {child}
