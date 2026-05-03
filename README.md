@@ -30,6 +30,47 @@ A responsive React web app to track movies and series you've watched, discover u
 - GitHub Copilot SDK for AI chat
 - Zod for schema validation
 
+## MCP Server (Model Context Protocol)
+
+The app embeds an **MCP server** (`@modelcontextprotocol/sdk`) that exposes the movie database as tools for AI coding assistants (VS Code, OpenCode, Claude Desktop, etc.). It runs in the same Express process via SSE transport.
+
+**Endpoints:**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/mcp` | SSE connection — establishes an MCP session |
+| `POST` | `/mcp/messages?sessionId=...` | Receive tool call requests |
+
+**MCP Tools:**
+
+| Tool | Parameters | Description |
+|------|-----------|-------------|
+| `search_library` | `query?`, `contentType?`, `status?` | Search local library by title, type, or status |
+| `get_library_stats` | — | Total items, distribution by status/type, average rating |
+| `get_watchlist` | — | All `plan_to_watch` items |
+| `get_series_progress` | `tmdbId` | Series progress + watched episodes |
+| `add_to_library` | `tmdbId`, `contentType`, `title`, `status`, ... | Add a movie/series |
+| `update_rating` | `id`, `userRating?`, `notes?` | Update rating or notes |
+| `toggle_episode` | `tmdbId`, `season`, `episode` | Mark episode watched/unwatched |
+| `get_item_details` | `tmdbId`, `contentType` | Library info + TMDB details (cast, genres, runtime) |
+| `search_actor_library` | `name`, `type?` | Search actor credits via TMDB, cross-referenced with your library |
+
+**Connecting from VS Code / OpenCode:**
+
+Add to `.vscode/mcp.json` or `opencode.json`:
+
+```json
+{
+  "servers": {
+    "movie-tracker": {
+      "type": "remote",
+      "url": "http://localhost:3001/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
 ## GitHub Copilot SDK
 
 The AI chat feature is built on the [`@github/copilot-sdk`](https://www.npmjs.com/package/@github/copilot-sdk) package. On startup, the Express server initialises a `CopilotClient` and exposes a streaming chat API that the frontend consumes via Server-Sent Events.
@@ -94,7 +135,8 @@ src/
 server/
 ├── index.ts      # Express app + REST API routes + Copilot SDK chat & recap endpoints
 ├── db.ts         # better-sqlite3 database setup, schema, and prepared statements
-└── tools.ts      # Copilot SDK tool definitions (TMDB search, details, recommendations)
+├── tools.ts      # Copilot SDK tool definitions (TMDB search, details, recommendations)
+└── mcp-server.ts # MCP server with SSE transport + database tools for AI assistants
 
 data/
 └── movie-tracker.db  # SQLite database file (auto-created on first run)

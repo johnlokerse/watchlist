@@ -7,12 +7,16 @@ import { fileURLToPath } from 'url';
 import { CopilotClient } from '@github/copilot-sdk';
 import { tmdbTools } from './tools.js';
 import { queries } from './db.js';
+import { createMcpRouter } from './mcp-server.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// ── MCP (Model Context Protocol) server ───────────────────────────
+app.use(createMcpRouter());
 
 // ── Library REST API ──────────────────────────────────────────────
 

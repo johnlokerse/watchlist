@@ -13,6 +13,11 @@
       "type": "remote",
       "url": "https://learn.microsoft.com/api/mcp",
       "enabled": true
+    },
+    "movie-tracker": {
+      "type": "remote",
+      "url": "http://localhost:3001/mcp",
+      "enabled": true
     }
   }
 }
