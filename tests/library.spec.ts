@@ -164,6 +164,35 @@ test.describe('Library Page', () => {
     await expect(page).toHaveURL('/series/1396');
   });
 
+  test('back button restores the previous library scroll position for a series', async ({ page, request }) => {
+    for (let i = 0; i < 30; i += 1) {
+      await seedSeries(request, {
+        tmdbId: 3000 + i,
+        title: `Series ${i + 1}`,
+        status: 'watching',
+      });
+    }
+
+    await setupTMDBMocks(page);
+    await page.goto('/library?tab=series');
+    await page.getByTitle('List view').click();
+
+    const target = page.locator('[data-library-item-id="series-3024"]');
+    await target.scrollIntoViewIfNeeded();
+
+    const scrollBeforeOpen = await page.evaluate(() => window.scrollY);
+
+    await target.click();
+    await expect(page).toHaveURL('/series/3024');
+
+    await page.getByRole('button', { name: /Back/i }).click();
+    await expect(page).toHaveURL('/library?tab=series');
+    await expect(target).toBeVisible();
+
+    const scrollAfterBack = await page.evaluate(() => window.scrollY);
+    expect(Math.abs(scrollAfterBack - scrollBeforeOpen)).toBeLessThan(120);
+  });
+
   test('view toggle buttons are visible', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/library');

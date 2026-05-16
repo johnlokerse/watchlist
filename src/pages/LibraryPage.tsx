@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 import { useWatchedItems, useSeriesProgress } from '../db/hooks';
 import { useSearchMovies, useSearchSeries } from '../api/tmdb';
 import { useDebounce } from '../hooks/useDebounce';
@@ -24,7 +24,25 @@ function useSeriesProgressLabel(tmdbId: number) {
     : undefined;
 }
 
-function WatchingSeriesCard({ item }: { item: WatchedItem }) {
+const LIBRARY_SCROLL_STORAGE_PREFIX = 'library-scroll';
+
+function getLibraryItemRestoreId(contentType: ContentType, tmdbId: number) {
+  return `${contentType}-${tmdbId}`;
+}
+
+function getLibraryScrollStorageKey(locationKey: string) {
+  return `${LIBRARY_SCROLL_STORAGE_PREFIX}:${locationKey}:scrollY`;
+}
+
+function getLibraryTargetStorageKey(locationKey: string) {
+  return `${LIBRARY_SCROLL_STORAGE_PREFIX}:${locationKey}:target`;
+}
+
+function getLibraryPendingStorageKey(locationKey: string) {
+  return `${LIBRARY_SCROLL_STORAGE_PREFIX}:${locationKey}:pending`;
+}
+
+function WatchingSeriesCard({ item, onOpen }: { item: WatchedItem; onOpen?: () => void }) {
   const progressLabel = useSeriesProgressLabel(item.tmdbId);
   return (
     <Card
@@ -33,11 +51,13 @@ function WatchingSeriesCard({ item }: { item: WatchedItem }) {
       posterPath={item.posterPath}
       type={item.contentType}
       progressLabel={progressLabel}
+      onClick={onOpen}
+      scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
     />
   );
 }
 
-function WatchingSeriesListRow({ item }: { item: WatchedItem }) {
+function WatchingSeriesListRow({ item, onOpen }: { item: WatchedItem; onOpen?: () => void }) {
   const progressLabel = useSeriesProgressLabel(item.tmdbId);
   return (
     <ListRow
@@ -46,6 +66,8 @@ function WatchingSeriesListRow({ item }: { item: WatchedItem }) {
       posterPath={item.posterPath}
       type={item.contentType}
       progressLabel={progressLabel}
+      onClick={onOpen}
+      scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
     />
   );
 }
@@ -63,6 +85,8 @@ const SERIES_STATUS_FILTERS = [
 
 export default function LibraryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigationType = useNavigationType();
   const { settings, updateSettings } = useSettings();
   const tabParam = searchParams.get('tab');
   const tab: 'movies' | 'series' = tabParam === 'series' ? 'series' : 'movies';
@@ -77,6 +101,10 @@ export default function LibraryPage() {
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('library-view', 'cards');
   const debouncedSearch = useDebounce(search);
+  const locationKey = `${location.pathname}${location.search}`;
+  const scrollStorageKey = getLibraryScrollStorageKey(locationKey);
+  const targetStorageKey = getLibraryTargetStorageKey(locationKey);
+  const pendingStorageKey = getLibraryPendingStorageKey(locationKey);
 
   const contentType: ContentType = tab === 'movies' ? 'movie' : 'series';
   const items = useWatchedItems(contentType);
@@ -136,6 +164,53 @@ export default function LibraryPage() {
   const isSearching = debouncedSearch.length > 1;
   const searchLoading = contentType === 'movie' ? movieSearch.isLoading : seriesSearch.isLoading;
 
+  const rememberLibraryPosition = (item: Pick<WatchedItem, 'contentType' | 'tmdbId'>) => {
+    sessionStorage.setItem(scrollStorageKey, String(window.scrollY));
+    sessionStorage.setItem(targetStorageKey, getLibraryItemRestoreId(item.contentType, item.tmdbId));
+    sessionStorage.setItem(pendingStorageKey, '1');
+  };
+
+  useEffect(() => {
+    if (sessionStorage.getItem(pendingStorageKey) !== '1') return;
+    if (navigationType !== 'POP') {
+      sessionStorage.removeItem(pendingStorageKey);
+      return;
+    }
+    if (!items) return;
+
+    const storedScrollY = Number.parseFloat(sessionStorage.getItem(scrollStorageKey) ?? '');
+    const targetId = sessionStorage.getItem(targetStorageKey);
+
+    sessionStorage.removeItem(pendingStorageKey);
+
+    if (Number.isNaN(storedScrollY)) return;
+
+    let targetFrameId: number | undefined;
+    const scrollFrameId = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: storedScrollY, behavior: 'auto' });
+      targetFrameId = window.requestAnimationFrame(() => {
+        if (!targetId) return;
+
+        const target = document.querySelector<HTMLElement>(`[data-library-item-id="${targetId}"]`);
+        if (!target) return;
+
+        const rect = target.getBoundingClientRect();
+        const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+
+        if (!isVisible) {
+          target.scrollIntoView({ block: 'center', behavior: 'auto' });
+        }
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(scrollFrameId);
+      if (targetFrameId) {
+        window.cancelAnimationFrame(targetFrameId);
+      }
+    };
+  }, [items, navigationType, pendingStorageKey, scrollStorageKey, targetStorageKey]);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -188,23 +263,6 @@ export default function LibraryPage() {
             </div>
           ) : (
             <div className="space-y-8">
-              {planToWatchItems.length > 0 && (
-                <div className="space-y-4">
-                  {viewMode === 'cards' ? (
-                    <CardGrid coverSize={settings.coverSize}>
-                      {planToWatchItems.map((item) => (
-                        <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                      ))}
-                    </CardGrid>
-                  ) : (
-                    <div className="divide-y divide-border-subtle">
-                      {planToWatchItems.map((item) => (
-                        <ListRow key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
               {watchingItems.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Watching</h2>
@@ -212,9 +270,17 @@ export default function LibraryPage() {
                     <CardGrid coverSize={settings.coverSize}>
                       {watchingItems.map((item) =>
                         item.contentType === 'series' ? (
-                          <WatchingSeriesCard key={item.id} item={item} />
+                          <WatchingSeriesCard key={item.id} item={item} onOpen={() => rememberLibraryPosition(item)} />
                         ) : (
-                          <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
+                          <Card
+                            key={item.id}
+                            id={item.tmdbId}
+                            title={item.title}
+                            posterPath={item.posterPath}
+                            type={item.contentType}
+                            onClick={() => rememberLibraryPosition(item)}
+                            scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
+                          />
                         ),
                       )}
                     </CardGrid>
@@ -222,11 +288,53 @@ export default function LibraryPage() {
                     <div className="divide-y divide-border-subtle">
                       {watchingItems.map((item) =>
                         item.contentType === 'series' ? (
-                          <WatchingSeriesListRow key={item.id} item={item} />
+                          <WatchingSeriesListRow key={item.id} item={item} onOpen={() => rememberLibraryPosition(item)} />
                         ) : (
-                          <ListRow key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
+                          <ListRow
+                            key={item.id}
+                            id={item.tmdbId}
+                            title={item.title}
+                            posterPath={item.posterPath}
+                            type={item.contentType}
+                            onClick={() => rememberLibraryPosition(item)}
+                            scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
+                          />
                         ),
                       )}
+                    </div>
+                  )}
+                </div>
+              )}
+              {planToWatchItems.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Plan to Watch</h2>
+                  {viewMode === 'cards' ? (
+                    <CardGrid coverSize={settings.coverSize}>
+                      {planToWatchItems.map((item) => (
+                        <Card
+                          key={item.id}
+                          id={item.tmdbId}
+                          title={item.title}
+                          posterPath={item.posterPath}
+                          type={item.contentType}
+                          onClick={() => rememberLibraryPosition(item)}
+                          scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
+                        />
+                      ))}
+                    </CardGrid>
+                  ) : (
+                    <div className="divide-y divide-border-subtle">
+                      {planToWatchItems.map((item) => (
+                        <ListRow
+                          key={item.id}
+                          id={item.tmdbId}
+                          title={item.title}
+                          posterPath={item.posterPath}
+                          type={item.contentType}
+                          onClick={() => rememberLibraryPosition(item)}
+                          scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>
@@ -237,13 +345,29 @@ export default function LibraryPage() {
                   {viewMode === 'cards' ? (
                     <CardGrid compact coverSize={settings.coverSize}>
                       {watchedItems.map((item) => (
-                        <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
+                        <Card
+                          key={item.id}
+                          id={item.tmdbId}
+                          title={item.title}
+                          posterPath={item.posterPath}
+                          type={item.contentType}
+                          onClick={() => rememberLibraryPosition(item)}
+                          scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
+                        />
                       ))}
                     </CardGrid>
                   ) : (
                     <div className="divide-y divide-border-subtle">
                       {watchedItems.map((item) => (
-                        <ListRow key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
+                        <ListRow
+                          key={item.id}
+                          id={item.tmdbId}
+                          title={item.title}
+                          posterPath={item.posterPath}
+                          type={item.contentType}
+                          onClick={() => rememberLibraryPosition(item)}
+                          scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
+                        />
                       ))}
                     </div>
                   )}

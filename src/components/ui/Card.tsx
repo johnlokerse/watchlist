@@ -1,3 +1,4 @@
+import type { MouseEventHandler } from 'react';
 import { Link } from 'react-router-dom';
 import { posterUrl } from '../../utils/image';
 import { formatDate } from '../../utils/date';
@@ -16,6 +17,8 @@ interface Props {
   compact?: boolean;
   status?: WatchedStatus | null;
   progressLabel?: string;
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
+  scrollRestoreId?: string;
 }
 
 function statusLabel(status: WatchedStatus): string | null {
@@ -25,7 +28,7 @@ function statusLabel(status: WatchedStatus): string | null {
 }
 
 export default function Card({
-  id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact, status, progressLabel,
+  id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact, status, progressLabel, onClick, scrollRestoreId,
 }: Props) {
   const url = posterUrl(posterPath, 'w342');
   const linkTo = type === 'movie' ? `/movie/${id}` : `/series/${id}`;
@@ -33,6 +36,8 @@ export default function Card({
   return (
     <Link
       to={linkTo}
+      onClick={onClick}
+      data-library-item-id={scrollRestoreId}
       className="group block bg-surface-raised rounded-xl overflow-hidden border border-border-subtle hover:border-accent/40 transition-all hover:scale-[1.02] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-accent/50"
     >
       <div className="aspect-[2/3] relative bg-surface-overlay">
