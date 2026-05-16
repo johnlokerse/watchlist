@@ -263,39 +263,6 @@ export default function LibraryPage() {
             </div>
           ) : (
             <div className="space-y-8">
-              {planToWatchItems.length > 0 && (
-                <div className="space-y-4">
-                  {viewMode === 'cards' ? (
-                    <CardGrid coverSize={settings.coverSize}>
-                      {planToWatchItems.map((item) => (
-                        <Card
-                          key={item.id}
-                          id={item.tmdbId}
-                          title={item.title}
-                          posterPath={item.posterPath}
-                          type={item.contentType}
-                          onClick={() => rememberLibraryPosition(item)}
-                          scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
-                        />
-                      ))}
-                    </CardGrid>
-                  ) : (
-                    <div className="divide-y divide-border-subtle">
-                      {planToWatchItems.map((item) => (
-                        <ListRow
-                          key={item.id}
-                          id={item.tmdbId}
-                          title={item.title}
-                          posterPath={item.posterPath}
-                          type={item.contentType}
-                          onClick={() => rememberLibraryPosition(item)}
-                          scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
               {watchingItems.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Watching</h2>
@@ -334,6 +301,40 @@ export default function LibraryPage() {
                           />
                         ),
                       )}
+                    </div>
+                  )}
+                </div>
+              )}
+              {planToWatchItems.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Plan to Watch</h2>
+                  {viewMode === 'cards' ? (
+                    <CardGrid coverSize={settings.coverSize}>
+                      {planToWatchItems.map((item) => (
+                        <Card
+                          key={item.id}
+                          id={item.tmdbId}
+                          title={item.title}
+                          posterPath={item.posterPath}
+                          type={item.contentType}
+                          onClick={() => rememberLibraryPosition(item)}
+                          scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
+                        />
+                      ))}
+                    </CardGrid>
+                  ) : (
+                    <div className="divide-y divide-border-subtle">
+                      {planToWatchItems.map((item) => (
+                        <ListRow
+                          key={item.id}
+                          id={item.tmdbId}
+                          title={item.title}
+                          posterPath={item.posterPath}
+                          type={item.contentType}
+                          onClick={() => rememberLibraryPosition(item)}
+                          scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>
