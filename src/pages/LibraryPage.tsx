@@ -219,6 +219,8 @@ function LibraryCollection({
   coverSize,
   selectedKey,
   onSelect,
+  collapsed,
+  onToggleCollapse,
 }: {
   title: string;
   items: WatchedItem[];
@@ -226,15 +228,40 @@ function LibraryCollection({
   coverSize: CoverSize;
   selectedKey: string | null;
   onSelect: (item: WatchedItem) => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }) {
   if (items.length === 0) return null;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="section-title">{title}</h2>
+        <h2 className="section-title">
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-expanded={!collapsed}
+            className="inline-flex items-center gap-2 text-left text-inherit hover:text-text-primary transition-colors"
+          >
+            {title}
+            <svg
+              className={`h-3.5 w-3.5 text-text-muted transition-transform ${collapsed ? '-rotate-90' : 'rotate-0'}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+        </h2>
         <span className="text-xs font-medium text-text-muted">{items.length} items</span>
       </div>
+      {collapsed ? null : (
+        <>
       {viewMode === 'cards' ? (
         <CardGrid compact={title === 'Watched'} coverSize={coverSize}>
           {items.map((item) =>
@@ -253,6 +280,8 @@ function LibraryCollection({
         </CardGrid>
       ) : (
         <LibraryTable items={items} selectedKey={selectedKey} onSelect={onSelect} />
+      )}
+        </>
       )}
     </div>
   );
@@ -273,6 +302,7 @@ export default function LibraryPage() {
   const [search, setSearch] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('library-view', 'cards');
   const debouncedSearch = useDebounce(search);
 
@@ -337,13 +367,6 @@ export default function LibraryPage() {
 
   const isSearching = debouncedSearch.length > 1;
   const searchLoading = contentType === 'movie' ? movieSearch.isLoading : seriesSearch.isLoading;
-  const stats = [
-    { label: 'Visible', value: String(filteredItems.length) },
-    { label: 'Watched', value: String(watchedItems.length) },
-    ...(tab === 'series' ? [{ label: 'Watching', value: String(watchingItems.length) }] : []),
-    { label: 'Planned', value: String(planToWatchItems.length) },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -360,41 +383,31 @@ export default function LibraryPage() {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-        <div className="app-panel p-3 sm:p-4">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-            <div className="min-w-0 flex-1">
-            <SearchBar
-              value={search}
-              onChange={setSearch}
-              placeholder={`Search your ${tab} or find new ones...`}
-            />
-            </div>
-            <ViewToggle
-              value={viewMode}
-              onChange={setViewMode}
-              coverSize={settings.coverSize}
-              onCoverSizeChange={(size) => updateSettings({ coverSize: size })}
-            />
+      <div className="app-panel p-3 sm:p-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+          <div className="min-w-0 flex-1">
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder={`Search your ${tab} or find new ones...`}
+          />
           </div>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <FilterBar
-              filters={tab === 'movies' ? MOVIE_STATUS_FILTERS : SERIES_STATUS_FILTERS}
-              selected={statusFilters}
-              onChange={setStatusFilters}
-            />
-            <p className="text-xs font-medium text-text-muted">
-              {isSearching ? `Searching TMDB for "${debouncedSearch}"` : `${filteredItems.length} ${tab} shown`}
-            </p>
-          </div>
+          <ViewToggle
+            value={viewMode}
+            onChange={setViewMode}
+            coverSize={settings.coverSize}
+            onCoverSizeChange={(size) => updateSettings({ coverSize: size })}
+          />
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:flex lg:min-w-[420px]">
-          {stats.map((stat) => (
-            <div key={stat.label} className="app-panel-soft flex-1 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">{stat.label}</p>
-              <p className="mt-1 text-xl font-bold text-text-primary">{stat.value}</p>
-            </div>
-          ))}
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <FilterBar
+            filters={tab === 'movies' ? MOVIE_STATUS_FILTERS : SERIES_STATUS_FILTERS}
+            selected={statusFilters}
+            onChange={setStatusFilters}
+          />
+          <p className="text-xs font-medium text-text-muted">
+            {isSearching ? `Searching TMDB for "${debouncedSearch}"` : `${filteredItems.length} ${tab} shown`}
+          </p>
         </div>
       </div>
 
@@ -426,6 +439,11 @@ export default function LibraryPage() {
                   coverSize={settings.coverSize}
                   selectedKey={selectedItem ? itemKey(selectedItem) : null}
                   onSelect={(item) => setSelectedItemKey(itemKey(item))}
+                  collapsed={Boolean(collapsedSections[`${tab}-plan_to_watch`])}
+                  onToggleCollapse={() => setCollapsedSections((prev) => ({
+                    ...prev,
+                    [`${tab}-plan_to_watch`]: !prev[`${tab}-plan_to_watch`],
+                  }))}
                 />
                 <LibraryCollection
                   title="Watching"
@@ -434,6 +452,11 @@ export default function LibraryPage() {
                   coverSize={settings.coverSize}
                   selectedKey={selectedItem ? itemKey(selectedItem) : null}
                   onSelect={(item) => setSelectedItemKey(itemKey(item))}
+                  collapsed={Boolean(collapsedSections[`${tab}-watching`])}
+                  onToggleCollapse={() => setCollapsedSections((prev) => ({
+                    ...prev,
+                    [`${tab}-watching`]: !prev[`${tab}-watching`],
+                  }))}
                 />
                 <LibraryCollection
                   title="Watched"
@@ -442,6 +465,11 @@ export default function LibraryPage() {
                   coverSize={settings.coverSize}
                   selectedKey={selectedItem ? itemKey(selectedItem) : null}
                   onSelect={(item) => setSelectedItemKey(itemKey(item))}
+                  collapsed={Boolean(collapsedSections[`${tab}-watched`])}
+                  onToggleCollapse={() => setCollapsedSections((prev) => ({
+                    ...prev,
+                    [`${tab}-watched`]: !prev[`${tab}-watched`],
+                  }))}
                 />
               </div>
               {selectedItem && <LibraryInspector item={selectedItem} count={filteredItems.length} />}

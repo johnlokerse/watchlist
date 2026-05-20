@@ -45,6 +45,13 @@ test.describe('Series Detail Page', () => {
     await expect(page.getByRole('button', { name: 'Overview' })).toHaveClass(/border-accent/);
   });
 
+  test('shows release timeline on overview', async ({ page }) => {
+    await setupTMDBMocks(page);
+    await page.goto('/series/1396');
+    await expect(page.getByText('Release timeline')).toBeVisible();
+    await expect(page.getByText('Series Premiere')).toBeVisible();
+  });
+
   test('shows genre, seasons, and rating facts from fixture', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/series/1396');

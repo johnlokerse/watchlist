@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMovieDetail } from '../api/tmdb';
 import { useWatchedItem, addToLibrary, updateWatchedItem, removeFromLibrary } from '../db/hooks';
@@ -10,6 +10,7 @@ import CastCrewTab from '../components/detail/CastCrewTab';
 import WatchProvidersTab from '../components/detail/WatchProvidersTab';
 import TrailerTab from '../components/detail/TrailerTab';
 import RatingStars from '../components/ui/RatingStars';
+import { buildMovieReleaseTimeline } from '../utils/releaseTimeline';
 
 type Tab = 'overview' | 'cast' | 'providers' | 'trailer';
 
@@ -35,6 +36,11 @@ export default function MovieDetailPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const timelineEvents = useMemo(
+    () => (movie ? buildMovieReleaseTimeline(movie, settings.country) : []),
+    [movie, settings.country],
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -55,7 +61,6 @@ export default function MovieDetailPage() {
 
   const providers = movie['watch/providers']?.results?.[settings.country];
   const notes = watchedItem?.id ? (editedNotesByItem[watchedItem.id] ?? watchedItem.notes) : '';
-
   const handleAddToLibrary = async (status: WatchedStatus) => {
     await addToLibrary({
       tmdbId: movie.id,
@@ -219,6 +224,7 @@ export default function MovieDetailPage() {
           imdbId={movie.imdb_id}
           tmdbId={movie.id}
           type="movie"
+          timelineEvents={timelineEvents}
         />
       )}
       {activeTab === 'cast' && movie.credits && (

@@ -1,3 +1,6 @@
+import ReleaseTimeline from './ReleaseTimeline';
+import type { ReleaseTimelineEvent } from '../../utils/releaseTimeline';
+
 interface Props {
   overview: string;
   genres: { id: number; name: string }[];
@@ -7,9 +10,20 @@ interface Props {
   imdbId?: string | null;
   tmdbId: number;
   type: 'movie' | 'series';
+  timelineEvents?: ReleaseTimelineEvent[];
 }
 
-export default function OverviewTab({ overview, genres, releaseDate, runtime, status, imdbId, tmdbId, type }: Props) {
+export default function OverviewTab({
+  overview,
+  genres,
+  releaseDate,
+  runtime,
+  status,
+  imdbId,
+  tmdbId,
+  type,
+  timelineEvents = [],
+}: Props) {
   return (
     <div className="space-y-4">
       {overview && (
@@ -35,6 +49,10 @@ export default function OverviewTab({ overview, genres, releaseDate, runtime, st
           <InfoBlock label="Runtime" value={`${Math.floor(runtime / 60)}h ${runtime % 60}m`} />
         )}
       </div>
+
+      {timelineEvents.length > 0 && (
+        <ReleaseTimeline events={timelineEvents} />
+      )}
 
       {/* External links */}
       <div className="flex gap-3 pt-2">

@@ -42,6 +42,13 @@ test.describe('Movie Detail Page', () => {
     await expect(page.getByRole('button', { name: 'Overview' })).toHaveClass(/border-accent/);
   });
 
+  test('shows release timeline on overview', async ({ page }) => {
+    await setupTMDBMocks(page);
+    await page.goto('/movie/302946');
+    await expect(page.getByText('Release timeline')).toBeVisible();
+    await expect(page.getByText('Theatrical Release')).toBeVisible();
+  });
+
   test('shows genre and rating facts from fixture', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSeriesDetail } from '../api/tmdb';
 import { useWatchedItem, useSeriesProgress, addToLibrary, updateWatchedItem, removeFromLibrary, updateSeriesProgress } from '../db/hooks';
@@ -11,6 +11,7 @@ import WatchProvidersTab from '../components/detail/WatchProvidersTab';
 import EpisodesTab from '../components/detail/EpisodesTab';
 import TrailerTab from '../components/detail/TrailerTab';
 import RatingStars from '../components/ui/RatingStars';
+import { buildSeriesReleaseTimeline } from '../utils/releaseTimeline';
 
 type Tab = 'overview' | 'episodes' | 'cast' | 'providers' | 'trailer';
 
@@ -54,6 +55,11 @@ export default function SeriesDetailPage() {
     }
   }, [watchedItem, seriesId]);
 
+  const timelineEvents = useMemo(
+    () => (series ? buildSeriesReleaseTimeline(series) : []),
+    [series],
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -75,7 +81,6 @@ export default function SeriesDetailPage() {
   const providers = series['watch/providers']?.results?.[settings.country];
   const imdbId = series.external_ids?.imdb_id;
   const notes = watchedItem?.id ? (editedNotesByItem[watchedItem.id] ?? watchedItem.notes) : '';
-
   const handleAddToLibrary = async (status: WatchedStatus) => {
     const itemId = await addToLibrary({
       tmdbId: series.id,
@@ -292,6 +297,7 @@ export default function SeriesDetailPage() {
           imdbId={imdbId}
           tmdbId={series.id}
           type="series"
+          timelineEvents={timelineEvents}
         />
       )}
       {activeTab === 'episodes' && (

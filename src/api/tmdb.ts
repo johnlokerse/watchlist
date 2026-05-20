@@ -37,7 +37,7 @@ export function useMovieDetail(id: number | undefined) {
     queryKey: ['movie', id],
     queryFn: () =>
       tmdbFetch<TMDBMovieDetail>(`/movie/${id}`, {
-        append_to_response: 'credits,watch/providers,videos',
+        append_to_response: 'credits,watch/providers,videos,release_dates,images',
       }),
     enabled: !!id,
     staleTime: STALE_TIME_DETAIL,
