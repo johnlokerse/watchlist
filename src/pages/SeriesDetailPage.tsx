@@ -194,7 +194,7 @@ export default function SeriesDetailPage() {
                 + Add to Library
               </button>
               {showAddDropdown && (
-                <div className="absolute left-0 top-full mt-1 bg-surface-raised border border-border-subtle rounded-lg shadow-lg z-10 min-w-max">
+                <div className="absolute left-0 top-full mt-1 bg-surface-raised border border-border-subtle rounded-lg shadow-lg z-50 min-w-max">
                   <button onClick={() => handleAddToLibrary('watching')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition rounded-t-lg">Watching</button>
                   <button onClick={() => handleAddToLibrary('watched')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition">Watched</button>
                   <button onClick={() => handleAddToLibrary('plan_to_watch')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition rounded-b-lg">Plan to Watch</button>

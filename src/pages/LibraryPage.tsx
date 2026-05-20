@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useWatchedItems, useSeriesProgress } from '../db/hooks';
 import { useSearchMovies, useSearchSeries } from '../api/tmdb';
 import { useDebounce } from '../hooks/useDebounce';
 import { useSettings } from '../hooks/useSettings';
 import type { ContentType, WatchedItem, WatchedStatus } from '../db/models';
 import type { TMDBMovie, TMDBSeries } from '../api/types';
+import type { CoverSize } from '../hooks/useSettings';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import ViewToggle from '../components/ui/ViewToggle';
 import type { ViewMode } from '../components/ui/ViewToggle';
@@ -13,9 +14,10 @@ import SearchBar from '../components/ui/SearchBar';
 import FilterBar from '../components/ui/FilterBar';
 import Card from '../components/ui/Card';
 import CardGrid from '../components/ui/CardGrid';
-import ListRow from '../components/ui/ListRow';
 import SkeletonCard from '../components/ui/SkeletonCard';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { formatDate } from '../utils/date';
+import { posterUrl } from '../utils/image';
 
 function useSeriesProgressLabel(tmdbId: number) {
   const progress = useSeriesProgress(tmdbId);
@@ -38,16 +40,7 @@ function WatchingSeriesCard({ item }: { item: WatchedItem }) {
 }
 
 function WatchingSeriesListRow({ item }: { item: WatchedItem }) {
-  const progressLabel = useSeriesProgressLabel(item.tmdbId);
-  return (
-    <ListRow
-      id={item.tmdbId}
-      title={item.title}
-      posterPath={item.posterPath}
-      type={item.contentType}
-      progressLabel={progressLabel}
-    />
-  );
+  return <SeriesProgressValue tmdbId={item.tmdbId} />;
 }
 
 const MOVIE_STATUS_FILTERS = [
@@ -60,6 +53,210 @@ const SERIES_STATUS_FILTERS = [
   { label: 'Watching', value: 'watching' },
   { label: 'Plan to Watch', value: 'plan_to_watch' },
 ];
+
+const STATUS_LABELS: Record<WatchedStatus, string> = {
+  watched: 'Watched',
+  watching: 'Watching',
+  plan_to_watch: 'Plan to Watch',
+};
+
+function itemKey(item: WatchedItem) {
+  return `${item.contentType}-${item.tmdbId}`;
+}
+
+function itemHref(item: WatchedItem) {
+  return item.contentType === 'movie' ? `/movie/${item.tmdbId}` : `/series/${item.tmdbId}`;
+}
+
+function itemReleaseLabel(item: WatchedItem) {
+  return item.releaseDate ? formatDate(item.releaseDate) : 'TBA';
+}
+
+function SeriesProgressValue({ tmdbId }: { tmdbId: number }) {
+  const label = useSeriesProgressLabel(tmdbId);
+
+  return (
+    <span className={label ? 'font-semibold text-accent' : 'text-text-muted'}>
+      {label ?? 'No progress'}
+    </span>
+  );
+}
+
+function LibraryMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border-subtle bg-surface-overlay px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">{label}</p>
+      <p className="mt-1 truncate text-sm font-bold text-text-primary">{value}</p>
+    </div>
+  );
+}
+
+function LibraryInspector({ item, count }: { item: WatchedItem; count: number }) {
+  const poster = posterUrl(item.posterPath, 'w185');
+
+  return (
+    <aside className="app-panel sticky top-24 hidden self-start p-4 xl:block">
+      <div className="flex items-start gap-3">
+        <div className="aspect-[2/3] w-20 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-overlay">
+          {poster ? (
+            <img src={poster} alt={item.title} className="h-full w-full object-cover" />
+          ) : (
+            <div className="grid h-full place-items-center text-xs text-text-muted">N/A</div>
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="section-title mb-1">Selected record</p>
+          <h2 className="line-clamp-3 text-lg font-bold leading-tight text-text-primary">{item.title}</h2>
+          <p className="mt-2 text-sm text-text-secondary">{item.contentType === 'movie' ? 'Movie' : 'Series'}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <LibraryMetric label="Status" value={STATUS_LABELS[item.status]} />
+        <LibraryMetric label="Release" value={itemReleaseLabel(item)} />
+        <LibraryMetric label="Rating" value={item.userRating ? `${item.userRating}/10` : 'Not rated'} />
+        <LibraryMetric label="Records" value={String(count)} />
+      </div>
+
+      {item.notes && (
+        <div className="mt-4 rounded-lg border border-border-subtle bg-surface-overlay p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Notes</p>
+          <p className="mt-1 line-clamp-4 text-sm text-text-secondary">{item.notes}</p>
+        </div>
+      )}
+
+      <Link
+        to={itemHref(item)}
+        className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-accent px-3 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-accent-hover"
+      >
+        Open Details
+      </Link>
+    </aside>
+  );
+}
+
+function LibraryTable({
+  items,
+  selectedKey,
+  onSelect,
+}: {
+  items: WatchedItem[];
+  selectedKey: string | null;
+  onSelect: (item: WatchedItem) => void;
+}) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border-subtle bg-surface-raised">
+      <div className="hidden grid-cols-[minmax(0,1.7fr)_130px_130px_110px] gap-3 border-b border-border-subtle px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-text-muted md:grid">
+        <span>Title</span>
+        <span>Release</span>
+        <span>Status</span>
+        <span>Signal</span>
+      </div>
+      <div className="divide-y divide-border-subtle">
+        {items.map((item) => {
+          const selected = selectedKey === itemKey(item);
+          const poster = posterUrl(item.posterPath, 'w92');
+
+          return (
+            <div
+              key={itemKey(item)}
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelect(item)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onSelect(item);
+                }
+              }}
+              className={`grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] gap-3 px-3 py-3 transition md:grid-cols-[minmax(0,1.7fr)_130px_130px_110px] md:items-center md:px-4 ${
+                selected ? 'bg-accent/12' : 'hover:bg-surface-overlay'
+              }`}
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="h-14 w-10 shrink-0 overflow-hidden rounded-md border border-border-subtle bg-surface-overlay">
+                  {poster ? (
+                    <img src={poster} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="grid h-full place-items-center text-[10px] text-text-muted">N/A</div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <Link
+                    to={itemHref(item)}
+                    onClick={(event) => event.stopPropagation()}
+                    className="block truncate font-semibold text-text-primary transition hover:text-accent"
+                  >
+                    {item.title}
+                  </Link>
+                  <p className="mt-1 text-xs capitalize text-text-muted">{item.contentType}</p>
+                </div>
+              </div>
+
+              <span className="hidden text-sm text-text-secondary md:block">{itemReleaseLabel(item)}</span>
+              <span className="hidden text-sm font-semibold text-text-primary md:block">{STATUS_LABELS[item.status]}</span>
+              <span className="self-center justify-self-end text-sm md:justify-self-start">
+                {item.contentType === 'series' ? (
+                  <WatchingSeriesListRow item={item} />
+                ) : (
+                  <span className={item.userRating ? 'font-semibold text-warning' : 'text-text-muted'}>
+                    {item.userRating ? `${item.userRating}/10` : 'No rating'}
+                  </span>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function LibraryCollection({
+  title,
+  items,
+  viewMode,
+  coverSize,
+  selectedKey,
+  onSelect,
+}: {
+  title: string;
+  items: WatchedItem[];
+  viewMode: ViewMode;
+  coverSize: CoverSize;
+  selectedKey: string | null;
+  onSelect: (item: WatchedItem) => void;
+}) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="section-title">{title}</h2>
+        <span className="text-xs font-medium text-text-muted">{items.length} items</span>
+      </div>
+      {viewMode === 'cards' ? (
+        <CardGrid compact={title === 'Watched'} coverSize={coverSize}>
+          {items.map((item) =>
+            item.contentType === 'series' && item.status === 'watching' ? (
+              <WatchingSeriesCard key={itemKey(item)} item={item} />
+            ) : (
+              <Card
+                key={itemKey(item)}
+                id={item.tmdbId}
+                title={item.title}
+                posterPath={item.posterPath}
+                type={item.contentType}
+              />
+            ),
+          )}
+        </CardGrid>
+      ) : (
+        <LibraryTable items={items} selectedKey={selectedKey} onSelect={onSelect} />
+      )}
+    </div>
+  );
+}
 
 export default function LibraryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -75,6 +272,7 @@ export default function LibraryPage() {
   };
   const [search, setSearch] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('library-view', 'cards');
   const debouncedSearch = useDebounce(search);
 
@@ -117,6 +315,10 @@ export default function LibraryPage() {
   const planToWatchItems = useMemo(() => filteredItems.filter((i) => i.status === 'plan_to_watch'), [filteredItems]);
   const watchedItems = useMemo(() => filteredItems.filter((i) => i.status === 'watched'), [filteredItems]);
   const watchingItems = useMemo(() => filteredItems.filter((i) => i.status === 'watching'), [filteredItems]);
+  const selectedItem = useMemo(
+    () => filteredItems.find((item) => itemKey(item) === selectedItemKey) ?? filteredItems[0],
+    [filteredItems, selectedItemKey],
+  );
 
   const tmdbResults = useMemo((): (TMDBMovie | TMDBSeries)[] => {
     if (!debouncedSearch) return [];
@@ -146,7 +348,6 @@ export default function LibraryPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="section-title mb-2">Personal database</p>
           <h1 className="page-title">Your Library</h1>
         </div>
         <SegmentedControl
@@ -216,78 +417,34 @@ export default function LibraryPage() {
               <p className="text-sm mt-1">Search above to find and add some!</p>
             </div>
           ) : (
-            <div className="space-y-8">
-              {planToWatchItems.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="section-title">Plan to Watch</h2>
-                    <span className="text-xs font-medium text-text-muted">{planToWatchItems.length} items</span>
-                  </div>
-                  {viewMode === 'cards' ? (
-                    <CardGrid coverSize={settings.coverSize}>
-                      {planToWatchItems.map((item) => (
-                        <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                      ))}
-                    </CardGrid>
-                  ) : (
-                    <div className="divide-y divide-border-subtle">
-                      {planToWatchItems.map((item) => (
-                        <ListRow key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              {watchingItems.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="section-title">Watching</h2>
-                    <span className="text-xs font-medium text-text-muted">{watchingItems.length} items</span>
-                  </div>
-                  {viewMode === 'cards' ? (
-                    <CardGrid coverSize={settings.coverSize}>
-                      {watchingItems.map((item) =>
-                        item.contentType === 'series' ? (
-                          <WatchingSeriesCard key={item.id} item={item} />
-                        ) : (
-                          <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                        ),
-                      )}
-                    </CardGrid>
-                  ) : (
-                    <div className="divide-y divide-border-subtle">
-                      {watchingItems.map((item) =>
-                        item.contentType === 'series' ? (
-                          <WatchingSeriesListRow key={item.id} item={item} />
-                        ) : (
-                          <ListRow key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                        ),
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-              {watchedItems.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="section-title">Watched</h2>
-                    <span className="text-xs font-medium text-text-muted">{watchedItems.length} items</span>
-                  </div>
-                  {viewMode === 'cards' ? (
-                    <CardGrid compact coverSize={settings.coverSize}>
-                      {watchedItems.map((item) => (
-                        <Card key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                      ))}
-                    </CardGrid>
-                  ) : (
-                    <div className="divide-y divide-border-subtle">
-                      {watchedItems.map((item) => (
-                        <ListRow key={item.id} id={item.tmdbId} title={item.title} posterPath={item.posterPath} type={item.contentType} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="space-y-8">
+                <LibraryCollection
+                  title="Plan to Watch"
+                  items={planToWatchItems}
+                  viewMode={viewMode}
+                  coverSize={settings.coverSize}
+                  selectedKey={selectedItem ? itemKey(selectedItem) : null}
+                  onSelect={(item) => setSelectedItemKey(itemKey(item))}
+                />
+                <LibraryCollection
+                  title="Watching"
+                  items={watchingItems}
+                  viewMode={viewMode}
+                  coverSize={settings.coverSize}
+                  selectedKey={selectedItem ? itemKey(selectedItem) : null}
+                  onSelect={(item) => setSelectedItemKey(itemKey(item))}
+                />
+                <LibraryCollection
+                  title="Watched"
+                  items={watchedItems}
+                  viewMode={viewMode}
+                  coverSize={settings.coverSize}
+                  selectedKey={selectedItem ? itemKey(selectedItem) : null}
+                  onSelect={(item) => setSelectedItemKey(itemKey(item))}
+                />
+              </div>
+              {selectedItem && <LibraryInspector item={selectedItem} count={filteredItems.length} />}
             </div>
           )}
         </>

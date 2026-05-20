@@ -14,9 +14,9 @@ export default function HeroBanner({ title, posterPath, backdropPath, tagline, f
   const poster = posterUrl(posterPath, 'w500');
 
   return (
-    <div className="relative mb-6 overflow-hidden rounded-lg border border-border-subtle bg-surface-raised">
+    <div className="relative mb-6 rounded-lg border border-border-subtle bg-surface-raised">
       {/* Backdrop */}
-      <div className="relative h-48 overflow-hidden md:h-64">
+      <div className="relative h-48 overflow-hidden rounded-t-lg md:h-64">
         {backdrop ? (
           <img src={backdrop} alt="" className="h-full w-full object-cover object-top" />
         ) : (

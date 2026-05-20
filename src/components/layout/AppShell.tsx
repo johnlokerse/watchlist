@@ -64,7 +64,6 @@ function BrandMark() {
       </span>
       <div>
         <span className="block text-sm font-bold text-text-primary">Watchlist</span>
-        <span className="block text-[11px] font-medium text-text-muted">Personal database</span>
       </div>
     </div>
   );
@@ -95,17 +94,12 @@ export default function AppShell() {
             </NavLink>
           ))}
           </div>
-          <div className="mt-auto app-panel-soft p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Workspace</p>
-            <p className="mt-1 text-sm font-medium text-text-primary">Movies, series, notes</p>
-            <p className="mt-1 text-xs leading-relaxed text-text-muted">Track watch status, releases, providers and episode progress.</p>
-          </div>
         </nav>
       </header>
 
       {/* Main content */}
-      <main className="min-h-screen w-full px-4 py-5 pb-24 md:pl-[260px] md:pr-24 md:py-6">
-        <div className="mx-auto w-full max-w-[1480px]">
+      <main className="min-h-screen w-full px-4 py-5 pb-24 md:pl-[260px] md:pr-6 md:py-6">
+        <div className="w-full">
         <Outlet />
         </div>
       </main>
