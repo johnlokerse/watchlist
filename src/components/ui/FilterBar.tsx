@@ -19,10 +19,10 @@ export default function FilterBar({ filters, selected, onChange }: Props) {
         <button
           key={f.value}
           onClick={() => toggle(f.value)}
-          className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+          className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${
             selected.includes(f.value)
-              ? 'bg-accent/15 text-accent border-accent/40'
-              : 'bg-surface-raised text-text-secondary border-border-subtle hover:border-text-muted'
+              ? 'border-accent/45 bg-accent/15 text-accent'
+              : 'border-border-subtle bg-surface-raised text-text-secondary hover:border-text-muted hover:bg-surface-overlay'
           }`}
         >
           {f.label}

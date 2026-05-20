@@ -24,6 +24,17 @@ function statusLabel(status: WatchedStatus): string | null {
   return null;
 }
 
+function PlaceholderPoster() {
+  return (
+    <div className="flex h-full w-full items-center justify-center text-text-muted">
+      <svg className="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 7h16v12.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5V7Z" />
+        <path d="m4 7 2.8-4h4L8 7M12 7l2.8-4h4L16 7M4 11h16" />
+      </svg>
+    </div>
+  );
+}
+
 export default function Card({
   id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact, status, progressLabel,
 }: Props) {
@@ -33,51 +44,51 @@ export default function Card({
   return (
     <Link
       to={linkTo}
-      className="group block bg-surface-raised rounded-xl overflow-hidden border border-border-subtle hover:border-accent/40 transition-all hover:scale-[1.02] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-accent/50"
+      className="group/card block overflow-hidden rounded-lg border border-border-subtle bg-surface-raised shadow-[0_14px_40px_rgb(0_0_0_/_0.16)] transition-all hover:-translate-y-0.5 hover:border-accent/45 hover:bg-surface-overlay focus:outline-none focus:ring-2 focus:ring-accent/50"
     >
-      <div className="aspect-[2/3] relative bg-surface-overlay">
+      <div className="relative aspect-[2/3] bg-surface-overlay">
         {url ? (
           <img
             src={url}
             alt={title}
             loading="lazy"
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover transition duration-300 group-hover/card:scale-[1.025]"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-4xl text-text-muted">
-            🎬
-          </div>
+          <PlaceholderPoster />
         )}
         {status && statusLabel(status) && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="text-white font-bold text-lg drop-shadow">{statusLabel(status)}</span>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/55">
+            <span className="rounded-md border border-white/15 bg-black/65 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white shadow">
+              {statusLabel(status)}
+            </span>
           </div>
         )}
         {showCountdown && releaseDate && (
-          <div className="absolute top-2 right-2">
+          <div className="absolute right-2 top-2">
             <CountdownBadge dateStr={releaseDate} />
           </div>
         )}
         {voteAverage != null && voteAverage > 0 && (
-          <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm text-xs font-semibold px-2 py-0.5 rounded-md text-yellow-400">
+          <div className="absolute bottom-2 left-2 rounded-md bg-black/75 px-2 py-0.5 text-xs font-semibold text-warning backdrop-blur-sm">
             ★ {voteAverage.toFixed(1)}
           </div>
         )}
         {progressLabel && (
-          <div className="absolute bottom-2 right-2 bg-surface-overlay/90 backdrop-blur-sm text-xs font-semibold px-2 py-0.5 rounded-md text-accent">
+          <div className="absolute bottom-2 right-2 rounded-md bg-surface-overlay/90 px-2 py-0.5 text-xs font-semibold text-accent backdrop-blur-sm">
             {progressLabel}
           </div>
         )}
       </div>
-      <div className={compact ? 'p-1.5 sm:p-3' : 'p-3'}>
-        <h3 className={`${compact ? 'text-xs sm:text-sm' : 'text-sm'} font-semibold truncate group-hover:text-accent transition-colors`}>
+      <div className={compact ? 'p-2 sm:p-3' : 'p-3'}>
+        <h3 className={`${compact ? 'text-xs sm:text-sm' : 'text-sm'} truncate font-semibold leading-snug text-text-primary transition-colors group-hover/card:text-accent`}>
           {title}
         </h3>
         {subtitle && (
-          <p className={`text-xs text-text-muted mt-0.5 truncate ${compact ? 'hidden sm:block' : ''}`}>{subtitle}</p>
+          <p className={`mt-1 truncate text-xs text-text-secondary ${compact ? 'hidden sm:block' : ''}`}>{subtitle}</p>
         )}
         {releaseDate && (
-          <p className={`text-xs text-text-muted mt-1 ${compact ? 'hidden sm:block' : ''}`}>{formatDate(releaseDate)}</p>
+          <p className={`mt-1 text-xs text-text-muted ${compact ? 'hidden sm:block' : ''}`}>{formatDate(releaseDate)}</p>
         )}
       </div>
     </Link>

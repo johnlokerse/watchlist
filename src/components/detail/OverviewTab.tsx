@@ -24,7 +24,7 @@ export default function OverviewTab({ overview, genres, releaseDate, runtime, st
         ))}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {status && (
           <InfoBlock label="Status" value={status} />
         )}
@@ -63,7 +63,7 @@ export default function OverviewTab({ overview, genres, releaseDate, runtime, st
 
 function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-surface-raised rounded-lg p-3">
+    <div className="app-panel-soft p-3">
       <p className="text-xs text-text-muted mb-1">{label}</p>
       <p className="text-sm font-medium">{value}</p>
     </div>

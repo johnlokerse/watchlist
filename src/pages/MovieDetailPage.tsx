@@ -161,7 +161,7 @@ export default function MovieDetailPage() {
 
       {/* Rating & Notes for library items */}
       {watchedItem && (
-        <div className="mb-6 bg-surface-raised rounded-xl border border-border-subtle p-4 space-y-3">
+        <div className="app-panel mb-6 space-y-3 p-4">
           <div className="flex items-center gap-3">
             <span className="text-sm text-text-secondary">Your Rating:</span>
             <RatingStars value={watchedItem.userRating} onChange={handleRate} size="sm" />
@@ -193,7 +193,7 @@ export default function MovieDetailPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border-subtle mb-4 overflow-x-auto scrollbar-none">
+      <div className="mb-4 flex gap-1 overflow-x-auto border-b border-border-subtle scrollbar-none">
         {tabs.map((t) => (
           <button
             key={t.id}

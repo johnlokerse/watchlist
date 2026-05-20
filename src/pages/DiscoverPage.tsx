@@ -25,11 +25,25 @@ export default function DiscoverPage() {
   }, [libraryItems]);
 
   return (
-    <div className="space-y-8">
-      <section>
-        <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Trending</p>
-          <h2 className="text-2xl font-bold">Shows</h2>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="section-title mb-2">Recommendations and release radar</p>
+          <h1 className="page-title">Discover</h1>
+        </div>
+        <div className="control-surface flex items-center gap-2 px-3 py-2 text-sm text-text-muted">
+          <span className="h-2 w-2 rounded-full bg-success" />
+          Live TMDB feeds
+        </div>
+      </div>
+
+      <section className="app-panel p-4">
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <p className="section-title">Trending</p>
+            <h2 className="mt-1 text-xl font-bold">Shows</h2>
+          </div>
+          <span className="text-xs font-medium text-text-muted">Top 12</span>
         </div>
         {series.isLoading ? (
           <ScrollRow coverSize={settings.coverSize}>
@@ -53,10 +67,13 @@ export default function DiscoverPage() {
         )}
       </section>
 
-      <section>
-        <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Trending</p>
-          <h2 className="text-2xl font-bold">Movies</h2>
+      <section className="app-panel p-4">
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <p className="section-title">Trending</p>
+            <h2 className="mt-1 text-xl font-bold">Movies</h2>
+          </div>
+          <span className="text-xs font-medium text-text-muted">Top 12</span>
         </div>
         {movies.isLoading ? (
           <ScrollRow coverSize={settings.coverSize}>
@@ -80,10 +97,13 @@ export default function DiscoverPage() {
         )}
       </section>
 
-      <section>
-        <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Anticipated</p>
-          <h2 className="text-2xl font-bold">Shows</h2>
+      <section className="app-panel p-4">
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <p className="section-title">Anticipated</p>
+            <h2 className="mt-1 text-xl font-bold">Shows</h2>
+          </div>
+          <span className="text-xs font-medium text-text-muted">Coming soon</span>
         </div>
         {anticipatedSeries.isLoading ? (
           <ScrollRow coverSize={settings.coverSize}>
@@ -107,10 +127,13 @@ export default function DiscoverPage() {
         )}
       </section>
 
-      <section>
-        <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Anticipated</p>
-          <h2 className="text-2xl font-bold">Movies</h2>
+      <section className="app-panel p-4">
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <p className="section-title">Anticipated</p>
+            <h2 className="mt-1 text-xl font-bold">Movies</h2>
+          </div>
+          <span className="text-xs font-medium text-text-muted">Coming soon</span>
         </div>
         {anticipatedMovies.isLoading ? (
           <ScrollRow coverSize={settings.coverSize}>

@@ -17,12 +17,12 @@ interface Props {
 
 export default function ViewToggle({ value, onChange, coverSize, onCoverSizeChange }: Props) {
   const btnClass = (active: boolean) =>
-    `p-1.5 rounded-md transition-all ${
-      active ? 'bg-accent text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'
+    `rounded-md p-1.5 transition-all ${
+      active ? 'bg-accent text-white shadow-sm' : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
     }`;
 
   return (
-    <div className="inline-flex items-center bg-surface-raised rounded-lg p-1 gap-1" role="group" aria-label="View mode">
+    <div className="control-surface inline-flex items-center gap-1 p-1" role="group" aria-label="View mode">
       <button
         aria-pressed={value === 'cards'}
         onClick={() => onChange('cards')}
@@ -51,16 +51,16 @@ export default function ViewToggle({ value, onChange, coverSize, onCoverSizeChan
 
       {value === 'cards' && coverSize && onCoverSizeChange && (
         <>
-          <div className="w-px h-4 bg-border-subtle mx-0.5" />
+          <div className="mx-0.5 h-4 w-px bg-border-subtle" />
           {COVER_SIZES.map(([size, label]) => (
             <button
               key={size}
               aria-pressed={coverSize === size}
               onClick={() => onCoverSizeChange(size)}
-              className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${
+              className={`rounded-md px-2 py-1 text-xs font-semibold transition-all ${
                 coverSize === size
                   ? 'bg-accent text-white shadow-sm'
-                  : 'text-text-secondary hover:text-text-primary'
+                  : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
               }`}
             >
               {label}

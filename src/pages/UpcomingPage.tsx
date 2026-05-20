@@ -96,9 +96,12 @@ export default function UpcomingPage() {
   const moviesItems = movies;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Upcoming</h1>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="section-title mb-2">Release planning</p>
+          <h1 className="page-title">Upcoming</h1>
+        </div>
         <SegmentedControl
           options={[
             { value: 'movies', label: 'Movies' },
@@ -113,37 +116,51 @@ export default function UpcomingPage() {
       {tab === 'movies' && (
         <>
           {moviesItems === undefined ? (
-            <div className="flex justify-center py-16">
+            <div className="app-panel flex justify-center py-16">
               <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
             </div>
           ) : moviesItems.length === 0 ? (
-            <div className="text-center py-16 text-text-muted">
-              <p className="text-4xl mb-2">📅</p>
+            <div className="app-panel py-16 text-center text-text-muted">
+              <p className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-lg border border-border-subtle bg-surface-overlay text-accent">
+                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3.5" y="4.5" width="17" height="16" rx="2.5" />
+                  <path d="M8 2.8v4M16 2.8v4M3.5 9h17" />
+                </svg>
+              </p>
               <p className="font-medium mb-1">Nothing upcoming yet</p>
               <p className="text-sm">
                 Add unreleased movies to your library and they'll appear here.
               </p>
             </div>
           ) : (
-            <CardGrid coverSize={settings.coverSize}>
-              {moviesItems.map((item) => (
-                <Card
-                  key={item.id}
-                  id={item.tmdbId}
-                  title={item.title}
-                  posterPath={item.posterPath}
-                  releaseDate={item.releaseDate ?? ''}
-                  voteAverage={0}
-                  type={item.contentType}
-                  showCountdown={true}
-                />
-              ))}
-            </CardGrid>
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="section-title">Release dates</h2>
+                <span className="text-xs font-medium text-text-muted">{moviesItems.length} upcoming</span>
+              </div>
+              <CardGrid coverSize={settings.coverSize}>
+                {moviesItems.map((item) => (
+                  <Card
+                    key={item.id}
+                    id={item.tmdbId}
+                    title={item.title}
+                    posterPath={item.posterPath}
+                    releaseDate={item.releaseDate ?? ''}
+                    voteAverage={0}
+                    type={item.contentType}
+                    showCountdown={true}
+                  />
+                ))}
+              </CardGrid>
+            </section>
           )}
 
           {plannedMovies !== undefined && plannedMovies.length > 0 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Planned</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="section-title">Planned</h2>
+                <span className="text-xs font-medium text-text-muted">{plannedMovies.length} items</span>
+              </div>
               <CardGrid coverSize={settings.coverSize}>
                 {plannedMovies.map((item) => (
                   <Card
@@ -168,7 +185,7 @@ export default function UpcomingPage() {
         <>
           {series === undefined || isSeriesDetailsLoading ? (
             series === undefined ? (
-              <div className="flex justify-center py-16">
+              <div className="app-panel flex justify-center py-16">
                 <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
               </div>
             ) : (
@@ -179,16 +196,25 @@ export default function UpcomingPage() {
               </CardGrid>
             )
           ) : series.length === 0 ? (
-            <div className="text-center py-16 text-text-muted">
-              <p className="text-4xl mb-2">📅</p>
+            <div className="app-panel py-16 text-center text-text-muted">
+              <p className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-lg border border-border-subtle bg-surface-overlay text-accent">
+                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3.5" y="4.5" width="17" height="16" rx="2.5" />
+                  <path d="M8 2.8v4M16 2.8v4M3.5 9h17" />
+                </svg>
+              </p>
               <p className="font-medium mb-1">Nothing upcoming yet</p>
               <p className="text-sm">
                 Series on your watchlist with upcoming episodes will appear here.
               </p>
             </div>
           ) : upcomingEpisodes.length === 0 && announcedSeries.length === 0 && endedSeries.length === 0 ? (
-            <div className="text-center py-16 text-text-muted">
-              <p className="text-4xl mb-2">✅</p>
+            <div className="app-panel py-16 text-center text-text-muted">
+              <p className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-lg border border-success/30 bg-success/10 text-success">
+                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m5 12 4 4L19 6" />
+                </svg>
+              </p>
               <p className="font-medium mb-1">All caught up</p>
               <p className="text-sm">
                 None of your series have upcoming episodes right now.
@@ -197,29 +223,38 @@ export default function UpcomingPage() {
           ) : (
             <div className="space-y-8">
               {upcomingEpisodes.length > 0 && (
-                <CardGrid coverSize={settings.coverSize}>
-                  {upcomingEpisodes.map(({ item, detail }) => {
-                    const nextEp = detail!.next_episode_to_air!;
-                    return (
-                      <Card
-                        key={item.id}
-                        id={item.tmdbId}
-                        title={item.title}
-                        posterPath={item.posterPath}
-                        releaseDate={nextEp.air_date ?? ''}
-                        voteAverage={0}
-                        type="series"
-                        showCountdown={true}
-                        subtitle={`S${nextEp.season_number}E${nextEp.episode_number}`}
-                      />
-                    );
-                  })}
-                </CardGrid>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="section-title">Next episodes</h2>
+                    <span className="text-xs font-medium text-text-muted">{upcomingEpisodes.length} items</span>
+                  </div>
+                  <CardGrid coverSize={settings.coverSize}>
+                    {upcomingEpisodes.map(({ item, detail }) => {
+                      const nextEp = detail!.next_episode_to_air!;
+                      return (
+                        <Card
+                          key={item.id}
+                          id={item.tmdbId}
+                          title={item.title}
+                          posterPath={item.posterPath}
+                          releaseDate={nextEp.air_date ?? ''}
+                          voteAverage={0}
+                          type="series"
+                          showCountdown={true}
+                          subtitle={`S${nextEp.season_number}E${nextEp.episode_number}`}
+                        />
+                      );
+                    })}
+                  </CardGrid>
+                </div>
               )}
 
               {announcedSeries.length > 0 && (
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Announced</h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="section-title">Announced</h2>
+                    <span className="text-xs font-medium text-text-muted">{announcedSeries.length} items</span>
+                  </div>
                   <CardGrid coverSize={settings.coverSize}>
                     {announcedSeries.map(({ item, detail }) => (
                       <Card
@@ -240,7 +275,10 @@ export default function UpcomingPage() {
 
               {endedSeries.length > 0 && (
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Ended</h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="section-title">Ended</h2>
+                    <span className="text-xs font-medium text-text-muted">{endedSeries.length} items</span>
+                  </div>
                   <CardGrid compact coverSize={settings.coverSize}>
                     {endedSeries.map(({ item, detail }) => (
                       <Card

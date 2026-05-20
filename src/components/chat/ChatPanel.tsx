@@ -150,7 +150,12 @@ export default function ChatPanel({ messages, isStreaming, error, isCreatingSess
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-lg shrink-0">🎬</span>
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-accent/30 bg-accent/15 text-accent">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 7h16v12.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5V7Z" />
+              <path d="m4 7 2.8-4h4L8 7M12 7l2.8-4h4L16 7M4 11h16" />
+            </svg>
+          </span>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text-primary">Watchlist Assistant</p>
             <div className="text-xs text-text-muted flex items-center gap-1 flex-wrap">
@@ -218,7 +223,7 @@ export default function ChatPanel({ messages, isStreaming, error, isCreatingSess
         {isEmpty && !isCreatingSession && (
           <div className="space-y-4">
             <p className="text-text-muted text-sm text-center pt-2">
-              Ask me anything about your watchlist ✨
+              Ask me anything about your watchlist
             </p>
             <div className="flex flex-col gap-2">
               {STARTER_QUESTIONS.map((q) => (

@@ -17,7 +17,96 @@
 
 body {
   @apply bg-surface text-text-primary antialiased;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+  min-width: 320px;
+}
+
+html {
+  background: var(--color-surface);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 72%, transparent);
+  outline-offset: 2px;
+}
+
+/* Mini design system: compact database panels, precise borders, and 8px geometry. */
+.app-bg {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface-overlay) 24%, transparent) 0%, transparent 36rem),
+    var(--color-surface);
+}
+
+.app-panel {
+  background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 88%, transparent);
+  border-radius: 8px;
+  box-shadow: 0 18px 60px rgb(0 0 0 / 0.18);
+}
+
+.app-panel-soft {
+  background: color-mix(in srgb, var(--color-surface-raised) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
+  border-radius: 8px;
+}
+
+.page-title {
+  font-size: clamp(1.55rem, 1.2rem + 1vw, 2.15rem);
+  line-height: 1.05;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.section-title {
+  font-size: 0.8rem;
+  line-height: 1.2;
+  font-weight: 720;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.control-surface {
+  background: color-mix(in srgb, var(--color-surface-raised) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 88%, transparent);
+  border-radius: 8px;
+}
+
+.database-row {
+  background: color-mix(in srgb, var(--color-surface-raised) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 68%, transparent);
+  border-radius: 8px;
+}
+
+.database-row:hover {
+  background: color-mix(in srgb, var(--color-surface-overlay) 76%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border-subtle));
+}
+
+.rounded-lg,
+.rounded-xl,
+.rounded-2xl {
+  border-radius: 8px !important;
+}
+
+.rounded-md {
+  border-radius: 6px !important;
 }
 
 /* Scrollbar styling */

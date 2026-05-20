@@ -207,7 +207,7 @@ export default function SeriesDetailPage() {
 
       {/* Progress & Rating for library items */}
       {watchedItem && (
-        <div className="mb-6 bg-surface-raised rounded-xl border border-border-subtle p-4 space-y-3">
+        <div className="app-panel mb-6 space-y-3 p-4">
           {/* Progress tracker */}
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm text-text-secondary">Progress:</span>
@@ -267,7 +267,7 @@ export default function SeriesDetailPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border-subtle mb-4 overflow-x-auto scrollbar-none">
+      <div className="mb-4 flex gap-1 overflow-x-auto border-b border-border-subtle scrollbar-none">
         {tabs.map((t) => (
           <button
             key={t.id}

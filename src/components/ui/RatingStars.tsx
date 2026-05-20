@@ -24,7 +24,7 @@ export default function RatingStars({ value, onChange, readonly = false, size = 
           onMouseLeave={() => setHoverValue(0)}
           className={`${starSize} transition-colors ${
             readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110'
-          } ${star <= displayValue ? 'text-yellow-400' : 'text-text-muted/30'}`}
+          } ${star <= displayValue ? 'text-warning' : 'text-text-muted/30'}`}
           aria-label={`${star} stars`}
         >
           ★
