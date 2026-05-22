@@ -19,6 +19,8 @@ export default function ListRow({ id, title, posterPath, type, progressLabel, on
   return (
     <Link
       to={linkTo}
+      onClick={onClick}
+      data-scroll-restore-id={scrollRestoreId}
       className="database-row group flex items-center gap-3 px-3 py-2 transition-colors"
     >
       <div className="aspect-[2/3] w-9 flex-shrink-0 overflow-hidden rounded-md bg-surface-overlay">

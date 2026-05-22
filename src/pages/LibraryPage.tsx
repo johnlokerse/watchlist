@@ -26,22 +26,8 @@ function useSeriesProgressLabel(tmdbId: number) {
     : undefined;
 }
 
-const LIBRARY_SCROLL_STORAGE_PREFIX = 'library-scroll';
-
 function getLibraryItemRestoreId(contentType: ContentType, tmdbId: number) {
   return `${contentType}-${tmdbId}`;
-}
-
-function getLibraryScrollStorageKey(locationKey: string) {
-  return `${LIBRARY_SCROLL_STORAGE_PREFIX}:${locationKey}:scrollY`;
-}
-
-function getLibraryTargetStorageKey(locationKey: string) {
-  return `${LIBRARY_SCROLL_STORAGE_PREFIX}:${locationKey}:target`;
-}
-
-function getLibraryPendingStorageKey(locationKey: string) {
-  return `${LIBRARY_SCROLL_STORAGE_PREFIX}:${locationKey}:pending`;
 }
 
 function WatchingSeriesCard({ item, onOpen }: { item: WatchedItem; onOpen?: () => void }) {
@@ -309,8 +295,6 @@ function LibraryCollection({
 
 export default function LibraryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const location = useLocation();
-  const navigationType = useNavigationType();
   const { settings, updateSettings } = useSettings();
   const tabParam = searchParams.get('tab');
   const tab: 'movies' | 'series' = tabParam === 'series' ? 'series' : 'movies';
@@ -327,10 +311,6 @@ export default function LibraryPage() {
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('library-view', 'cards');
   const debouncedSearch = useDebounce(search);
-  const locationKey = `${location.pathname}${location.search}`;
-  const scrollStorageKey = getLibraryScrollStorageKey(locationKey);
-  const targetStorageKey = getLibraryTargetStorageKey(locationKey);
-  const pendingStorageKey = getLibraryPendingStorageKey(locationKey);
 
   const contentType: ContentType = tab === 'movies' ? 'movie' : 'series';
   const items = useWatchedItems(contentType);

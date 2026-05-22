@@ -47,6 +47,8 @@ export default function Card({
   return (
     <Link
       to={linkTo}
+      onClick={onClick}
+      data-scroll-restore-id={scrollRestoreId}
       className="group/card block overflow-hidden rounded-lg border border-border-subtle bg-surface-raised shadow-[0_14px_40px_rgb(0_0_0_/_0.16)] transition-all hover:-translate-y-0.5 hover:border-accent/45 hover:bg-surface-overlay focus:outline-none focus:ring-2 focus:ring-accent/50"
     >
       <div className="relative aspect-[2/3] bg-surface-overlay">
