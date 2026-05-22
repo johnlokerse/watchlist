@@ -53,7 +53,7 @@ export default function CastCrewTab({ cast, crew }: Props) {
 
 function CrewBlock({ label, names }: { label: string; names: string[] }) {
   return (
-    <div className="bg-surface-raised rounded-lg p-3">
+    <div className="app-panel-soft p-3">
       <p className="text-xs text-text-muted mb-1">{label}</p>
       <p className="text-sm font-medium">{names.join(', ') || 'Unknown'}</p>
     </div>
@@ -63,12 +63,17 @@ function CrewBlock({ label, names }: { label: string; names: string[] }) {
 function PersonCard({ member }: { member: TMDBCastMember }) {
   const photo = profileUrl(member.profile_path, 'w185');
   return (
-    <div className="bg-surface-raised rounded-lg overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-border-subtle bg-surface-raised">
       <div className="aspect-[2/3] bg-surface-overlay">
         {photo ? (
           <img src={photo} alt={member.name} loading="lazy" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-2xl text-text-muted">👤</div>
+          <div className="flex h-full w-full items-center justify-center text-text-muted">
+            <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21a8 8 0 0 0-16 0" />
+              <circle cx="12" cy="8" r="4" />
+            </svg>
+          </div>
         )}
       </div>
       <div className="p-2">

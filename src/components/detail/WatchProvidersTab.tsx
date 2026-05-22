@@ -10,8 +10,13 @@ interface Props {
 export default function WatchProvidersTab({ providers, country, userServiceIds = [] }: Props) {
   if (!providers) {
     return (
-      <div className="text-center py-8 text-text-muted">
-        <p className="text-lg mb-1">📺</p>
+      <div className="app-panel py-8 text-center text-text-muted">
+        <p className="mx-auto mb-2 grid h-10 w-10 place-items-center rounded-lg border border-border-subtle bg-surface-overlay text-accent">
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="5" width="18" height="12" rx="2" />
+            <path d="M8 21h8M12 17v4" />
+          </svg>
+        </p>
         <p>No watch provider information available for {country}.</p>
       </div>
     );
@@ -24,7 +29,7 @@ export default function WatchProvidersTab({ providers, country, userServiceIds =
   return (
     <div className="space-y-6">
       {myStreamingProviders.length > 0 && (
-        <div className="rounded-xl border border-accent/40 bg-accent/5 p-4">
+        <div className="rounded-lg border border-accent/40 bg-accent/5 p-4">
           <h3 className="text-sm font-semibold text-accent uppercase tracking-wider mb-3">
             On Your Services
           </h3>
@@ -67,7 +72,7 @@ export default function WatchProvidersTab({ providers, country, userServiceIds =
           href={providers.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block px-4 py-2 bg-accent/15 text-accent rounded-lg text-sm font-medium hover:bg-accent/25 transition"
+          className="inline-block rounded-lg bg-accent/15 px-4 py-2 text-sm font-medium text-accent transition hover:bg-accent/25"
         >
           View on JustWatch ↗
         </a>
@@ -103,7 +108,7 @@ function ProviderGroup({
               }`}
             >
               {logo && (
-                <img src={logo} alt={p.provider_name} className="w-8 h-8 rounded-md" loading="lazy" />
+                <img src={logo} alt={p.provider_name} className="h-8 w-8 rounded-md" loading="lazy" />
               )}
               <span className="text-sm">{p.provider_name}</span>
             </div>

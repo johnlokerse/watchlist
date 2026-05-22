@@ -22,6 +22,8 @@ export interface TMDBMovieDetail extends Omit<TMDBMovie, 'genre_ids'> {
   credits?: TMDBCredits;
   'watch/providers'?: TMDBWatchProvidersResponse;
   videos?: TMDBVideosResponse;
+  release_dates?: TMDBReleaseDatesResponse;
+  images?: TMDBImagesResponse;
 }
 
 // TMDB Series (list item)
@@ -159,4 +161,33 @@ export interface TMDBVideo {
 
 export interface TMDBVideosResponse {
   results: TMDBVideo[];
+}
+
+export interface TMDBReleaseDateEntry {
+  certification: string;
+  release_date: string;
+  type: number;
+  note: string;
+}
+
+export interface TMDBCountryReleaseDates {
+  iso_3166_1: string;
+  release_dates: TMDBReleaseDateEntry[];
+}
+
+export interface TMDBReleaseDatesResponse {
+  results: TMDBCountryReleaseDates[];
+}
+
+export interface TMDBImage {
+  file_path: string;
+  width: number;
+  height: number;
+  vote_average: number;
+  vote_count: number;
+}
+
+export interface TMDBImagesResponse {
+  backdrops: TMDBImage[];
+  posters: TMDBImage[];
 }

@@ -1,20 +1,58 @@
-# Watchlist — Movie & Series Tracker
+# MyWatchlist — Your Personal Movie Database
 
-A responsive React web app to track movies and series you've watched, discover upcoming releases with countdown timers, find where to watch content, and get personalized AI recommendations.
+MyWatchlist is a responsive movie and series tracker for people who want more than a plain checklist. It gives you a polished personal library, release countdowns, discovery feeds, series progress, streaming availability, and an AI assistant that understands what is already in your watchlist.
 
 ![Watchlist Screenshot](./images/watchlist_header.png)
 
-## Features
+## Why Use It?
 
-- **Upcoming** — Browse upcoming movies & series with live "X days" countdown badges
-- **Library** — Track your watched/watching/plan-to-watch movies & series with ratings, notes, and series progress
-- **Discover** — Trending movies & series from TMDB
-- **Detail Pages** — Rich metadata: poster, backdrop, overview, cast & crew, where to watch (streaming/rent/buy)
-- **Search** — Search TMDB from the library page to find and add new content
-- **AI Copilot** — Personalized movie & series recommendations powered by the GitHub Copilot SDK (or OpenRouter via BYOK), with full access to your library context
-- **Episode Recap** — AI-generated recap for the last watched episode of any series
-- **Export / Import** — Back up and restore your library as JSON
-- **Responsive** — Mobile-first design with bottom nav on mobile, top nav on desktop
+Most watchlist apps are either too generic or too noisy. MyWatchlist is built for a simple personal workflow:
+
+- keep track of what you watched, what you are watching, and what you still want to see
+- browse upcoming movies and series with clear release countdowns
+- maintain ratings, notes, and episode progress in one local database
+- discover trending and anticipated titles from TMDB
+- ask an AI assistant for recommendations based on your actual library
+- use the same experience comfortably on desktop and mobile
+
+## Highlights
+
+### A Library That Feels Like a Database
+
+Track movies and series with `watched`, `watching`, and `plan_to_watch` statuses. Switch between poster cards and a denser database-style list, keep personal ratings and notes, and continue series from your last watched episode.
+
+### Release Planning
+
+Upcoming movies and series are pulled into a dedicated release view with countdown badges, so your watchlist doubles as a lightweight premiere calendar.
+
+### Discovery Radar
+
+The Discover page surfaces trending and anticipated titles from TMDB, shows what is already in your library, and keeps search/filter controls close to the content.
+
+### Rich Detail Pages
+
+Each title gets a full detail page with poster and backdrop artwork, metadata, cast and crew, trailers, watch providers, and library actions.
+
+### AI Watch Assistant
+
+The built-in chat can recommend movies and series using your own library as context. It can search live TMDB data, inspect title details, find similar content, and avoid suggesting things you already track.
+
+### Mobile-First UI
+
+The app is designed to work well on a phone, with touch-friendly controls, bottom navigation, compact list views, and responsive layouts.
+
+## Feature Overview
+
+| Area | What You Can Do |
+|------|------------------|
+| Library | Track movies and series, filter by status, search locally or on TMDB, add ratings and notes |
+| Series Progress | Store current season/episode, mark episodes watched, generate episode recaps |
+| Upcoming | See release countdowns for unreleased movies and upcoming series episodes |
+| Discover | Browse trending and anticipated movies/series with library status overlays |
+| Details | View metadata, cast, crew, videos, watch providers, and library controls |
+| AI Assistant | Ask for recommendations, similar titles, actor-based searches, and library-aware suggestions |
+| Import / Export | Back up and restore your full local library as JSON |
+| Themes | Switch between several dark and light visual themes |
 
 ## Tech Stack
 
@@ -29,6 +67,60 @@ A responsive React web app to track movies and series you've watched, discover u
 - better-sqlite3 (SQLite) for local persistence
 - GitHub Copilot SDK for AI chat
 - Zod for schema validation
+
+**Data & Integrations**
+- TMDB for movie and series metadata
+- TVMaze for episode recap source summaries
+- GitHub Copilot SDK for the default AI assistant
+- OpenRouter BYOK support as an optional model provider
+
+## Getting Started
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Create your environment file
+cp .env.example .env
+
+# 3. Add the required values to .env
+# VITE_TMDB_API_TOKEN=your_tmdb_v4_read_token
+# GH_Token=your_github_token_for_copilot_sdk
+
+# 4. Start the app
+npm run dev
+```
+
+`npm run dev` starts both the Vite frontend and the Express backend. The frontend runs through Vite, and the backend exposes the REST API, AI chat endpoints, and MCP server.
+
+## Configuration
+
+Minimum environment values:
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `VITE_TMDB_API_TOKEN` | Yes | TMDB v4 read token for search, discovery, detail pages, and artwork |
+| `GH_Token` | Yes | Required by the GitHub Copilot SDK chat server |
+
+Inside the app, use Settings to configure:
+
+- country/region for watch providers
+- spoiler visibility
+- episode recap availability
+- cover size
+- visual theme
+- preferred streaming services
+- optional OpenRouter BYOK models
+
+## Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start frontend and backend together |
+| `npm run dev:server` | Start only the Express backend |
+| `npm run build` | Type-check and build the production frontend |
+| `npm run lint` | Run ESLint |
+| `npm run test` | Run Playwright end-to-end tests |
 
 ## MCP Server (Model Context Protocol)
 
@@ -71,13 +163,20 @@ Add to `.vscode/mcp.json` or `opencode.json`:
 }
 ```
 
-## GitHub Copilot SDK
+## AI Assistant
 
-The AI chat feature is built on the [`@github/copilot-sdk`](https://www.npmjs.com/package/@github/copilot-sdk) package. On startup, the Express server initialises a `CopilotClient` and exposes a streaming chat API that the frontend consumes via Server-Sent Events.
+The watch assistant is built on the [`@github/copilot-sdk`](https://www.npmjs.com/package/@github/copilot-sdk) package. It receives your local library as context, streams answers back into the UI, and can call live TMDB tools when it needs fresh title data.
 
 ![Copilot SDK Integration](./images/NobodySequel.gif)
 
-Key integration points:
+Useful prompts include:
+
+- "Recommend a movie based on what I rated highly."
+- "Find something similar to Nobody, but not already in my library."
+- "What should I watch next from my plan-to-watch list?"
+- "Show me recent movies with this actor."
+
+Key technical integration points:
 
 - **Session creation** (`POST /api/chat/session`) — creates a `CopilotSession` with the user's full library injected as system context, so the model can give personalised recommendations without hallucinating titles already in the watchlist.
 - **Streaming responses** (`POST /api/chat/message`) — uses `session.on('assistant.message_delta', ...)` to stream tokens to the client in real time.
@@ -98,25 +197,6 @@ The Episode Recap feature (`POST /api/recap/episode`) uses a separate, simpler S
 
 1. The server fetches the episode summary from the free [TVMaze REST API](https://www.tvmaze.com/api).
 2. A single `createSession` + `sendAndWait` call rewrites the raw summary into a polished recap paragraph, with `streaming: true` so tokens are forwarded to the browser via SSE as they arrive.
-
-## Getting Started
-
-```bash
-# 1. Get a TMDB API key:
-#    - Sign up at https://www.themoviedb.org/signup
-#    - Go to Settings → API → Create → Developer
-#    - Copy the "API Read Access Token" (v4 bearer token)
-
-# 2. Create .env file:
-cp .env.example .env
-# Edit .env and paste your token
-
-# 3. Install & run:
-npm install
-npm run dev
-```
-
-`npm run dev` starts both the Vite dev server and the Express backend concurrently.
 
 ## Project Structure
 

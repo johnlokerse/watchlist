@@ -6,6 +6,16 @@ import { addToLibrary } from '../../db/hooks';
 import ChatPanel from './ChatPanel';
 import { TMDB_BASE_URL, TMDB_API_TOKEN } from '../../utils/constants';
 
+function AssistantIcon() {
+  return (
+    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h16v12.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5V7Z" />
+      <path d="m4 7 2.8-4h4L8 7M12 7l2.8-4h4L16 7M4 11h16" />
+      <path d="M9 15h6M12 14v2" />
+    </svg>
+  );
+}
+
 export default function CopilotChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -160,7 +170,7 @@ export default function CopilotChat() {
           {isExpanded && (
             <div className="hidden md:block fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={handleToggleExpand} />
           )}
-          <div className={`fixed z-50 bg-surface border border-border-subtle shadow-2xl flex flex-col overflow-hidden inset-0 md:inset-auto md:rounded-2xl ${
+          <div className={`fixed z-50 bg-surface border border-border-subtle shadow-2xl flex flex-col overflow-hidden inset-0 md:inset-auto md:rounded-lg ${
             isExpanded
               ? 'md:top-[calc(3.5rem+1rem)] md:left-1/2 md:-translate-x-1/2 md:w-[min(1040px,92vw)] md:h-[calc(100vh-3.5rem-2rem)]'
               : 'md:bottom-24 md:right-6 md:w-[380px] md:h-[560px]'
@@ -192,7 +202,7 @@ export default function CopilotChat() {
 
       <button
         onClick={() => setIsOpen((o) => !o)}
-        className={`fixed z-50 right-6 bottom-20 md:bottom-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-xl transition-all duration-200 ${
+        className={`fixed z-50 right-4 top-5 h-12 w-12 md:top-auto md:right-6 md:bottom-6 md:h-14 md:w-14 rounded-lg shadow-lg flex items-center justify-center transition-all duration-200 ${
           isOpen
             ? 'bg-surface-overlay text-text-secondary border border-border-subtle scale-95'
             : 'bg-accent hover:bg-accent-hover text-white scale-100 hover:scale-105'
@@ -200,7 +210,13 @@ export default function CopilotChat() {
         aria-label={isOpen ? 'Close assistant' : 'Open watch assistant (⌘K)'}
         title={isOpen ? 'Close assistant' : 'Open watch assistant (⌘K / Ctrl+K)'}
       >
-        {isOpen ? '✕' : '🎬'}
+        {isOpen ? (
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        ) : (
+          <AssistantIcon />
+        )}
       </button>
     </>
   );

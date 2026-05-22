@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMovieDetail } from '../api/tmdb';
 import { useWatchedItem, addToLibrary, updateWatchedItem, removeFromLibrary } from '../db/hooks';
@@ -10,6 +10,7 @@ import CastCrewTab from '../components/detail/CastCrewTab';
 import WatchProvidersTab from '../components/detail/WatchProvidersTab';
 import TrailerTab from '../components/detail/TrailerTab';
 import RatingStars from '../components/ui/RatingStars';
+import { buildMovieReleaseTimeline } from '../utils/releaseTimeline';
 
 type Tab = 'overview' | 'cast' | 'providers' | 'trailer';
 
@@ -35,6 +36,11 @@ export default function MovieDetailPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const timelineEvents = useMemo(
+    () => (movie ? buildMovieReleaseTimeline(movie, settings.country) : []),
+    [movie, settings.country],
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -55,7 +61,6 @@ export default function MovieDetailPage() {
 
   const providers = movie['watch/providers']?.results?.[settings.country];
   const notes = watchedItem?.id ? (editedNotesByItem[watchedItem.id] ?? watchedItem.notes) : '';
-
   const handleAddToLibrary = async (status: WatchedStatus) => {
     await addToLibrary({
       tmdbId: movie.id,
@@ -148,7 +153,7 @@ export default function MovieDetailPage() {
                 + Add to Library
               </button>
               {showAddDropdown && (
-                <div className="absolute left-0 top-full mt-1 bg-surface-raised border border-border-subtle rounded-lg shadow-lg z-10 min-w-max">
+                <div className="absolute left-0 top-full mt-1 bg-surface-raised border border-border-subtle rounded-lg shadow-lg z-50 min-w-max">
                   <button onClick={() => handleAddToLibrary('watched')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition rounded-t-lg">Watched</button>
                   <button onClick={() => handleAddToLibrary('watching')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition">Watching</button>
                   <button onClick={() => handleAddToLibrary('plan_to_watch')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition rounded-b-lg">Plan to Watch</button>
@@ -161,7 +166,7 @@ export default function MovieDetailPage() {
 
       {/* Rating & Notes for library items */}
       {watchedItem && (
-        <div className="mb-6 bg-surface-raised rounded-xl border border-border-subtle p-4 space-y-3">
+        <div className="app-panel mb-6 space-y-3 p-4">
           <div className="flex items-center gap-3">
             <span className="text-sm text-text-secondary">Your Rating:</span>
             <RatingStars value={watchedItem.userRating} onChange={handleRate} size="sm" />
@@ -193,7 +198,7 @@ export default function MovieDetailPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border-subtle mb-4 overflow-x-auto scrollbar-none">
+      <div className="mb-4 flex gap-1 overflow-x-auto border-b border-border-subtle scrollbar-none">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -219,6 +224,7 @@ export default function MovieDetailPage() {
           imdbId={movie.imdb_id}
           tmdbId={movie.id}
           type="movie"
+          timelineEvents={timelineEvents}
         />
       )}
       {activeTab === 'cast' && movie.credits && (

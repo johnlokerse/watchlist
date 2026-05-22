@@ -70,6 +70,18 @@ test.describe('Library Page', () => {
     await expect(page.getByText('The Accountant')).toBeVisible();
   });
 
+  test('section heading toggles collapse and expand', async ({ page, request }) => {
+    await seedMovie(request, { status: 'watched' });
+    await setupTMDBMocks(page);
+    await page.goto('/library');
+    await expect(page.getByRole('link', { name: /The Accountant/ })).toBeVisible();
+    const watchedSectionToggle = page.locator('h2.section-title:has-text("Watched") button');
+    await watchedSectionToggle.click();
+    await expect(page.getByRole('link', { name: /The Accountant/ })).not.toBeVisible();
+    await watchedSectionToggle.click();
+    await expect(page.getByRole('link', { name: /The Accountant/ })).toBeVisible();
+  });
+
   test('seeded series appears in Watching section', async ({ page, request }) => {
     await seedSeries(request, { status: 'watching' });
     await setupTMDBMocks(page);

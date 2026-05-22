@@ -1,6 +1,6 @@
 export default function SkeletonCard() {
   return (
-    <div className="bg-surface-raised rounded-xl overflow-hidden border border-border-subtle animate-pulse">
+    <div className="animate-pulse overflow-hidden rounded-lg border border-border-subtle bg-surface-raised">
       <div className="aspect-[2/3] bg-surface-overlay" />
       <div className="p-3 space-y-2">
         <div className="h-4 bg-surface-overlay rounded w-3/4" />

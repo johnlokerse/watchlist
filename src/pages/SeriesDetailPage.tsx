@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSeriesDetail } from '../api/tmdb';
 import { useWatchedItem, useSeriesProgress, addToLibrary, updateWatchedItem, removeFromLibrary, updateSeriesProgress } from '../db/hooks';
@@ -11,6 +11,7 @@ import WatchProvidersTab from '../components/detail/WatchProvidersTab';
 import EpisodesTab from '../components/detail/EpisodesTab';
 import TrailerTab from '../components/detail/TrailerTab';
 import RatingStars from '../components/ui/RatingStars';
+import { buildSeriesReleaseTimeline } from '../utils/releaseTimeline';
 
 type Tab = 'overview' | 'episodes' | 'cast' | 'providers' | 'trailer';
 
@@ -54,6 +55,11 @@ export default function SeriesDetailPage() {
     }
   }, [watchedItem, seriesId]);
 
+  const timelineEvents = useMemo(
+    () => (series ? buildSeriesReleaseTimeline(series) : []),
+    [series],
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -75,7 +81,6 @@ export default function SeriesDetailPage() {
   const providers = series['watch/providers']?.results?.[settings.country];
   const imdbId = series.external_ids?.imdb_id;
   const notes = watchedItem?.id ? (editedNotesByItem[watchedItem.id] ?? watchedItem.notes) : '';
-
   const handleAddToLibrary = async (status: WatchedStatus) => {
     const itemId = await addToLibrary({
       tmdbId: series.id,
@@ -194,7 +199,7 @@ export default function SeriesDetailPage() {
                 + Add to Library
               </button>
               {showAddDropdown && (
-                <div className="absolute left-0 top-full mt-1 bg-surface-raised border border-border-subtle rounded-lg shadow-lg z-10 min-w-max">
+                <div className="absolute left-0 top-full mt-1 bg-surface-raised border border-border-subtle rounded-lg shadow-lg z-50 min-w-max">
                   <button onClick={() => handleAddToLibrary('watching')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition rounded-t-lg">Watching</button>
                   <button onClick={() => handleAddToLibrary('watched')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition">Watched</button>
                   <button onClick={() => handleAddToLibrary('plan_to_watch')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface transition rounded-b-lg">Plan to Watch</button>
@@ -207,7 +212,7 @@ export default function SeriesDetailPage() {
 
       {/* Progress & Rating for library items */}
       {watchedItem && (
-        <div className="mb-6 bg-surface-raised rounded-xl border border-border-subtle p-4 space-y-3">
+        <div className="app-panel mb-6 space-y-3 p-4">
           {/* Progress tracker */}
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm text-text-secondary">Progress:</span>
@@ -267,7 +272,7 @@ export default function SeriesDetailPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border-subtle mb-4 overflow-x-auto scrollbar-none">
+      <div className="mb-4 flex gap-1 overflow-x-auto border-b border-border-subtle scrollbar-none">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -292,6 +297,7 @@ export default function SeriesDetailPage() {
           imdbId={imdbId}
           tmdbId={series.id}
           type="series"
+          timelineEvents={timelineEvents}
         />
       )}
       {activeTab === 'episodes' && (

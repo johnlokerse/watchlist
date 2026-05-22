@@ -529,8 +529,11 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Settings</h1>
+    <div className="space-y-6">
+      <div>
+        <p className="section-title mb-2">System preferences</p>
+        <h1 className="page-title">Settings</h1>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
 
@@ -538,7 +541,7 @@ export default function SettingsPage() {
         <div className="space-y-4">
 
           {/* ── Appearance ── */}
-          <div className="bg-surface-raised rounded-xl border border-border-subtle p-6">
+          <div className="app-panel p-5">
             <div className="flex items-center gap-2.5 mb-5">
               <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
                 <PaletteIcon />
@@ -581,7 +584,7 @@ export default function SettingsPage() {
           </div>
 
           {/* ── Library Data ── */}
-          <div className="bg-surface-raised rounded-xl border border-border-subtle p-6">
+          <div className="app-panel p-5">
             <div className="flex items-center gap-2.5 mb-5">
               <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
                 <LayersIcon />
@@ -657,7 +660,7 @@ export default function SettingsPage() {
         <div className="space-y-4">
 
           {/* ── Preferences ── */}
-          <div className="bg-surface-raised rounded-xl border border-border-subtle p-6">
+          <div className="app-panel p-5">
             <div className="flex items-center gap-2.5 mb-5">
               <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
                 <SlidersIcon />
@@ -715,7 +718,7 @@ export default function SettingsPage() {
           </div>
 
           {/* ── AI Assistant ── */}
-          <div className="bg-surface-raised rounded-xl border border-border-subtle p-6">
+          <div className="app-panel p-5">
             <div className="flex items-center gap-2.5 mb-5">
               <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
                 <SparklesIcon />
@@ -803,7 +806,7 @@ export default function SettingsPage() {
         <div className="space-y-4">
 
           {/* ── Streaming Services ── */}
-          <div className="bg-surface-raised rounded-xl border border-border-subtle p-6">
+          <div className="app-panel p-5">
             <div className="flex items-center gap-2.5 mb-2">
               <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
                 <MonitorIcon />
@@ -859,7 +862,7 @@ export default function SettingsPage() {
           </div>
 
           {/* ── Danger Zone ── */}
-          <div className="bg-surface-raised rounded-xl border border-danger/30 p-6">
+          <div className="app-panel border-danger/30 p-5">
             <div className="flex items-center gap-2.5 mb-5">
               <div className="w-7 h-7 rounded-lg bg-danger/15 flex items-center justify-center shrink-0 text-danger">
                 <TrashIcon />

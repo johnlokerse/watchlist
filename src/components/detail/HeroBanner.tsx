@@ -14,40 +14,43 @@ export default function HeroBanner({ title, posterPath, backdropPath, tagline, f
   const poster = posterUrl(posterPath, 'w500');
 
   return (
-    <div className="relative -mx-4 md:-mx-6 mb-6">
+    <div className="relative mb-6 rounded-lg border border-border-subtle bg-surface-raised">
       {/* Backdrop */}
-      <div className="h-48 md:h-72 relative overflow-hidden">
+      <div className="relative h-48 overflow-hidden rounded-t-lg md:h-64">
         {backdrop ? (
-          <img src={backdrop} alt="" className="w-full h-full object-cover object-top" />
+          <img src={backdrop} alt="" className="h-full w-full object-cover object-top" />
         ) : (
-          <div className="w-full h-full bg-surface-overlay" />
+          <div className="h-full w-full bg-surface-overlay" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-surface-raised via-surface-raised/70 to-transparent" />
       </div>
 
       {/* Content overlay */}
-      <div className="relative -mt-24 md:-mt-32 px-4 md:px-6 flex gap-4 md:gap-6">
+      <div className="relative -mt-24 flex gap-4 px-4 pb-4 md:-mt-32 md:gap-6 md:px-6 md:pb-6">
         {/* Poster */}
-        <div className="shrink-0 w-28 md:w-40 rounded-xl overflow-hidden shadow-2xl border-2 border-border-subtle">
+        <div className="w-28 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-overlay shadow-2xl md:w-40">
           {poster ? (
-            <img src={poster} alt={title} className="w-full aspect-[2/3] object-cover" />
+            <img src={poster} alt={title} className="aspect-[2/3] w-full object-cover" />
           ) : (
-            <div className="w-full aspect-[2/3] bg-surface-overlay flex items-center justify-center text-4xl text-text-muted">
-              🎬
+            <div className="flex aspect-[2/3] w-full items-center justify-center bg-surface-overlay text-text-muted">
+              <svg className="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 7h16v12.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5V7Z" />
+                <path d="m4 7 2.8-4h4L8 7M12 7l2.8-4h4L16 7M4 11h16" />
+              </svg>
             </div>
           )}
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0 pt-16 md:pt-24">
-          <h1 className="text-xl md:text-3xl font-bold leading-tight">{title}</h1>
+        <div className="min-w-0 flex-1 pt-16 md:pt-24">
+          <h1 className="text-xl font-bold leading-tight md:text-3xl">{title}</h1>
           {tagline && (
             <p className="text-text-secondary text-sm italic mt-1">{tagline}</p>
           )}
-          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs md:text-sm text-text-secondary">
+          <div className="mt-3 flex flex-wrap gap-2 text-xs text-text-secondary md:text-sm">
             {facts.map((f) => (
-              <span key={f.label}>
-                <span className="text-text-muted">{f.label}:</span> {f.value}
+              <span key={f.label} className="rounded-md border border-border-subtle bg-surface/45 px-2 py-1">
+                <span className="text-text-muted">{f.label}</span> {f.value}
               </span>
             ))}
           </div>
