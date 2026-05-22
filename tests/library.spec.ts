@@ -91,6 +91,21 @@ test.describe('Library Page', () => {
     await expect(page.getByRole('heading', { name: 'Watching' })).toBeVisible();
   });
 
+  test('series tab shows Watching before Plan to Watch', async ({ page, request }) => {
+    await seedSeries(request, { status: 'watching' });
+    await seedSeries(request, {
+      tmdbId: 1399,
+      title: 'Game of Thrones',
+      status: 'plan_to_watch',
+    });
+    await setupTMDBMocks(page);
+    await page.goto('/library');
+    await page.getByRole('tab', { name: 'Series' }).click();
+
+    const sectionTitles = await page.locator('h2.section-title').allTextContents();
+    expect(sectionTitles.map((title) => title.trim()).slice(0, 2)).toEqual(['Watching', 'Plan to Watch']);
+  });
+
   test('status filter hides non-matching items', async ({ page, request }) => {
     await seedMovie(request, { status: 'watched' });
     await seedMovie(request, {
