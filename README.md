@@ -1,12 +1,12 @@
-# MyWatchlist — Your Personal Movie Database
+# Watchlist — Your Personal Movie Database
 
-MyWatchlist is a responsive movie and series tracker for people who want more than a plain checklist. It gives you a polished personal library, release countdowns, discovery feeds, series progress, streaming availability, and an AI assistant that understands what is already in your watchlist.
+Watchlist is a responsive movie and series tracker for people who want more than a plain checklist. It gives you a polished personal library, release countdowns, discovery feeds, series progress, streaming availability, and an AI assistant that understands what is already in your watchlist.
 
 ![Watchlist Screenshot](./images/watchlist_header.png)
 
 ## Why Use It?
 
-Most watchlist apps are either too generic or too noisy. MyWatchlist is built for a simple personal workflow:
+Most watchlist apps are either too generic or too noisy. Watchlist is built for a simple personal workflow:
 
 - keep track of what you watched, what you are watching, and what you still want to see
 - browse upcoming movies and series with clear release countdowns
