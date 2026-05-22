@@ -1,3 +1,4 @@
+import type { MouseEventHandler } from 'react';
 import { Link } from 'react-router-dom';
 import { posterUrl } from '../../utils/image';
 import { formatDate } from '../../utils/date';
@@ -16,6 +17,8 @@ interface Props {
   compact?: boolean;
   status?: WatchedStatus | null;
   progressLabel?: string;
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
+  scrollRestoreId?: string;
 }
 
 function statusLabel(status: WatchedStatus): string | null {
@@ -36,7 +39,7 @@ function PlaceholderPoster() {
 }
 
 export default function Card({
-  id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact, status, progressLabel,
+  id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact, status, progressLabel, onClick, scrollRestoreId,
 }: Props) {
   const url = posterUrl(posterPath, 'w342');
   const linkTo = type === 'movie' ? `/movie/${id}` : `/series/${id}`;

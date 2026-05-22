@@ -1,3 +1,4 @@
+import type { MouseEventHandler } from 'react';
 import { Link } from 'react-router-dom';
 import { posterUrl } from '../../utils/image';
 
@@ -7,9 +8,11 @@ interface Props {
   posterPath: string | null;
   type: 'movie' | 'series';
   progressLabel?: string;
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
+  scrollRestoreId?: string;
 }
 
-export default function ListRow({ id, title, posterPath, type, progressLabel }: Props) {
+export default function ListRow({ id, title, posterPath, type, progressLabel, onClick, scrollRestoreId }: Props) {
   const url = posterUrl(posterPath, 'w92');
   const linkTo = type === 'movie' ? `/movie/${id}` : `/series/${id}`;
 
