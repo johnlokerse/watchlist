@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type SetStateAction } from 'react';
 
-export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T) => void] {
+export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: SetStateAction<T>) => void] {
   const [state, setState] = useState<T>(() => {
     try {
       const stored = localStorage.getItem(key);
@@ -16,7 +16,7 @@ export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T)
     } catch { /* ignore quota errors */ }
   }, [key, state]);
 
-  const setValue = useCallback((value: T) => setState(value), []);
+  const setValue = useCallback((value: SetStateAction<T>) => setState(value), []);
 
   return [state, setValue];
 }

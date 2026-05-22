@@ -308,7 +308,7 @@ export default function LibraryPage() {
   const [search, setSearch] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const [collapsedSections, setCollapsedSections] = useLocalStorage<Record<string, boolean>>('library-collapsed-sections', {});
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('library-view', 'cards');
   const debouncedSearch = useDebounce(search);
 
