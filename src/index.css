@@ -26,48 +26,9 @@ html {
   background: var(--color-surface);
 }
 
-:root {
-  --safe-area-top: env(safe-area-inset-top, 0px);
-  --safe-area-right: env(safe-area-inset-right, 0px);
-  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-area-left: env(safe-area-inset-left, 0px);
-}
-
-.app-viewport {
-  min-height: 100vh;
-  min-height: 100dvh;
-}
-
-.app-shell-main {
-  padding-top: calc(1.25rem + var(--safe-area-top));
-  padding-right: calc(1rem + var(--safe-area-right));
-  padding-bottom: calc(6rem + var(--safe-area-bottom));
-  padding-left: calc(1rem + var(--safe-area-left));
-}
-
-.app-shell-bottom-nav {
-  padding-right: var(--safe-area-right);
-  padding-bottom: var(--safe-area-bottom);
-  padding-left: var(--safe-area-left);
-}
-
-@media (min-width: 768px) {
-  .app-shell-main {
-    padding-top: 1.5rem;
-    padding-right: 1.5rem;
-    padding-bottom: 1.5rem;
-    padding-left: 1.5rem;
-  }
-}
-
-@media (max-width: 767px) {
-  .mobile-safe-sticky-top {
-    top: var(--safe-area-top);
-  }
-
-  .mobile-safe-fab {
-    top: calc(13px + var(--safe-area-top));
-    right: calc(0.75rem + var(--safe-area-right));
+@supports (padding: max(0px)) {
+  body {
+    padding-top: env(safe-area-inset-top);
   }
 }
 

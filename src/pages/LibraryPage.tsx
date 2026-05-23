@@ -311,7 +311,7 @@ export default function LibraryPage() {
   const [showMobileFilters, setShowMobileFilters] = useLocalStorage('library-mobile-filters-expanded', false);
   const [isControlsStuck, setIsControlsStuck] = useState(false);
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const [collapsedSections, setCollapsedSections] = useLocalStorage<Record<string, boolean>>('library-collapsed-sections', {});
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('library-view', 'cards');
   const debouncedSearch = useDebounce(search);
 
@@ -354,6 +354,17 @@ export default function LibraryPage() {
   const planToWatchItems = useMemo(() => filteredItems.filter((i) => i.status === 'plan_to_watch'), [filteredItems]);
   const watchedItems = useMemo(() => filteredItems.filter((i) => i.status === 'watched'), [filteredItems]);
   const watchingItems = useMemo(() => filteredItems.filter((i) => i.status === 'watching'), [filteredItems]);
+  const librarySections = tab === 'series'
+    ? [
+        { title: 'Watching', status: 'watching' as const, items: watchingItems },
+        { title: 'Plan to Watch', status: 'plan_to_watch' as const, items: planToWatchItems },
+        { title: 'Watched', status: 'watched' as const, items: watchedItems },
+      ]
+    : [
+        { title: 'Plan to Watch', status: 'plan_to_watch' as const, items: planToWatchItems },
+        { title: 'Watching', status: 'watching' as const, items: watchingItems },
+        { title: 'Watched', status: 'watched' as const, items: watchedItems },
+      ];
   const selectedItem = useMemo(
     () => filteredItems.find((item) => itemKey(item) === selectedItemKey) ?? filteredItems[0],
     [filteredItems, selectedItemKey],
@@ -488,45 +499,22 @@ export default function LibraryPage() {
           ) : (
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
               <div className="space-y-8">
-                <LibraryCollection
-                  title="Plan to Watch"
-                  items={planToWatchItems}
-                  viewMode={viewMode}
-                  coverSize={settings.coverSize}
-                  selectedKey={selectedItem ? itemKey(selectedItem) : null}
-                  onSelect={(item) => setSelectedItemKey(itemKey(item))}
-                  collapsed={Boolean(collapsedSections[`${tab}-plan_to_watch`])}
-                  onToggleCollapse={() => setCollapsedSections((prev) => ({
-                    ...prev,
-                    [`${tab}-plan_to_watch`]: !prev[`${tab}-plan_to_watch`],
-                  }))}
-                />
-                <LibraryCollection
-                  title="Watching"
-                  items={watchingItems}
-                  viewMode={viewMode}
-                  coverSize={settings.coverSize}
-                  selectedKey={selectedItem ? itemKey(selectedItem) : null}
-                  onSelect={(item) => setSelectedItemKey(itemKey(item))}
-                  collapsed={Boolean(collapsedSections[`${tab}-watching`])}
-                  onToggleCollapse={() => setCollapsedSections((prev) => ({
-                    ...prev,
-                    [`${tab}-watching`]: !prev[`${tab}-watching`],
-                  }))}
-                />
-                <LibraryCollection
-                  title="Watched"
-                  items={watchedItems}
-                  viewMode={viewMode}
-                  coverSize={settings.coverSize}
-                  selectedKey={selectedItem ? itemKey(selectedItem) : null}
-                  onSelect={(item) => setSelectedItemKey(itemKey(item))}
-                  collapsed={Boolean(collapsedSections[`${tab}-watched`])}
-                  onToggleCollapse={() => setCollapsedSections((prev) => ({
-                    ...prev,
-                    [`${tab}-watched`]: !prev[`${tab}-watched`],
-                  }))}
-                />
+                {librarySections.map((section) => (
+                  <LibraryCollection
+                    key={section.status}
+                    title={section.title}
+                    items={section.items}
+                    viewMode={viewMode}
+                    coverSize={settings.coverSize}
+                    selectedKey={selectedItem ? itemKey(selectedItem) : null}
+                    onSelect={(item) => setSelectedItemKey(itemKey(item))}
+                    collapsed={Boolean(collapsedSections[`${tab}-${section.status}`])}
+                    onToggleCollapse={() => setCollapsedSections((prev) => ({
+                      ...prev,
+                      [`${tab}-${section.status}`]: !prev[`${tab}-${section.status}`],
+                    }))}
+                  />
+                ))}
               </div>
               {selectedItem && <LibraryInspector item={selectedItem} count={filteredItems.length} />}
             </div>
