@@ -79,6 +79,10 @@ textarea {
     var(--color-surface);
 }
 
+:root[data-theme='oled-cinema'] .app-bg {
+  background: #000000;
+}
+
 .app-panel {
   background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-border-subtle) 88%, transparent);
@@ -86,10 +90,43 @@ textarea {
   box-shadow: 0 18px 60px rgb(0 0 0 / 0.18);
 }
 
+:root[data-theme='oled-cinema'] .app-panel {
+  background: #000000;
+  border-color: #1c1c22;
+  box-shadow: none;
+}
+
 .app-panel-soft {
   background: color-mix(in srgb, var(--color-surface-raised) 72%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
   border-radius: 8px;
+}
+
+:root[data-theme='oled-cinema'] .app-panel-soft,
+:root[data-theme='oled-cinema'] .control-surface,
+:root[data-theme='oled-cinema'] .database-row {
+  background: #000000;
+  border-color: #1c1c22;
+}
+
+/* Flatten Tailwind bg-surface* utility classes (cards, nav bars, inputs) to pure black */
+:root[data-theme='oled-cinema'] .bg-surface-raised,
+:root[data-theme='oled-cinema'] [class*="bg-surface-raised/"],
+:root[data-theme='oled-cinema'] .bg-surface-overlay,
+:root[data-theme='oled-cinema'] [class*="bg-surface-overlay/"],
+:root[data-theme='oled-cinema'] .bg-surface,
+:root[data-theme='oled-cinema'] [class*="bg-surface/"] {
+  background-color: #000000 !important;
+}
+
+/* Posters float on black: drop card shadow, brighten hover with accent glow */
+:root[data-theme='oled-cinema'] .group\/card {
+  box-shadow: none !important;
+}
+
+:root[data-theme='oled-cinema'] .group\/card:hover {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 1px var(--color-accent), 0 0 28px -4px color-mix(in srgb, var(--color-accent) 55%, transparent) !important;
 }
 
 .page-title {
@@ -125,6 +162,11 @@ textarea {
   border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border-subtle));
 }
 
+:root[data-theme='oled-cinema'] .database-row:hover {
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface-overlay));
+  border-color: color-mix(in srgb, var(--color-accent) 32%, var(--color-border-subtle));
+}
+
 .rounded-lg,
 .rounded-xl,
 .rounded-2xl {
@@ -142,6 +184,14 @@ textarea {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-border-subtle); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
+
+:root[data-theme='oled-cinema'] ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-accent) 24%, var(--color-border-subtle));
+}
+
+:root[data-theme='oled-cinema'] ::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-accent) 36%, var(--color-border-subtle));
+}
 
 @keyframes dot-bounce {
   0%, 100% { transform: translateY(0); }

@@ -559,8 +559,10 @@ export default function SettingsPage() {
                       isActive ? 'bg-accent/5' : 'hover:bg-surface-overlay cursor-pointer'
                     }`}
                   >
-                    <span className={`text-sm ${isActive ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
-                      {theme.name}
+                    <span className="flex items-center gap-2">
+                      <span className={`text-sm ${isActive ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
+                        {theme.name}
+                      </span>
                     </span>
                     <div className="flex items-center gap-2.5">
                       <div className="flex gap-1">
