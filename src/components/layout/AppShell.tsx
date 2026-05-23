@@ -71,7 +71,7 @@ function BrandMark() {
 
 export default function AppShell() {
   return (
-    <div className="app-bg min-h-screen">
+    <div className="app-bg app-viewport">
       {/* Desktop side nav */}
       <header className="hidden md:block fixed inset-y-0 left-0 z-50 w-[236px] border-r border-border-subtle bg-surface/95 backdrop-blur-xl">
         <nav className="flex h-full flex-col gap-6 px-4 py-5">
@@ -98,14 +98,14 @@ export default function AppShell() {
       </header>
 
       {/* Main content */}
-      <main className="min-h-screen w-full px-4 py-5 pb-24 md:pl-[260px] md:pr-6 md:py-6">
+      <main className="app-viewport app-shell-main md:ml-[236px]">
         <div className="w-full">
         <Outlet />
         </div>
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border-subtle bg-surface/95 backdrop-blur-xl">
+      <nav className="app-shell-bottom-nav md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border-subtle bg-surface/95 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-md items-center justify-around px-2">
           {navItems.map((item) => (
             <NavLink

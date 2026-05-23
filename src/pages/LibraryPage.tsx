@@ -380,7 +380,11 @@ export default function LibraryPage() {
   useEffect(() => {
     const updateStuckState = () => {
       const top = controlsRef.current?.getBoundingClientRect().top ?? 1;
-      setIsControlsStuck(top <= 0);
+      const safeTop = Number.parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--safe-area-top'),
+      );
+      const threshold = Number.isFinite(safeTop) ? safeTop : 0;
+      setIsControlsStuck(top <= threshold + 0.5);
     };
 
     updateStuckState();
@@ -408,7 +412,7 @@ export default function LibraryPage() {
         />
       </div>
 
-      <div ref={controlsRef} className="sticky top-0 z-30 -mx-4 border-y border-border-subtle bg-surface/95 p-3 shadow-lg backdrop-blur md:static md:mx-0 md:rounded-lg md:border md:bg-surface-raised md:p-4 md:shadow-[0_18px_60px_rgb(0_0_0_/_0.18)]">
+      <div ref={controlsRef} className="mobile-safe-sticky-top sticky top-0 z-30 -mx-4 border-y border-border-subtle bg-surface/95 p-3 shadow-lg backdrop-blur md:static md:mx-0 md:rounded-lg md:border md:bg-surface-raised md:p-4 md:shadow-[0_18px_60px_rgb(0_0_0_/_0.18)]">
         <div className={`flex gap-2 md:flex-col md:gap-3 md:pr-0 xl:flex-row xl:items-center ${isControlsStuck ? 'pr-14' : 'pr-0'}`}>
           <button
             type="button"
