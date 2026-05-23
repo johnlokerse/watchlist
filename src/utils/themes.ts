@@ -27,6 +27,25 @@ export const THEMES: Theme[] = [
     },
   },
   {
+    id: 'oled-cinema',
+    name: 'True OLED',
+    swatches: ['#000000', '#ffffff', '#ff5470', '#ff8a3d', '#ff8a3d'],
+    vars: {
+      '--color-surface':          '#000000',
+      '--color-surface-raised':   '#000000',
+      '--color-surface-overlay':  '#0a0a0c',
+      '--color-border-subtle':    '#1c1c22',
+      '--color-accent':           '#ff8a3d',
+      '--color-accent-hover':     '#ffa564',
+      '--color-text-primary':     '#ffffff',
+      '--color-text-secondary':   '#a1a1aa',
+      '--color-text-muted':       '#64646b',
+      '--color-success':          '#34d399',
+      '--color-warning':          '#fbbf24',
+      '--color-danger':           '#ff5470',
+    },
+  },
+  {
     id: 'dracula',
     name: 'Dracula',
     swatches: ['#141821', '#f7f3ef', '#ff6b7a', '#7ee787', '#b184f4'],
@@ -129,4 +148,7 @@ export function applyTheme(id: string): void {
   for (const [prop, value] of Object.entries(theme.vars)) {
     root.style.setProperty(prop, value);
   }
+  root.dataset.theme = theme.id;
+  root.style.colorScheme = theme.id === 'solarized-light' ? 'light' : 'dark';
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.vars['--color-surface'] ?? '#000000');
 }
