@@ -26,7 +26,7 @@ export default function HeroBanner({ title, posterPath, backdropPath, tagline, f
       </div>
 
       {/* Content overlay */}
-      <div className="relative -mt-24 flex gap-4 px-4 pb-4 md:-mt-32 md:gap-6 md:px-6 md:pb-6">
+      <div className="relative -mt-24 flex items-end gap-4 px-4 pb-4 md:-mt-32 md:items-start md:gap-6 md:px-6 md:pb-6">
         {/* Poster */}
         <div className="w-28 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-overlay shadow-2xl md:w-40">
           {poster ? (
