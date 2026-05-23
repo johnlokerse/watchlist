@@ -202,7 +202,7 @@ export default function CopilotChat() {
 
       <button
         onClick={() => setIsOpen((o) => !o)}
-        className={`fixed z-50 right-3 top-[13px] h-[46px] w-[46px] md:top-auto md:right-6 md:bottom-6 md:h-14 md:w-14 rounded-lg shadow-lg flex items-center justify-center transition-all duration-200 ${
+        className={`mobile-safe-fab fixed z-50 right-3 top-[13px] h-[46px] w-[46px] md:top-auto md:right-6 md:bottom-6 md:h-14 md:w-14 rounded-lg shadow-lg flex items-center justify-center transition-all duration-200 ${
           isOpen
             ? 'bg-surface-overlay text-text-secondary border border-border-subtle scale-95'
             : 'bg-accent hover:bg-accent-hover text-white scale-100 hover:scale-105'
