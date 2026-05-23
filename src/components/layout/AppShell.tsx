@@ -98,14 +98,14 @@ export default function AppShell() {
       </header>
 
       {/* Main content */}
-      <main className="min-h-screen w-full px-4 py-5 pb-24 md:pl-[260px] md:pr-6 md:py-6">
+      <main className="min-h-screen w-full px-4 py-5 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pl-[260px] md:pr-6 md:py-6">
         <div className="w-full">
         <Outlet />
         </div>
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border-subtle bg-surface/95 backdrop-blur-xl">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border-subtle bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-md items-center justify-around px-2">
           {navItems.map((item) => (
             <NavLink

@@ -26,6 +26,12 @@ html {
   background: var(--color-surface);
 }
 
+@supports (padding: max(0px)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
 button,
 input,
 select,
