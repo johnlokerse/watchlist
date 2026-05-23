@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useWatchedItems, useSeriesProgress } from '../db/hooks';
 import { useSearchMovies, useSearchSeries } from '../api/tmdb';
@@ -296,6 +296,7 @@ function LibraryCollection({
 export default function LibraryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { settings, updateSettings } = useSettings();
+  const controlsRef = useRef<HTMLDivElement>(null);
   const tabParam = searchParams.get('tab');
   const tab: 'movies' | 'series' = tabParam === 'series' ? 'series' : 'movies';
   const setTab = (nextTab: 'movies' | 'series') => {
@@ -307,6 +308,8 @@ export default function LibraryPage() {
   };
   const [search, setSearch] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [showMobileFilters, setShowMobileFilters] = useLocalStorage('library-mobile-filters-expanded', false);
+  const [isControlsStuck, setIsControlsStuck] = useState(false);
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('library-view', 'cards');
@@ -373,6 +376,22 @@ export default function LibraryPage() {
 
   const isSearching = debouncedSearch.length > 1;
   const searchLoading = contentType === 'movie' ? movieSearch.isLoading : seriesSearch.isLoading;
+
+  useEffect(() => {
+    const updateStuckState = () => {
+      const top = controlsRef.current?.getBoundingClientRect().top ?? 1;
+      setIsControlsStuck(top <= 0);
+    };
+
+    updateStuckState();
+    window.addEventListener('scroll', updateStuckState, { passive: true });
+    window.addEventListener('resize', updateStuckState);
+    return () => {
+      window.removeEventListener('scroll', updateStuckState);
+      window.removeEventListener('resize', updateStuckState);
+    };
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -389,23 +408,50 @@ export default function LibraryPage() {
         />
       </div>
 
-      <div className="app-panel p-3 sm:p-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+      <div ref={controlsRef} className="sticky top-0 z-30 -mx-4 border-y border-border-subtle bg-surface/95 p-3 shadow-lg backdrop-blur md:static md:mx-0 md:rounded-lg md:border md:bg-surface-raised md:p-4 md:shadow-[0_18px_60px_rgb(0_0_0_/_0.18)]">
+        <div className={`flex gap-2 md:flex-col md:gap-3 md:pr-0 xl:flex-row xl:items-center ${isControlsStuck ? 'pr-14' : 'pr-0'}`}>
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+            aria-expanded={showMobileFilters}
+            aria-label="Toggle library filters"
+            className={`inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-lg border transition md:hidden ${
+              showMobileFilters || statusFilters.length > 0
+                ? 'border-accent/45 bg-accent/15 text-accent'
+                : 'border-border-subtle bg-surface-raised text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
+            }`}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 7h16" />
+              <path d="M7 12h10" />
+              <path d="M10 17h4" />
+            </svg>
+          </button>
           <div className="min-w-0 flex-1">
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder={`Search your ${tab} or find new ones...`}
-          />
+            <SearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder={`Search your ${tab} or find new ones...`}
+            />
           </div>
-          <ViewToggle
-            value={viewMode}
-            onChange={setViewMode}
-            coverSize={settings.coverSize}
-            onCoverSizeChange={(size) => updateSettings({ coverSize: size })}
-          />
+          <div className="hidden md:block">
+            <ViewToggle
+              value={viewMode}
+              onChange={setViewMode}
+              coverSize={settings.coverSize}
+              onCoverSizeChange={(size) => updateSettings({ coverSize: size })}
+            />
+          </div>
         </div>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className={`${showMobileFilters ? 'flex' : 'hidden'} mt-3 flex-col gap-3 md:flex md:flex-row md:items-center md:justify-between`}>
+          <div className="md:hidden">
+            <ViewToggle
+              value={viewMode}
+              onChange={setViewMode}
+              coverSize={settings.coverSize}
+              onCoverSizeChange={(size) => updateSettings({ coverSize: size })}
+            />
+          </div>
           <FilterBar
             filters={tab === 'movies' ? MOVIE_STATUS_FILTERS : SERIES_STATUS_FILTERS}
             selected={statusFilters}
