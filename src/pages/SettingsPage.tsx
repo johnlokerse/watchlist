@@ -20,6 +20,7 @@ const CURATED_PROVIDER_IDS = [
   72,   // Videoland
   71,   // Pathé Thuis
   472,  // NLZiet
+  1986, // NPO Plus
 ];
 
 const COUNTRIES = [
