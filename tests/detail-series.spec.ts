@@ -152,6 +152,47 @@ test.describe('Series Detail Page', () => {
     await expect(page.getByRole('button', { name: 'Where to Watch' })).toHaveClass(/border-accent/);
   });
 
+  test('Where to Watch fetches deep links only after opening the tab', async ({ page, request }) => {
+    await request.put('/api/settings', {
+      data: {
+        country: 'NL',
+        streamingAvailabilityApiKey: 'test-streaming-key',
+      },
+    });
+
+    let watchLinkRequests = 0;
+    await page.route('**/api/watch-links/series/1396**', (route) => {
+      watchLinkRequests += 1;
+      route.fulfill({
+        json: {
+          configured: true,
+          cached: false,
+          links: [
+            {
+              serviceId: 'netflix',
+              serviceName: 'Netflix',
+              tmdbProviderIds: [8],
+              type: 'subscription',
+              link: 'https://www.netflix.com/title/70143836',
+            },
+          ],
+        },
+      });
+    });
+
+    await setupTMDBMocks(page);
+    await page.goto('/series/1396');
+    expect(watchLinkRequests).toBe(0);
+
+    await page.getByRole('button', { name: 'Where to Watch' }).click();
+    await expect.poll(() => watchLinkRequests).toBe(1);
+
+    await expect(page.getByRole('link', { name: 'Open Netflix from Stream' })).toHaveAttribute(
+      'href',
+      'https://www.netflix.com/title/70143836',
+    );
+  });
+
   test('shows error state for unknown series ID', async ({ page }) => {
     await page.route('**/api.themoviedb.org/**', (route) =>
       route.fulfill({ status: 404, json: { status_message: 'Not found' } }),

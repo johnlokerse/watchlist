@@ -53,6 +53,13 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS watch_link_cache (
+    cacheKey TEXT PRIMARY KEY,
+    payload TEXT NOT NULL,
+    expiresAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+  );
 `);
 
 // Prepared statements for performance
@@ -101,6 +108,17 @@ const stmts = {
   getSetting: db.prepare(`SELECT value FROM settings WHERE key = ?`),
   getAllSettings: db.prepare(`SELECT key, value FROM settings`),
   upsertSetting: db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`),
+
+  // watch link cache
+  getWatchLinkCache: db.prepare(`SELECT payload, expiresAt FROM watch_link_cache WHERE cacheKey = ?`),
+  upsertWatchLinkCache: db.prepare(`
+    INSERT INTO watch_link_cache (cacheKey, payload, expiresAt, updatedAt)
+    VALUES (@cacheKey, @payload, @expiresAt, @updatedAt)
+    ON CONFLICT(cacheKey) DO UPDATE SET
+      payload=excluded.payload,
+      expiresAt=excluded.expiresAt,
+      updatedAt=excluded.updatedAt
+  `),
 
   countWatchedEpisodes: db.prepare(`SELECT COUNT(*) as count FROM watched_episodes WHERE tmdbId = ?`),
   updateItemStatusByTmdb: db.prepare(`UPDATE watched_items SET status = ?, updatedAt = ? WHERE tmdbId = ? AND contentType = 'series'`),
@@ -327,6 +345,26 @@ export const queries = {
       }
     });
     tx();
+  },
+
+  getWatchLinkCache(cacheKey: string) {
+    const row = stmts.getWatchLinkCache.get(cacheKey) as { payload: string; expiresAt: string } | undefined;
+    if (!row || Date.parse(row.expiresAt) <= Date.now()) return null;
+    try {
+      return JSON.parse(row.payload) as unknown;
+    } catch {
+      return null;
+    }
+  },
+
+  saveWatchLinkCache(cacheKey: string, payload: unknown, ttlMs = 7 * 24 * 60 * 60 * 1000) {
+    const now = new Date();
+    stmts.upsertWatchLinkCache.run({
+      cacheKey,
+      payload: JSON.stringify(payload),
+      expiresAt: new Date(now.getTime() + ttlMs).toISOString(),
+      updatedAt: now.toISOString(),
+    });
   },
 
   exportAll() {

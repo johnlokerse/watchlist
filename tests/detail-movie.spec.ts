@@ -128,6 +128,69 @@ test.describe('Movie Detail Page', () => {
     await expect(page.getByRole('button', { name: 'Where to Watch' })).toHaveClass(/border-accent/);
   });
 
+  test('Where to Watch fetches deep links only after opening the tab', async ({ page, request }) => {
+    await request.put('/api/settings', {
+      data: {
+        country: 'NL',
+        streamingAvailabilityApiKey: 'test-streaming-key',
+      },
+    });
+
+    let watchLinkRequests = 0;
+    await page.route('**/api/watch-links/movie/302946**', (route) => {
+      watchLinkRequests += 1;
+      route.fulfill({
+        json: {
+          configured: true,
+          cached: false,
+          links: [
+            {
+              serviceId: 'netflix',
+              serviceName: 'Netflix',
+              tmdbProviderIds: [8],
+              type: 'subscription',
+              link: 'https://www.netflix.com/title/12345',
+            },
+            {
+              serviceId: 'prime',
+              serviceName: 'Prime Video',
+              tmdbProviderIds: [119],
+              type: 'subscription',
+              link: 'https://www.primevideo.com/detail/0ABC',
+            },
+            {
+              serviceId: 'apple',
+              serviceName: 'Apple TV',
+              tmdbProviderIds: [2, 350],
+              type: 'rent',
+              link: 'https://tv.apple.com/movie/example',
+            },
+          ],
+        },
+      });
+    });
+
+    await setupTMDBMocks(page);
+    await page.goto('/movie/302946');
+    expect(watchLinkRequests).toBe(0);
+
+    await page.getByRole('button', { name: 'Where to Watch' }).click();
+    await expect.poll(() => watchLinkRequests).toBe(1);
+
+    await expect(page.getByRole('link', { name: 'Open Netflix from Stream' })).toHaveAttribute(
+      'href',
+      'https://www.netflix.com/title/12345',
+    );
+    await expect(page.getByRole('link', { name: 'Open Amazon Prime Video from Stream' })).toHaveAttribute(
+      'href',
+      'https://www.primevideo.com/detail/0ABC',
+    );
+    await expect(page.getByRole('link', { name: 'Open Apple TV from Rent' })).toHaveAttribute(
+      'href',
+      'https://tv.apple.com/movie/example',
+    );
+  });
+
   test('shows error state for unknown movie ID', async ({ page }) => {
     // Override to return an error for an unknown ID
     await page.route('**/api.themoviedb.org/**', (route) =>

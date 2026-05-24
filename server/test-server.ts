@@ -94,6 +94,10 @@ app.put('/api/settings', (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/watch-links/:contentType/:tmdbId', (_req, res) => {
+  res.json({ configured: true, cached: false, links: [] });
+});
+
 app.post('/api/migrate', (req, res) => {
   try {
     queries.migrate(req.body);

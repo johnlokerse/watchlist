@@ -1,13 +1,26 @@
 import type { TMDBCountryProviders } from '../../api/types';
+import type { WatchDeepLink } from '../../api/watchLinks';
 import { logoUrl } from '../../utils/image';
 
 interface Props {
   providers: TMDBCountryProviders | undefined;
   country: string;
   userServiceIds?: number[];
+  deepLinksConfigured?: boolean;
+  deepLinks?: WatchDeepLink[];
+  deepLinksLoading?: boolean;
+  deepLinksError?: string | null;
 }
 
-export default function WatchProvidersTab({ providers, country, userServiceIds = [] }: Props) {
+export default function WatchProvidersTab({
+  providers,
+  country,
+  userServiceIds = [],
+  deepLinksConfigured = false,
+  deepLinks = [],
+  deepLinksLoading = false,
+  deepLinksError = null,
+}: Props) {
   if (!providers) {
     return (
       <div className="app-panel py-8 text-center text-text-muted">
@@ -36,9 +49,13 @@ export default function WatchProvidersTab({ providers, country, userServiceIds =
           <div className="flex flex-wrap gap-3">
             {myStreamingProviders.map((p) => {
               const logo = logoUrl(p.logo_path, 'w92');
+              const href = findProviderLink(p, deepLinks, ['subscription', 'free', 'addon']);
               return (
-                <div
+                <ProviderLink
                   key={p.provider_id}
+                  href={href}
+                  providerName={p.provider_name}
+                  sectionLabel="your services"
                   className="flex items-center gap-2 bg-accent/10 rounded-lg px-3 py-2 border border-accent/30"
                 >
                   {logo && (
@@ -46,7 +63,7 @@ export default function WatchProvidersTab({ providers, country, userServiceIds =
                   )}
                   <span className="text-sm font-medium">{p.provider_name}</span>
                   <span className="text-accent text-xs font-bold">✓</span>
-                </div>
+                </ProviderLink>
               );
             })}
           </div>
@@ -54,13 +71,13 @@ export default function WatchProvidersTab({ providers, country, userServiceIds =
       )}
 
       {providers.flatrate && providers.flatrate.length > 0 && (
-        <ProviderGroup title="Stream" providers={providers.flatrate} userServiceIds={userServiceIds} />
+        <ProviderGroup title="Stream" providers={providers.flatrate} userServiceIds={userServiceIds} deepLinks={deepLinks} preferredTypes={['subscription', 'free', 'addon']} />
       )}
       {providers.rent && providers.rent.length > 0 && (
-        <ProviderGroup title="Rent" providers={providers.rent} userServiceIds={[]} />
+        <ProviderGroup title="Rent" providers={providers.rent} userServiceIds={[]} deepLinks={deepLinks} preferredTypes={['rent']} />
       )}
       {providers.buy && providers.buy.length > 0 && (
-        <ProviderGroup title="Buy" providers={providers.buy} userServiceIds={[]} />
+        <ProviderGroup title="Buy" providers={providers.buy} userServiceIds={[]} deepLinks={deepLinks} preferredTypes={['buy']} />
       )}
       {!providers.flatrate?.length && !providers.rent?.length && !providers.buy?.length && (
         <div className="text-center py-8 text-text-muted">
@@ -77,6 +94,18 @@ export default function WatchProvidersTab({ providers, country, userServiceIds =
           View on JustWatch ↗
         </a>
       )}
+      {deepLinksLoading && (
+        <p className="text-xs text-text-muted">Finding exact provider links…</p>
+      )}
+      {!deepLinksConfigured && (
+        <p className="text-xs text-text-muted">Add a Streaming Availability API key in Settings to make provider chips open exact watch pages.</p>
+      )}
+      {deepLinksConfigured && !deepLinksLoading && !deepLinksError && deepLinks.length === 0 && (
+        <p className="text-xs text-text-muted">No exact provider links were found for this title in {country}.</p>
+      )}
+      {deepLinksError && (
+        <p className="text-xs text-danger">Exact provider links unavailable: {deepLinksError}</p>
+      )}
       <p className="text-xs text-text-muted">Provider data sourced from JustWatch via TMDB.</p>
     </div>
   );
@@ -86,10 +115,14 @@ function ProviderGroup({
   title,
   providers,
   userServiceIds,
+  deepLinks,
+  preferredTypes,
 }: {
   title: string;
   providers: { provider_id: number; provider_name: string; logo_path: string }[];
   userServiceIds: number[];
+  deepLinks: WatchDeepLink[];
+  preferredTypes: string[];
 }) {
   return (
     <div>
@@ -98,9 +131,13 @@ function ProviderGroup({
         {providers.map((p) => {
           const logo = logoUrl(p.logo_path, 'w92');
           const isMyService = userServiceIds.includes(p.provider_id);
+          const href = findProviderLink(p, deepLinks, preferredTypes);
           return (
-            <div
+            <ProviderLink
               key={p.provider_id}
+              href={href}
+              providerName={p.provider_name}
+              sectionLabel={title}
               className={`flex items-center gap-2 rounded-lg px-3 py-2 border transition-colors ${
                 isMyService
                   ? 'bg-accent/10 border-accent/50'
@@ -111,10 +148,65 @@ function ProviderGroup({
                 <img src={logo} alt={p.provider_name} className="h-8 w-8 rounded-md" loading="lazy" />
               )}
               <span className="text-sm">{p.provider_name}</span>
-            </div>
+            </ProviderLink>
           );
         })}
       </div>
     </div>
+  );
+}
+
+function findProviderLink(
+  provider: { provider_id: number; provider_name: string },
+  links: WatchDeepLink[],
+  preferredTypes: string[],
+) {
+  const providerName = normalizeProviderName(provider.provider_name);
+  const matches = links.filter((link) => {
+    if (link.tmdbProviderIds.includes(provider.provider_id)) return true;
+    const linkName = normalizeProviderName(link.serviceName);
+    return linkName === providerName || providerName.includes(linkName) || linkName.includes(providerName);
+  });
+  const preferred = matches.find((link) => preferredTypes.includes(link.type));
+  return preferred?.videoLink ?? preferred?.link ?? matches[0]?.videoLink ?? matches[0]?.link;
+}
+
+function normalizeProviderName(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/\+/g, ' plus')
+    .replace(/\b(video|channel|channels|store|movies|amazon)\b/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function ProviderLink({
+  href,
+  providerName,
+  sectionLabel,
+  className,
+  children,
+}: {
+  href: string | undefined;
+  providerName: string;
+  sectionLabel: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  if (!href) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Open ${providerName} from ${sectionLabel}`}
+      title={`Open ${providerName}`}
+      className={`${className} hover:border-accent hover:bg-accent/10 focus:outline-none focus:ring-2 focus:ring-accent/50`}
+    >
+      {children}
+    </a>
   );
 }

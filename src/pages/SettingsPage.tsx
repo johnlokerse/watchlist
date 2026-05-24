@@ -861,6 +861,24 @@ export default function SettingsPage() {
                 })}
               </div>
             )}
+
+            <div className="mt-5 border-t border-border-subtle pt-4">
+              <label className="text-sm font-medium" htmlFor="streaming-availability-key">
+                Deep linking API key
+              </label>
+              <p className="mt-1 text-xs text-text-secondary">
+                Optional. Add a Streaming Availability API key to open exact movie and series pages on supported providers.
+                The app only uses it when you open a Where to Watch tab, and successful results are cached for 7 days.
+              </p>
+              <input
+                id="streaming-availability-key"
+                type="password"
+                value={settings.streamingAvailabilityApiKey}
+                onChange={(e) => updateSettings({ streamingAvailabilityApiKey: e.target.value })}
+                placeholder="Streaming Availability API key"
+                className="mt-3 w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+              />
+            </div>
           </div>
 
           {/* ── Danger Zone ── */}
