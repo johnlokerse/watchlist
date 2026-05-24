@@ -11,13 +11,14 @@ export interface AppSettings {
   theme: string;
   coverSize: CoverSize;
   streamingServices: number[];
+  streamingAvailabilityApiKey: string;
   openrouterEnabled: boolean;
   openrouterApiKey: string;
   openrouterModel: string;
   openrouterModels: string[];
 }
 
-const DEFAULTS: AppSettings = { country: DEFAULT_COUNTRY, showSpoilers: false, episodeRecapEnabled: true, theme: 'default', coverSize: 'medium', streamingServices: [], openrouterEnabled: false, openrouterApiKey: '', openrouterModel: '', openrouterModels: [] };
+const DEFAULTS: AppSettings = { country: DEFAULT_COUNTRY, showSpoilers: false, episodeRecapEnabled: true, theme: 'default', coverSize: 'medium', streamingServices: [], streamingAvailabilityApiKey: '', openrouterEnabled: false, openrouterApiKey: '', openrouterModel: '', openrouterModels: [] };
 const THEME_KEY = 'app-theme-cache';
 
 // Apply cached theme immediately to avoid flash on load
@@ -32,6 +33,7 @@ function mergeDefaults(partial: Partial<AppSettings>): AppSettings {
     theme: partial.theme ?? DEFAULTS.theme,
     coverSize: partial.coverSize ?? DEFAULTS.coverSize,
     streamingServices: partial.streamingServices ?? DEFAULTS.streamingServices,
+    streamingAvailabilityApiKey: partial.streamingAvailabilityApiKey ?? DEFAULTS.streamingAvailabilityApiKey,
     openrouterEnabled: partial.openrouterEnabled ?? DEFAULTS.openrouterEnabled,
     openrouterApiKey: partial.openrouterApiKey ?? DEFAULTS.openrouterApiKey,
     openrouterModel: partial.openrouterModel ?? DEFAULTS.openrouterModel,

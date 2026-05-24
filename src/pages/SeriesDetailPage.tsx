@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSeriesDetail } from '../api/tmdb';
+import { useWatchLinks } from '../api/watchLinks';
 import { useWatchedItem, useSeriesProgress, addToLibrary, updateWatchedItem, removeFromLibrary, updateSeriesProgress } from '../db/hooks';
 import { useSettings } from '../hooks/useSettings';
 import type { WatchedStatus } from '../db/models';
@@ -28,6 +29,12 @@ export default function SeriesDetailPage() {
   const [showAddDropdown, setShowAddDropdown] = useState(false);
   const addDropdownRef = useRef<HTMLDivElement>(null);
   const tabInitRef = useRef<number | null>(null);
+  const watchLinks = useWatchLinks({
+    contentType: 'series',
+    tmdbId: seriesId ?? 0,
+    country: settings.country,
+    enabled: activeTab === 'providers' && !!seriesId && settings.streamingAvailabilityApiKey.trim().length > 0,
+  });
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -118,9 +125,9 @@ export default function SeriesDetailPage() {
     }
   };
 
-  const handleStatusChange = async (status: string) => {
+  const handleStatusChange = async (status: WatchedStatus) => {
     if (watchedItem?.id) {
-      await updateWatchedItem(watchedItem.id, { status: status as any });
+      await updateWatchedItem(watchedItem.id, { status });
     }
   };
 
@@ -176,7 +183,7 @@ export default function SeriesDetailPage() {
             <>
               <select
                 value={watchedItem.status}
-                onChange={(e) => handleStatusChange(e.target.value)}
+                onChange={(e) => handleStatusChange(e.target.value as WatchedStatus)}
                 className="bg-surface-raised border border-border-subtle rounded-lg px-3 py-1.5 text-sm text-text-primary"
               >
                 <option value="watched">Watched</option>
@@ -314,7 +321,15 @@ export default function SeriesDetailPage() {
         <CastCrewTab cast={series.credits.cast} crew={series.credits.crew} />
       )}
       {activeTab === 'providers' && (
-        <WatchProvidersTab providers={providers} country={settings.country} userServiceIds={settings.streamingServices} />
+        <WatchProvidersTab
+          providers={providers}
+          country={settings.country}
+          userServiceIds={settings.streamingServices}
+          deepLinksConfigured={settings.streamingAvailabilityApiKey.trim().length > 0}
+          deepLinks={watchLinks.data?.links}
+          deepLinksLoading={watchLinks.isLoading}
+          deepLinksError={watchLinks.error instanceof Error ? watchLinks.error.message : null}
+        />
       )}
       {activeTab === 'trailer' && (
         <TrailerTab videos={series.videos?.results} />

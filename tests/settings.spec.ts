@@ -174,4 +174,17 @@ test.describe('Settings Page', () => {
     await toggle.click();
     await expect(page.getByPlaceholder('sk-or-...')).toBeVisible();
   });
+
+  test('Streaming Availability API key setting explains optional deep linking', async ({ page, request }) => {
+    await request.put('/api/settings', { data: { streamingAvailabilityApiKey: '' } });
+    await setupTMDBMocks(page);
+    await page.goto('/settings', { waitUntil: 'networkidle' });
+
+    await expect(page.getByLabel('Deep linking API key')).toBeVisible();
+    await expect(page.getByText(/Optional\. Add a Streaming Availability API key/)).toBeVisible();
+    await expect(page.getByText(/only uses it when you open a Where to Watch tab/)).toBeVisible();
+
+    await page.getByLabel('Deep linking API key').fill('test-streaming-key');
+    await expect(page.getByLabel('Deep linking API key')).toHaveValue('test-streaming-key');
+  });
 });

@@ -8,6 +8,7 @@ import { CopilotClient } from '@github/copilot-sdk';
 import { tmdbTools } from './tools.js';
 import { queries } from './db.js';
 import { createMcpRouter } from './mcp-server.js';
+import { handleWatchLinks } from './watch-links.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -119,6 +120,9 @@ app.put('/api/settings', (req, res) => {
   queries.saveSettings(req.body);
   res.json({ ok: true });
 });
+
+// GET /api/watch-links/:contentType/:tmdbId — exact provider deep links
+app.get('/api/watch-links/:contentType/:tmdbId', handleWatchLinks);
 
 // ── Chat models endpoint ──────────────────────────────────────────
 app.get('/api/chat/models', async (req, res) => {
