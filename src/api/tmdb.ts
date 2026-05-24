@@ -1,17 +1,15 @@
 import { useMemo } from 'react';
 import { useQuery, useInfiniteQuery, useQueries } from '@tanstack/react-query';
-import { TMDB_BASE_URL, TMDB_API_TOKEN, STALE_TIME_LIST, STALE_TIME_DETAIL } from '../utils/constants';
+import { TMDB_BASE_URL, STALE_TIME_LIST, STALE_TIME_DETAIL } from '../utils/constants';
 import type {
   TMDBMovie, TMDBMovieDetail, TMDBSeries, TMDBSeriesDetail,
   TMDBGenre, TMDBPagedResponse, TMDBSeason, TMDBProvider,
 } from './types';
 
 async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): Promise<T> {
-  const url = new URL(`${TMDB_BASE_URL}${path}`);
+  const url = new URL(`${TMDB_BASE_URL}${path}`, window.location.origin);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${TMDB_API_TOKEN}` },
-  });
+  const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`TMDB ${res.status}: ${res.statusText}`);
   return res.json();
 }
@@ -187,17 +185,17 @@ export function useSeriesDetailBatch(ids: number[]) {
 
 // --- Watch Providers ---
 
-export function useAvailableProviders() {
+export function useAvailableProviders(authVersion = '') {
   const results = useQueries({
     queries: [
       {
-        queryKey: ['watch-providers', 'movie'],
+        queryKey: ['watch-providers', 'movie', authVersion],
         queryFn: () =>
           tmdbFetch<{ results: TMDBProvider[] }>('/watch/providers/movie'),
         staleTime: STALE_TIME_LIST,
       },
       {
-        queryKey: ['watch-providers', 'tv'],
+        queryKey: ['watch-providers', 'tv', authVersion],
         queryFn: () =>
           tmdbFetch<{ results: TMDBProvider[] }>('/watch/providers/tv'),
         staleTime: STALE_TIME_LIST,

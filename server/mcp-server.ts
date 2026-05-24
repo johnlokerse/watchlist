@@ -3,19 +3,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { z } from 'zod';
 import { Router, type Request, type Response } from 'express';
 import { queries } from './db.js';
-
-const TMDB_TOKEN = process.env.VITE_TMDB_API_TOKEN;
-const TMDB_BASE = 'https://api.themoviedb.org/3';
-
-async function tmdbFetch(path: string, params: Record<string, string> = {}) {
-  const url = new URL(`${TMDB_BASE}${path}`);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${TMDB_TOKEN}` },
-  });
-  if (!res.ok) throw new Error(`TMDB ${res.status}: ${res.statusText}`);
-  return res.json() as Promise<Record<string, unknown>>;
-}
+import { isTmdbTokenMissingError, tmdbFetchJson } from './tmdb.js';
 
 function createMcpServer(): McpServer {
   const server = new McpServer(
@@ -160,11 +148,12 @@ function createMcpServer(): McpServer {
       let tmdbData: Record<string, unknown> | null = null;
       try {
         const mediaType = args.contentType === 'movie' ? 'movie' : 'tv';
-        tmdbData = await tmdbFetch(
+        tmdbData = await tmdbFetchJson(
           `/${mediaType}/${args.tmdbId}`,
           { append_to_response: 'credits' },
         );
-      } catch {
+      } catch (err) {
+        if (isTmdbTokenMissingError(err)) throw err;
         // TMDB fetch failed; return just DB info
       }
       return { content: [{ type: 'text', text: JSON.stringify({ library: item, tmdb: tmdbData }, null, 2) }] };
@@ -180,7 +169,7 @@ function createMcpServer(): McpServer {
     },
     async (args) => {
     // Step 1: Search for the person
-    const searchResult = await tmdbFetch('/search/person', { query: args.name, page: '1' });
+    const searchResult = await tmdbFetchJson('/search/person', { query: args.name, page: '1' });
     const people = (searchResult.results as Record<string, unknown>[]).slice(0, 3);
 
     if (people.length === 0) {
@@ -195,7 +184,7 @@ function createMcpServer(): McpServer {
     const tvCredits: Record<string, unknown>[] = [];
 
     if (args.type === 'movie' || args.type === 'both' || !args.type) {
-      const movieData = await tmdbFetch(`/person/${personId}/movie_credits`);
+      const movieData = await tmdbFetchJson(`/person/${personId}/movie_credits`);
       const cast = (movieData.cast as Record<string, unknown>[])
         .filter((c) => c.release_date)
         .sort((a, b) => String(b.release_date).localeCompare(String(a.release_date)));
@@ -203,7 +192,7 @@ function createMcpServer(): McpServer {
     }
 
     if (args.type === 'tv' || args.type === 'both' || !args.type) {
-      const tvData = await tmdbFetch(`/person/${personId}/tv_credits`);
+      const tvData = await tmdbFetchJson(`/person/${personId}/tv_credits`);
       const cast = (tvData.cast as Record<string, unknown>[])
         .filter((c) => c.first_air_date)
         .sort((a, b) => String(b.first_air_date).localeCompare(String(a.first_air_date)));

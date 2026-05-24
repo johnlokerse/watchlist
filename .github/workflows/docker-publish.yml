@@ -1,0 +1,85 @@
+name: Publish Docker image
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/johnlokerse/watchlist
+
+jobs:
+  publish:
+    name: Build and publish image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Verify release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="$(node -p "require('./package.json').version")"
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "package.json version must be an exact X.Y.Z version, got '${VERSION}'" >&2
+            exit 1
+          fi
+
+          EXPECTED_TAG="v${VERSION}"
+          git fetch --force --tags
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" != "${EXPECTED_TAG}" ]]; then
+            echo "Git tag ${GITHUB_REF_NAME} does not match package.json version ${VERSION}" >&2
+            exit 1
+          fi
+
+          TAG_COMMIT="$(git rev-list -n 1 "${EXPECTED_TAG}" 2>/dev/null || true)"
+          HEAD_COMMIT="$(git rev-parse HEAD)"
+          if [[ -z "${TAG_COMMIT}" ]]; then
+            echo "Expected tag ${EXPECTED_TAG} to exist for package.json version ${VERSION}" >&2
+            exit 1
+          fi
+          if [[ "${TAG_COMMIT}" != "${HEAD_COMMIT}" ]]; then
+            echo "Expected ${EXPECTED_TAG} (${TAG_COMMIT}) to point at checked-out commit ${HEAD_COMMIT}" >&2
+            exit 1
+          fi
+
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.version }}
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

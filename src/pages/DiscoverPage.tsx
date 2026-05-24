@@ -225,6 +225,8 @@ export default function DiscoverPage() {
 
   const showMovies = contentFilter === 'all' || contentFilter === 'movies';
   const showSeries = contentFilter === 'all' || contentFilter === 'series';
+  const tmdbFeedError = movies.isError || series.isError || anticipatedMovies.isError || anticipatedSeries.isError;
+  const showMissingTokenBanner = tmdbFeedError && settings.tmdbApiToken.trim().length === 0;
   const visibleItems = [
     ...(showSeries ? trendingShows : []),
     ...(showMovies ? trendingMovies : []),
@@ -245,6 +247,16 @@ export default function DiscoverPage() {
           Live TMDB feeds
         </div>
       </div>
+
+      {showMissingTokenBanner && (
+        <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-text-secondary">
+          <p className="font-medium text-text-primary">TMDB API token required</p>
+          <p className="mt-1">Add your TMDB API token in Settings to load Discover feeds, searches, and title details.</p>
+          <Link to="/settings" className="mt-2 inline-flex text-sm font-semibold text-accent hover:underline">
+            Open Settings
+          </Link>
+        </div>
+      )}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="app-panel p-3 sm:p-4">

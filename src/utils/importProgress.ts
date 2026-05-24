@@ -1,7 +1,19 @@
 import { resolveTraktId } from '../api/trakt';
 import { addToLibrary, updateSeriesProgress, bulkAddWatchedEpisodes } from '../db/hooks';
-import { TMDB_BASE_URL, TMDB_API_TOKEN } from './constants';
+import { TMDB_BASE_URL } from './constants';
 import type { WatchedStatus } from '../db/models';
+
+interface TMDBImportDetails {
+  title?: string;
+  name?: string;
+  poster_path?: string | null;
+  release_date?: string | null;
+  first_air_date?: string | null;
+  genre_ids?: number[];
+  genres?: Array<{ id: number }>;
+  number_of_seasons?: number;
+  number_of_episodes?: number;
+}
 
 export interface ProgressEntry {
   traktID: number;
@@ -19,11 +31,9 @@ export interface ImportProgressReport {
 
 async function fetchTMDBDetails(tmdbId: number, type: 'movie' | 'series') {
   const path = type === 'series' ? `/tv/${tmdbId}` : `/movie/${tmdbId}`;
-  const res = await fetch(`${TMDB_BASE_URL}${path}`, {
-    headers: { Authorization: `Bearer ${TMDB_API_TOKEN}` },
-  });
+  const res = await fetch(`${TMDB_BASE_URL}${path}`);
   if (!res.ok) throw new Error(`TMDB ${res.status} for ${type} ${tmdbId}`);
-  return res.json();
+  return res.json() as Promise<TMDBImportDetails>;
 }
 
 export async function importFromTraktProgress(
@@ -58,7 +68,7 @@ export async function importFromTraktProgress(
       const status: WatchedStatus = hasProgress ? 'watching' : 'plan_to_watch';
 
       const genreIds =
-        tmdbData.genre_ids ?? tmdbData.genres?.map((g: { id: number }) => g.id) ?? [];
+        tmdbData.genre_ids ?? tmdbData.genres?.map((g) => g.id) ?? [];
 
       const itemId = await addToLibrary({
         tmdbId: resolved.tmdbId,

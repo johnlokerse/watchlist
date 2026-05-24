@@ -83,15 +83,14 @@ npm install
 # 2. Create your environment file
 cp .env.example .env
 
-# 3. Add the required values to .env
-# VITE_TMDB_API_TOKEN=your_tmdb_v4_read_token
-# GH_Token=your_github_token_for_copilot_sdk
+# 3. Add the required GitHub token to .env
+# GH_TOKEN=your_github_token_for_copilot_sdk
 
 # 4. Start the app
 npm run dev
 ```
 
-`npm run dev` starts both the Vite frontend and the Express backend. The frontend runs through Vite, and the backend exposes the REST API, AI chat endpoints, and MCP server.
+`npm run dev` starts both the Vite frontend and the Express backend. The frontend runs through Vite, and the backend exposes the REST API, AI chat endpoints, and MCP server. Configure your TMDB API read token in Settings after the app starts.
 
 ## Configuration
 
@@ -99,11 +98,11 @@ Minimum environment values:
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `VITE_TMDB_API_TOKEN` | Yes | TMDB v4 read token for search, discovery, detail pages, and artwork |
-| `GH_Token` | Yes | Required by the GitHub Copilot SDK chat server |
+| `GH_TOKEN` | Yes | Required by the GitHub Copilot SDK chat server and `gh` CLI |
 
 Inside the app, use Settings to configure:
 
+- TMDB v4 API read token for search, discovery, detail pages, and artwork
 - country/region for watch providers
 - spoiler visibility
 - episode recap availability
@@ -121,6 +120,40 @@ Inside the app, use Settings to configure:
 | `npm run build` | Type-check and build the production frontend |
 | `npm run lint` | Run ESLint |
 | `npm run test` | Run Playwright end-to-end tests |
+
+## Docker image and releases
+
+Published images use `ghcr.io/johnlokerse/watchlist` and support `linux/amd64` and `linux/arm64`. The publishing workflow only publishes two tags: `latest` and the exact package version, for example `1.2.3`.
+
+Release flow:
+
+```bash
+npm version patch   # or minor / major; creates the vX.Y.Z tag from package.json
+git push
+git push origin vX.Y.Z
+```
+
+The GitHub Actions workflow runs only for `vX.Y.Z` tags or manual dispatch, verifies the tag matches `package.json`, and passes `APP_VERSION` into the Docker runtime image.
+
+## Docker Compose deployment
+
+`compose.yml` runs the published image, stores the SQLite database and Copilot session config in persistent Docker volumes, and exposes the app on port `3001`.
+
+```bash
+cp .env.example .env
+# edit .env and set GH_TOKEN
+docker compose pull
+docker compose up -d
+```
+
+Configure the TMDB token in app Settings. To update a local or Raspberry Pi deployment:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+If the GHCR package is private, run `docker login ghcr.io` with a PAT that has `read:packages`. Public packages do not require a registry login.
 
 ## MCP Server (Model Context Protocol)
 

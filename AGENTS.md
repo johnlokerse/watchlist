@@ -11,8 +11,8 @@
 
 ## Environment
 
-- `.env` is required for dev. Minimum: `VITE_TMDB_API_TOKEN` (TMDB v4 read token).
-- `GH_Token` is required for the Copilot SDK chat feature; without it the server hard-exits on startup.
+- `.env` is used for dev/runtime secrets. `GH_TOKEN` is required for the Copilot SDK chat feature; without it the server hard-exits on startup.
+- Configure the TMDB v4 read token in the app Settings; it is not a build-time env var.
 - `.env.test` sets `TEST_DB_PATH=:memory:` so Playwright uses an in-memory SQLite DB.
 
 ## Architecture
@@ -48,4 +48,5 @@
 ## Build / deploy
 
 - `Dockerfile` is multi-stage: builder compiles native deps (`better-sqlite3`) and Vite assets; runtime stage installs `gh` CLI and starts the server with `tsx`.
+- GHCR publishing is handled by `.github/workflows/docker-publish.yml` for `vX.Y.Z` tags only. It publishes `ghcr.io/johnlokerse/watchlist:X.Y.Z` and `latest` for linux/amd64 and linux/arm64.
 - In production (`NODE_ENV=production`), Express serves the built frontend from `dist/` and falls back to `index.html` for SPA routing.

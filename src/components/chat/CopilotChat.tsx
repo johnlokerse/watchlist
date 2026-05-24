@@ -4,7 +4,17 @@ import { useSettings } from '../../hooks/useSettings';
 import { useChatHistory } from '../../hooks/useChatHistory';
 import { addToLibrary } from '../../db/hooks';
 import ChatPanel from './ChatPanel';
-import { TMDB_BASE_URL, TMDB_API_TOKEN } from '../../utils/constants';
+import { TMDB_BASE_URL } from '../../utils/constants';
+
+interface TMDBChatDetails {
+  title?: string;
+  name?: string;
+  poster_path?: string | null;
+  release_date?: string | null;
+  first_air_date?: string | null;
+  genre_ids?: number[];
+  genres?: Array<{ id: number }>;
+}
 
 function AssistantIcon() {
   return (
@@ -129,12 +139,10 @@ export default function CopilotChat() {
       } catch { /* proceed with add */ }
 
       const path = type === 'tv' ? `/tv/${tmdbId}` : `/movie/${tmdbId}`;
-      const url = new URL(`${TMDB_BASE_URL}${path}`);
+      const url = new URL(`${TMDB_BASE_URL}${path}`, window.location.origin);
       url.searchParams.set('append_to_response', 'watch/providers');
-      const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${TMDB_API_TOKEN}` },
-      });
-      const data = res.ok ? await res.json() : {};
+      const res = await fetch(url.toString());
+      const data: TMDBChatDetails = res.ok ? await res.json() as TMDBChatDetails : {};
 
       await addToLibrary({
         tmdbId,
@@ -145,7 +153,7 @@ export default function CopilotChat() {
         status: 'plan_to_watch',
         userRating: null,
         notes: '',
-        genreIds: (data.genres as Array<{ id: number }> | undefined)?.map((g) => g.id) ?? data.genre_ids ?? [],
+        genreIds: data.genres?.map((g) => g.id) ?? data.genre_ids ?? [],
       });
     },
     [],
