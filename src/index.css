@@ -39,13 +39,8 @@ html {
   }
 }
 
-/* Push fixed/sticky elements below the iOS translucent status bar in PWA mode. */
+/* Push fixed elements below the iOS translucent status bar in PWA mode. */
 @media (max-width: 767px) {
-  .mobile-safe-sticky-top {
-    top: 0;
-    padding-top: calc(0.75rem + var(--safe-area-top));
-  }
-
   .mobile-safe-fab {
     top: calc(13px + var(--safe-area-top));
     right: calc(0.75rem + var(--safe-area-right));

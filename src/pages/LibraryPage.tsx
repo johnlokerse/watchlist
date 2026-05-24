@@ -88,67 +88,11 @@ function SeriesProgressValue({ tmdbId }: { tmdbId: number }) {
   );
 }
 
-function LibraryMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border-subtle bg-surface-overlay px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">{label}</p>
-      <p className="mt-1 truncate text-sm font-bold text-text-primary">{value}</p>
-    </div>
-  );
-}
-
-function LibraryInspector({ item, count }: { item: WatchedItem; count: number }) {
-  const poster = posterUrl(item.posterPath, 'w185');
-
-  return (
-    <aside className="app-panel sticky top-24 hidden self-start p-4 xl:block">
-      <div className="flex items-start gap-3">
-        <div className="aspect-[2/3] w-20 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-overlay">
-          {poster ? (
-            <img src={poster} alt={item.title} className="h-full w-full object-cover" />
-          ) : (
-            <div className="grid h-full place-items-center text-xs text-text-muted">N/A</div>
-          )}
-        </div>
-        <div className="min-w-0">
-          <p className="section-title mb-1">Selected record</p>
-          <h2 className="line-clamp-3 text-lg font-bold leading-tight text-text-primary">{item.title}</h2>
-          <p className="mt-2 text-sm text-text-secondary">{item.contentType === 'movie' ? 'Movie' : 'Series'}</p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <LibraryMetric label="Status" value={STATUS_LABELS[item.status]} />
-        <LibraryMetric label="Release" value={itemReleaseLabel(item)} />
-        <LibraryMetric label="Rating" value={item.userRating ? `${item.userRating}/10` : 'Not rated'} />
-        <LibraryMetric label="Records" value={String(count)} />
-      </div>
-
-      {item.notes && (
-        <div className="mt-4 rounded-lg border border-border-subtle bg-surface-overlay p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Notes</p>
-          <p className="mt-1 line-clamp-4 text-sm text-text-secondary">{item.notes}</p>
-        </div>
-      )}
-
-      <Link
-        to={itemHref(item)}
-        className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-accent px-3 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-accent-hover"
-      >
-        Open Details
-      </Link>
-    </aside>
-  );
-}
 
 function LibraryTable({
   items,
-  selectedKey,
-  onSelect,
 }: {
   items: WatchedItem[];
-  selectedKey: string | null;
-  onSelect: (item: WatchedItem) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border-subtle bg-surface-raised">
@@ -160,24 +104,12 @@ function LibraryTable({
       </div>
       <div className="divide-y divide-border-subtle">
         {items.map((item) => {
-          const selected = selectedKey === itemKey(item);
           const poster = posterUrl(item.posterPath, 'w92');
 
           return (
             <div
               key={itemKey(item)}
-              role="button"
-              tabIndex={0}
-              onClick={() => onSelect(item)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  onSelect(item);
-                }
-              }}
-              className={`grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] gap-3 px-3 py-3 transition md:grid-cols-[minmax(0,1.7fr)_130px_130px_110px] md:items-center md:px-4 ${
-                selected ? 'bg-accent/12' : 'hover:bg-surface-overlay'
-              }`}
+              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 px-3 py-3 transition hover:bg-surface-overlay md:grid-cols-[minmax(0,1.7fr)_130px_130px_110px] md:items-center md:px-4"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <div className="h-14 w-10 shrink-0 overflow-hidden rounded-md border border-border-subtle bg-surface-overlay">
@@ -223,8 +155,6 @@ function LibraryCollection({
   items,
   viewMode,
   coverSize,
-  selectedKey,
-  onSelect,
   collapsed,
   onToggleCollapse,
 }: {
@@ -232,8 +162,6 @@ function LibraryCollection({
   items: WatchedItem[];
   viewMode: ViewMode;
   coverSize: CoverSize;
-  selectedKey: string | null;
-  onSelect: (item: WatchedItem) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
 }) {
@@ -285,7 +213,7 @@ function LibraryCollection({
           )}
         </CardGrid>
       ) : (
-        <LibraryTable items={items} selectedKey={selectedKey} onSelect={onSelect} />
+        <LibraryTable items={items} />
       )}
         </>
       )}
@@ -310,7 +238,6 @@ export default function LibraryPage() {
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [showMobileFilters, setShowMobileFilters] = useLocalStorage('library-mobile-filters-expanded', false);
   const [isControlsStuck, setIsControlsStuck] = useState(false);
-  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [collapsedSections, setCollapsedSections] = useLocalStorage<Record<string, boolean>>('library-collapsed-sections', {});
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('library-view', 'cards');
   const debouncedSearch = useDebounce(search);
@@ -365,10 +292,6 @@ export default function LibraryPage() {
         { title: 'Watching', status: 'watching' as const, items: watchingItems },
         { title: 'Watched', status: 'watched' as const, items: watchedItems },
       ];
-  const selectedItem = useMemo(
-    () => filteredItems.find((item) => itemKey(item) === selectedItemKey) ?? filteredItems[0],
-    [filteredItems, selectedItemKey],
-  );
 
   const tmdbResults = useMemo((): (TMDBMovie | TMDBSeries)[] => {
     if (!debouncedSearch) return [];
@@ -423,7 +346,7 @@ export default function LibraryPage() {
         />
       </div>
 
-      <div ref={controlsRef} className="mobile-safe-sticky-top sticky top-0 z-30 -mx-4 border-y border-border-subtle bg-surface/95 p-3 shadow-lg backdrop-blur md:static md:mx-0 md:rounded-lg md:border md:bg-surface-raised md:p-4 md:shadow-[0_18px_60px_rgb(0_0_0_/_0.18)]">
+      <div ref={controlsRef} className="sticky top-[var(--safe-area-top)] z-30 -mx-4 border-y border-border-subtle bg-surface/95 p-3 shadow-lg backdrop-blur md:static md:mx-0 md:rounded-lg md:border md:bg-surface-raised md:p-4 md:shadow-[0_18px_60px_rgb(0_0_0_/_0.18)]">
         <div className={`flex gap-2 md:flex-col md:gap-3 md:pr-0 xl:flex-row xl:items-center ${isControlsStuck ? 'pr-14' : 'pr-0'}`}>
           <button
             type="button"
@@ -497,26 +420,21 @@ export default function LibraryPage() {
               <p className="text-sm mt-1">Search above to find and add some!</p>
             </div>
           ) : (
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="space-y-8">
-                {librarySections.map((section) => (
-                  <LibraryCollection
-                    key={section.status}
-                    title={section.title}
-                    items={section.items}
-                    viewMode={viewMode}
-                    coverSize={settings.coverSize}
-                    selectedKey={selectedItem ? itemKey(selectedItem) : null}
-                    onSelect={(item) => setSelectedItemKey(itemKey(item))}
-                    collapsed={Boolean(collapsedSections[`${tab}-${section.status}`])}
-                    onToggleCollapse={() => setCollapsedSections((prev) => ({
-                      ...prev,
-                      [`${tab}-${section.status}`]: !prev[`${tab}-${section.status}`],
-                    }))}
-                  />
-                ))}
-              </div>
-              {selectedItem && <LibraryInspector item={selectedItem} count={filteredItems.length} />}
+            <div className="space-y-8">
+              {librarySections.map((section) => (
+                <LibraryCollection
+                  key={section.status}
+                  title={section.title}
+                  items={section.items}
+                  viewMode={viewMode}
+                  coverSize={settings.coverSize}
+                  collapsed={Boolean(collapsedSections[`${tab}-${section.status}`])}
+                  onToggleCollapse={() => setCollapsedSections((prev) => ({
+                    ...prev,
+                    [`${tab}-${section.status}`]: !prev[`${tab}-${section.status}`],
+                  }))}
+                />
+              ))}
             </div>
           )}
         </>
