@@ -1,0 +1,18 @@
+services:
+  watchlist:
+    image: ghcr.io/johnlokerse/watchlist:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      WATCHLIST_COPILOT_CONFIG_DIR: /app/.copilot/watchlist-sessions
+    ports:
+      - "3001:3001"
+    volumes:
+      - watchlist-data:/app/data
+      - watchlist-copilot:/app/.copilot/watchlist-sessions
+
+volumes:
+  watchlist-data:
+  watchlist-copilot:

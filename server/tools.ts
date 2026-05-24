@@ -1,18 +1,6 @@
 import { defineTool } from '@github/copilot-sdk';
 import { z } from 'zod';
-
-const TMDB_TOKEN = process.env.VITE_TMDB_API_TOKEN;
-const TMDB_BASE = 'https://api.themoviedb.org/3';
-
-async function tmdbFetch(path: string, params: Record<string, string> = {}) {
-  const url = new URL(`${TMDB_BASE}${path}`);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${TMDB_TOKEN}` },
-  });
-  if (!res.ok) throw new Error(`TMDB ${res.status}: ${res.statusText}`);
-  return res.json();
-}
+import { tmdbFetchJson } from './tmdb.js';
 
 function pickMovieFields(item: Record<string, unknown>) {
   return {
@@ -35,7 +23,7 @@ export const tmdbTools = [
     }),
     handler: async ({ query, type }) => {
       const path = type === 'movie' ? '/search/movie' : '/search/tv';
-      const data = await tmdbFetch(path, { query, page: '1' });
+      const data = await tmdbFetchJson(path, { query, page: '1' });
       return (data.results as Record<string, unknown>[]).slice(0, 6).map(pickMovieFields);
     },
   }),
@@ -48,7 +36,7 @@ export const tmdbTools = [
     }),
     handler: async ({ id, type }) => {
       const path = type === 'movie' ? `/movie/${id}` : `/tv/${id}`;
-      const data = await tmdbFetch(path, { append_to_response: 'credits' });
+      const data = await tmdbFetchJson(path, { append_to_response: 'credits' });
       return {
         ...pickMovieFields(data),
         runtime: data.runtime ?? data.episode_run_time?.[0],
@@ -69,7 +57,7 @@ export const tmdbTools = [
     }),
     handler: async ({ id, type }) => {
       const path = type === 'movie' ? `/movie/${id}/similar` : `/tv/${id}/similar`;
-      const data = await tmdbFetch(path, { page: '1' });
+      const data = await tmdbFetchJson(path, { page: '1' });
       return (data.results as Record<string, unknown>[]).slice(0, 8).map(pickMovieFields);
     },
   }),
@@ -82,7 +70,7 @@ export const tmdbTools = [
     }),
     handler: async ({ id, type }) => {
       const path = type === 'movie' ? `/movie/${id}/recommendations` : `/tv/${id}/recommendations`;
-      const data = await tmdbFetch(path, { page: '1' });
+      const data = await tmdbFetchJson(path, { page: '1' });
       return (data.results as Record<string, unknown>[]).slice(0, 8).map(pickMovieFields);
     },
   }),
@@ -93,7 +81,7 @@ export const tmdbTools = [
       name: z.string().describe('Full or partial name of the person'),
     }),
     handler: async ({ name }) => {
-      const data = await tmdbFetch('/search/person', { query: name, page: '1' });
+      const data = await tmdbFetchJson('/search/person', { query: name, page: '1' });
       return (data.results as Record<string, unknown>[]).slice(0, 3).map((p) => ({
         id: p.id,
         name: p.name,
@@ -115,7 +103,7 @@ export const tmdbTools = [
       const results: Record<string, unknown>[] = [];
 
       if (type === 'movie' || type === 'both') {
-        const data = await tmdbFetch(`/person/${personId}/movie_credits`);
+        const data = await tmdbFetchJson(`/person/${personId}/movie_credits`);
         const credits = (data.cast as Record<string, unknown>[])
           .filter((c) => c.release_date)
           .sort((a, b) => String(b.release_date).localeCompare(String(a.release_date)));
@@ -127,7 +115,7 @@ export const tmdbTools = [
       }
 
       if (type === 'tv' || type === 'both') {
-        const data = await tmdbFetch(`/person/${personId}/tv_credits`);
+        const data = await tmdbFetchJson(`/person/${personId}/tv_credits`);
         const credits = (data.cast as Record<string, unknown>[])
           .filter((c) => c.first_air_date)
           .sort((a, b) => String(b.first_air_date).localeCompare(String(a.first_air_date)));
@@ -156,7 +144,7 @@ export const tmdbTools = [
     }),
     handler: async ({ id, type, seasonNumber }) => {
       if (type === 'movie') {
-        const data = await tmdbFetch(`/movie/${id}`);
+        const data = await tmdbFetchJson(`/movie/${id}`);
         return {
           title: data.title as string,
           voteAverage: data.vote_average as number,
@@ -170,7 +158,7 @@ export const tmdbTools = [
         throw new Error('seasonNumber is required when type is "tv"');
       }
 
-      const data = await tmdbFetch(`/tv/${id}/season/${seasonNumber}`);
+      const data = await tmdbFetchJson(`/tv/${id}/season/${seasonNumber}`);
 
       const episodes = (data.episodes as Record<string, unknown>[])
         .filter((e) => (e.vote_count as number) > 0)

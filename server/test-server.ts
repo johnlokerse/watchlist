@@ -5,15 +5,72 @@
  *
  * Used exclusively by Playwright tests via playwright.config.ts webServer.
  */
-import express from 'express';
+import express, { type Request } from 'express';
 import cors from 'cors';
+import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { queries } from './db.js';
+import { getAppVersion } from './app-info.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const tmdbFixturesDir = join(__dirname, '..', 'tests', 'fixtures', 'tmdb');
+
+function loadTmdbFixture(name: string): Record<string, unknown> {
+  return JSON.parse(readFileSync(join(tmdbFixturesDir, name), 'utf-8')) as Record<string, unknown>;
+}
+
+const tmdbFixtures = {
+  trendingMovies: loadTmdbFixture('trending-movies.json'),
+  trendingSeries: loadTmdbFixture('trending-series.json'),
+  anticipatedMovies: loadTmdbFixture('anticipated-movies.json'),
+  anticipatedSeries: loadTmdbFixture('anticipated-series.json'),
+  searchMovies: loadTmdbFixture('search-movies.json'),
+  searchSeries: loadTmdbFixture('search-series.json'),
+  movieDetail302946: loadTmdbFixture('movie-detail-302946.json'),
+  seriesDetail1396: loadTmdbFixture('series-detail-1396.json'),
+  season1396S1: loadTmdbFixture('season-1396-1.json'),
+};
+
+type TmdbProxyParams = { tmdbPath?: string | string[] };
+
+function normalizeTmdbPath(tmdbPath: string | string[] | undefined): string {
+  if (Array.isArray(tmdbPath)) return tmdbPath.join('/');
+  return tmdbPath ?? '';
+}
+
+function getTmdbFixtureResponse(pathname: string): { status: number; body: Record<string, unknown> } {
+  if (pathname.startsWith('genre/')) return { status: 200, body: { genres: [] } };
+  if (pathname.startsWith('trending/movie/')) return { status: 200, body: tmdbFixtures.trendingMovies };
+  if (pathname.startsWith('trending/tv/')) return { status: 200, body: tmdbFixtures.trendingSeries };
+  if (pathname.startsWith('discover/movie')) return { status: 200, body: tmdbFixtures.anticipatedMovies };
+  if (pathname.startsWith('discover/tv')) return { status: 200, body: tmdbFixtures.anticipatedSeries };
+  if (pathname.startsWith('search/movie')) return { status: 200, body: tmdbFixtures.searchMovies };
+  if (pathname.startsWith('search/tv')) return { status: 200, body: tmdbFixtures.searchSeries };
+  if (pathname.startsWith('tv/1396/season/1')) return { status: 200, body: tmdbFixtures.season1396S1 };
+  if (pathname.startsWith('movie/302946')) return { status: 200, body: tmdbFixtures.movieDetail302946 };
+  if (pathname.startsWith('tv/1396')) return { status: 200, body: tmdbFixtures.seriesDetail1396 };
+  if (pathname.startsWith('watch/providers/')) return { status: 200, body: { results: [] } };
+  if (pathname.startsWith('movie/') || pathname.startsWith('tv/')) {
+    return { status: 404, body: { status_message: 'Not found' } };
+  }
+  return { status: 200, body: { results: [], page: 1, total_pages: 1, total_results: 0 } };
+}
+
 // ── Library REST API (identical to production server) ──────────────
+
+app.get('/api/version', (_req, res) => {
+  res.json({ version: getAppVersion() });
+});
+
+app.get('/api/tmdb{/*tmdbPath}', (req: Request<TmdbProxyParams>, res) => {
+  const fixture = getTmdbFixtureResponse(normalizeTmdbPath(req.params.tmdbPath));
+  res.status(fixture.status).json(fixture.body);
+});
 
 app.get('/api/library', (req, res) => {
   const { contentType, status } = req.query as { contentType?: string; status?: string };

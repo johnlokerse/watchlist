@@ -9,6 +9,8 @@ import { tmdbTools } from './tools.js';
 import { queries } from './db.js';
 import { createMcpRouter } from './mcp-server.js';
 import { handleWatchLinks } from './watch-links.js';
+import { getAppVersion } from './app-info.js';
+import { handleTmdbProxy, hasTmdbApiToken } from './tmdb.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,6 +22,14 @@ app.use(express.json());
 app.use(createMcpRouter());
 
 // ── Library REST API ──────────────────────────────────────────────
+
+// GET /api/version — running backend version
+app.get('/api/version', (_req, res) => {
+  res.json({ version: getAppVersion() });
+});
+
+// GET /api/tmdb/* — server-side TMDB proxy using the runtime settings token
+app.get('/api/tmdb{/*tmdbPath}', handleTmdbProxy);
 
 // GET /api/library — list items (optional ?contentType=&status=)
 app.get('/api/library', (req, res) => {
@@ -575,5 +585,5 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(PORT, () => {
   console.log(`Chat server ready on http://localhost:${PORT}`);
-  console.log(`TMDB token: ${process.env.VITE_TMDB_API_TOKEN ? '✓ loaded' : '✗ missing (set VITE_TMDB_API_TOKEN in .env)'}`);
+  console.log(`TMDB token: ${hasTmdbApiToken() ? '✓ configured in settings' : '✗ missing in settings (configure in Settings)'}`);
 });

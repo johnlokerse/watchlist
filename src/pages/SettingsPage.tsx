@@ -103,6 +103,10 @@ interface ImportEpisode {
   episode: number;
 }
 
+interface AppVersionResponse {
+  version?: string;
+}
+
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
 function PaletteIcon() {
@@ -158,6 +162,15 @@ function MonitorIcon() {
       <rect x="2" y="3" width="20" height="14" rx="2" />
       <line x1="8" y1="21" x2="16" y2="21" />
       <line x1="12" y1="17" x2="12" y2="21" />
+    </svg>
+  );
+}
+
+function KeyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+      <circle cx="7.5" cy="14.5" r="3.5" />
+      <path d="M10 12l8-8 3 3-2 2 2 2-2 2-2-2-4.5 4.5" />
     </svg>
   );
 }
@@ -390,12 +403,31 @@ export default function SettingsPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const { providers, isLoading: providersLoading, isError: providersError } = useAvailableProviders();
+  const tmdbTokenConfigured = settings.tmdbApiToken.trim().length > 0;
+  const { providers, isLoading: providersLoading, isError: providersError } = useAvailableProviders(settings.tmdbApiToken.trim());
+  const [appVersion, setAppVersion] = useState<string | null>(null);
 
   // OpenRouter model list
   const [orModels, setOrModels] = useState<{ id: string; name: string }[]>([]);
   const [orModelsLoading, setOrModelsLoading] = useState(false);
   const [orModelsError, setOrModelsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/version')
+      .then((r) => {
+        if (!r.ok) throw new Error(`Failed to fetch version (${r.status})`);
+        return r.json() as Promise<AppVersionResponse>;
+      })
+      .then((data) => {
+        if (active) setAppVersion(data.version?.trim() || null);
+      })
+      .catch(() => {
+        if (active) setAppVersion(null);
+      });
+
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (!settings.openrouterEnabled || settings.openrouterApiKey.length < 10) {
@@ -802,6 +834,54 @@ export default function SettingsPage() {
             )}
           </div>
 
+          {/* ── API Keys ── */}
+          <div className="app-panel p-5">
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
+                <KeyIcon />
+              </div>
+              <h2 className="text-base font-semibold">API Keys</h2>
+            </div>
+            <p className="text-xs text-text-secondary mb-5">Configure external service credentials used by Watchlist.</p>
+
+            <div className="py-3">
+              <label className="text-sm font-medium" htmlFor="tmdb-api-token">
+                TMDB API key
+              </label>
+              <p className="mt-1 text-xs text-text-secondary">
+                Required for searches, details, Discover feeds, artwork, and streaming provider data. Supports either a TMDB API key or v4 read access token.
+              </p>
+              <input
+                id="tmdb-api-token"
+                type="password"
+                value={settings.tmdbApiToken}
+                onChange={(e) => updateSettings({ tmdbApiToken: e.target.value })}
+                placeholder="TMDB API key or read access token"
+                className="mt-3 w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+              />
+            </div>
+
+            <div className="border-t border-border-subtle" />
+
+            <div className="py-3">
+              <label className="text-sm font-medium" htmlFor="streaming-availability-key">
+                Deep linking API key
+              </label>
+              <p className="mt-1 text-xs text-text-secondary">
+                Optional. Add a Streaming Availability API key to open exact movie and series pages on supported providers.
+                The app only uses it when you open a Where to Watch tab, and successful results are cached for 7 days.
+              </p>
+              <input
+                id="streaming-availability-key"
+                type="password"
+                value={settings.streamingAvailabilityApiKey}
+                onChange={(e) => updateSettings({ streamingAvailabilityApiKey: e.target.value })}
+                placeholder="Streaming Availability API key"
+                className="mt-3 w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+              />
+            </div>
+          </div>
+
         </div>{/* end right column (middle) */}
 
         {/* ── Third column ── */}
@@ -824,7 +904,13 @@ export default function SettingsPage() {
                 ))}
               </div>
             ) : providersError ? (
-              <p className="text-xs text-danger">Failed to load providers. Check your connection.</p>
+              <div className="rounded-lg border border-danger/30 bg-danger/10 p-3">
+                <p className="text-xs text-danger">
+                  {tmdbTokenConfigured
+                    ? 'Failed to load providers. Check that your TMDB API token is valid.'
+                    : 'TMDB API token is missing. Add it in API Keys to load streaming providers.'}
+                </p>
+              </div>
             ) : providers.length === 0 ? (
               <p className="text-xs text-text-muted">No providers found for your country.</p>
             ) : (
@@ -861,24 +947,6 @@ export default function SettingsPage() {
                 })}
               </div>
             )}
-
-            <div className="mt-5 border-t border-border-subtle pt-4">
-              <label className="text-sm font-medium" htmlFor="streaming-availability-key">
-                Deep linking API key
-              </label>
-              <p className="mt-1 text-xs text-text-secondary">
-                Optional. Add a Streaming Availability API key to open exact movie and series pages on supported providers.
-                The app only uses it when you open a Where to Watch tab, and successful results are cached for 7 days.
-              </p>
-              <input
-                id="streaming-availability-key"
-                type="password"
-                value={settings.streamingAvailabilityApiKey}
-                onChange={(e) => updateSettings({ streamingAvailabilityApiKey: e.target.value })}
-                placeholder="Streaming Availability API key"
-                className="mt-3 w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
-              />
-            </div>
           </div>
 
           {/* ── Danger Zone ── */}
@@ -908,6 +976,9 @@ export default function SettingsPage() {
         </div>{/* end third column */}
 
       </div>
+      <p className="pb-4 text-center text-xs text-text-muted">
+        Watchlist {appVersion ? `v${appVersion}` : 'version unknown'}
+      </p>
     </div>
   );
 }

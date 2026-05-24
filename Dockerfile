@@ -9,13 +9,12 @@ RUN npm ci
 
 COPY . .
 
-ARG VITE_TMDB_API_TOKEN
-ENV VITE_TMDB_API_TOKEN=$VITE_TMDB_API_TOKEN
-
 RUN npm run build
 
 # Stage 2: Runtime
 FROM node:22-bookworm-slim
+
+ARG APP_VERSION=0.0.0
 
 # Install gh CLI (required by Copilot SDK)
 RUN apt-get update && apt-get install -y curl && \
@@ -39,6 +38,7 @@ RUN mkdir -p /app/data
 EXPOSE 3001
 
 ENV NODE_ENV=production
+ENV APP_VERSION=$APP_VERSION
 
 # Install gh copilot extension on startup (requires GH_TOKEN env var), then start server
 CMD ["sh", "-c", "gh extension install github/gh-copilot --force 2>/dev/null || true && node --no-warnings ./node_modules/.bin/tsx server/index.ts"]

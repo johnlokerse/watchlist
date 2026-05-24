@@ -310,6 +310,8 @@ export default function LibraryPage() {
 
   const isSearching = debouncedSearch.length > 1;
   const searchLoading = contentType === 'movie' ? movieSearch.isLoading : seriesSearch.isLoading;
+  const searchError = contentType === 'movie' ? movieSearch.isError : seriesSearch.isError;
+  const tmdbTokenConfigured = settings.tmdbApiToken.trim().length > 0;
 
   useEffect(() => {
     const updateStuckState = () => {
@@ -451,6 +453,20 @@ export default function LibraryPage() {
             <CardGrid coverSize={settings.coverSize}>
               {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
             </CardGrid>
+          ) : searchError ? (
+            <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-text-secondary">
+              <p className="font-medium text-text-primary">
+                {tmdbTokenConfigured ? 'TMDB search failed' : 'TMDB API token required'}
+              </p>
+              <p className="mt-1">
+                {tmdbTokenConfigured
+                  ? 'Check that your TMDB API token is valid, then try searching again.'
+                  : 'Add your TMDB API token in Settings to search for movies and series.'}
+              </p>
+              <Link to="/settings" className="mt-2 inline-flex text-sm font-semibold text-accent hover:underline">
+                Open Settings
+              </Link>
+            </div>
           ) : tmdbResults.length === 0 ? (
             <p className="text-text-muted py-8 text-center">No results found for "{debouncedSearch}"</p>
           ) : (
