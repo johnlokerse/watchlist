@@ -1,6 +1,8 @@
 import type { TMDBCountryProviders } from '../../api/types';
 import type { WatchDeepLink } from '../../api/watchLinks';
 import { logoUrl } from '../../utils/image';
+import { isIOSStandalone } from '../../utils/platform';
+import { getIOSAppUrl } from '../../utils/streamingDeepLinks';
 
 interface Props {
   providers: TMDBCountryProviders | undefined;
@@ -49,11 +51,12 @@ export default function WatchProvidersTab({
           <div className="flex flex-wrap gap-3">
             {myStreamingProviders.map((p) => {
               const logo = logoUrl(p.logo_path, 'w92');
-              const href = findProviderLink(p, deepLinks, ['subscription', 'free', 'addon']);
+              const match = findProviderLink(p, deepLinks, ['subscription', 'free', 'addon']);
               return (
                 <ProviderLink
                   key={p.provider_id}
-                  href={href}
+                  href={match?.href}
+                  serviceId={match?.serviceId}
                   providerName={p.provider_name}
                   sectionLabel="your services"
                   className="flex items-center gap-2 bg-accent/10 rounded-lg px-3 py-2 border border-accent/30"
@@ -131,11 +134,12 @@ function ProviderGroup({
         {providers.map((p) => {
           const logo = logoUrl(p.logo_path, 'w92');
           const isMyService = userServiceIds.includes(p.provider_id);
-          const href = findProviderLink(p, deepLinks, preferredTypes);
+          const match = findProviderLink(p, deepLinks, preferredTypes);
           return (
             <ProviderLink
               key={p.provider_id}
-              href={href}
+              href={match?.href}
+              serviceId={match?.serviceId}
               providerName={p.provider_name}
               sectionLabel={title}
               className={`flex items-center gap-2 rounded-lg px-3 py-2 border transition-colors ${
@@ -160,15 +164,18 @@ function findProviderLink(
   provider: { provider_id: number; provider_name: string },
   links: WatchDeepLink[],
   preferredTypes: string[],
-) {
+): { href: string; serviceId: string } | undefined {
   const providerName = normalizeProviderName(provider.provider_name);
   const matches = links.filter((link) => {
     if (link.tmdbProviderIds.includes(provider.provider_id)) return true;
     const linkName = normalizeProviderName(link.serviceName);
     return linkName === providerName || providerName.includes(linkName) || linkName.includes(providerName);
   });
-  const preferred = matches.find((link) => preferredTypes.includes(link.type));
-  return preferred?.videoLink ?? preferred?.link ?? matches[0]?.videoLink ?? matches[0]?.link;
+  const chosen = matches.find((link) => preferredTypes.includes(link.type)) ?? matches[0];
+  if (!chosen) return undefined;
+  const href = chosen.videoLink ?? chosen.link;
+  if (!href) return undefined;
+  return { href, serviceId: chosen.serviceId };
 }
 
 function normalizeProviderName(name: string) {
@@ -182,12 +189,14 @@ function normalizeProviderName(name: string) {
 
 function ProviderLink({
   href,
+  serviceId,
   providerName,
   sectionLabel,
   className,
   children,
 }: {
   href: string | undefined;
+  serviceId?: string;
   providerName: string;
   sectionLabel: string;
   className: string;
@@ -197,11 +206,43 @@ function ProviderLink({
     return <div className={className}>{children}</div>;
   }
 
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    // On iOS Home Screen PWAs, target="_blank" opens an in-app browser that
+    // bypasses Universal Links, so streaming providers always open as a
+    // website instead of the native app. Intercept the click and route the
+    // navigation top-level — optionally via a known custom scheme — so iOS
+    // hands off to the installed app when possible.
+    if (!isIOSStandalone()) return;
+    if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+
+    const appUrl = getIOSAppUrl(serviceId, href);
+    if (!appUrl) {
+      window.location.href = href;
+      return;
+    }
+
+    let fallbackFired = false;
+    const fallback = window.setTimeout(() => {
+      fallbackFired = true;
+      window.location.href = href;
+    }, 1500);
+    const onVisibilityChange = () => {
+      if (document.hidden && !fallbackFired) {
+        window.clearTimeout(fallback);
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.location.href = appUrl;
+  };
+
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={handleClick}
       aria-label={`Open ${providerName} from ${sectionLabel}`}
       title={`Open ${providerName}`}
       className={`${className} hover:border-accent hover:bg-accent/10 focus:outline-none focus:ring-2 focus:ring-accent/50`}
