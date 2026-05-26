@@ -66,6 +66,38 @@ const STATUS_LABELS: Record<WatchedStatus, string> = {
   plan_to_watch: 'Plan to Watch',
 };
 
+function FilterToggleButton({
+  expanded,
+  active,
+  onClick,
+  className = '',
+}: {
+  expanded: boolean;
+  active: boolean;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={expanded}
+      aria-label="Toggle library filters"
+      className={`inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-lg border transition ${
+        active
+          ? 'border-accent/45 bg-accent/15 text-accent'
+          : 'border-border-subtle bg-surface-raised text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
+      } ${className}`}
+    >
+      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 7h16" />
+        <path d="M7 12h10" />
+        <path d="M10 17h4" />
+      </svg>
+    </button>
+  );
+}
+
 function itemKey(item: WatchedItem) {
   return `${item.contentType}-${item.tmdbId}`;
 }
@@ -225,6 +257,7 @@ export default function LibraryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { settings, updateSettings } = useSettings();
   const controlsRef = useRef<HTMLDivElement>(null);
+  const wideQueryRef = useRef<MediaQueryList | null>(null);
   const tabParam = searchParams.get('tab');
   const tab: 'movies' | 'series' = tabParam === 'series' ? 'series' : 'movies';
   const setTab = (nextTab: 'movies' | 'series') => {
@@ -236,7 +269,8 @@ export default function LibraryPage() {
   };
   const [search, setSearch] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [showMobileFilters, setShowMobileFilters] = useLocalStorage('library-mobile-filters-expanded', false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showWideFilters, setShowWideFilters] = useState(false);
   const [isControlsStuck, setIsControlsStuck] = useState(false);
   const [collapsedSections, setCollapsedSections] = useLocalStorage<Record<string, boolean>>('library-collapsed-sections', {});
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('library-view', 'cards');
@@ -314,6 +348,8 @@ export default function LibraryPage() {
   const tmdbTokenConfigured = settings.tmdbApiToken.trim().length > 0;
 
   useEffect(() => {
+    wideQueryRef.current = window.matchMedia('(min-width: 768px)');
+
     const updateStuckState = () => {
       const top = controlsRef.current?.getBoundingClientRect().top ?? 1;
       const safeTop = Number.parseFloat(
@@ -332,9 +368,18 @@ export default function LibraryPage() {
     };
   }, []);
 
+  const showCurrentFilters = wideQueryRef.current?.matches ? showWideFilters : showMobileFilters;
+  const toggleCurrentFilters = () => {
+    if (wideQueryRef.current?.matches) {
+      setShowWideFilters((value) => !value);
+      return;
+    }
+    setShowMobileFilters((value) => !value);
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="relative z-40 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="page-title">Your Library</h1>
         </div>
@@ -348,25 +393,13 @@ export default function LibraryPage() {
         />
       </div>
 
-      <div ref={controlsRef} className="sticky top-[var(--safe-area-top)] z-30 -mx-4 border-y border-border-subtle bg-surface/95 p-3 shadow-lg backdrop-blur md:static md:mx-0 md:rounded-lg md:border md:bg-surface-raised md:p-4 md:shadow-[0_18px_60px_rgb(0_0_0_/_0.18)]">
-        <div className={`flex gap-2 md:flex-col md:gap-3 md:pr-0 xl:flex-row xl:items-center ${isControlsStuck ? 'pr-14' : 'pr-0'}`}>
-          <button
-            type="button"
-            onClick={() => setShowMobileFilters(!showMobileFilters)}
-            aria-expanded={showMobileFilters}
-            aria-label="Toggle library filters"
-            className={`inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-lg border transition md:hidden ${
-              showMobileFilters || statusFilters.length > 0
-                ? 'border-accent/45 bg-accent/15 text-accent'
-                : 'border-border-subtle bg-surface-raised text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
-            }`}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M4 7h16" />
-              <path d="M7 12h10" />
-              <path d="M10 17h4" />
-            </svg>
-          </button>
+      <div ref={controlsRef} className="mobile-safe-sticky-top sticky top-[var(--safe-area-top)] z-30 -mx-4 border-y border-border-subtle bg-surface/95 p-3 shadow-lg backdrop-blur md:static md:mx-0 md:rounded-lg md:border md:bg-surface-raised md:p-4 md:shadow-[0_18px_60px_rgb(0_0_0_/_0.18)]">
+        <div className={`flex gap-2 md:pr-0 ${isControlsStuck ? 'pr-14' : 'pr-0'}`}>
+          <FilterToggleButton
+            expanded={showCurrentFilters}
+            active={showCurrentFilters || statusFilters.length > 0}
+            onClick={toggleCurrentFilters}
+          />
           <div className="min-w-0 flex-1">
             <SearchBar
               value={search}
@@ -374,17 +407,9 @@ export default function LibraryPage() {
               placeholder={`Search your ${tab} or find new ones...`}
             />
           </div>
-          <div className="hidden md:block">
-            <ViewToggle
-              value={viewMode}
-              onChange={setViewMode}
-              coverSize={settings.coverSize}
-              onCoverSizeChange={(size) => updateSettings({ coverSize: size })}
-            />
-          </div>
         </div>
-        <div className={`${showMobileFilters ? 'flex' : 'hidden'} mt-3 flex-col gap-3 md:flex md:flex-row md:items-center md:justify-between`}>
-          <div className="md:hidden">
+        <div className={`${showMobileFilters ? 'flex' : 'hidden'} ${showWideFilters ? 'md:flex' : 'md:hidden'} mt-3 flex-col gap-3 md:flex-row md:items-center md:justify-between`}>
+          <div>
             <ViewToggle
               value={viewMode}
               onChange={setViewMode}
