@@ -5,5 +5,5 @@ const packageJson = require('../package.json') as { version: string };
 
 export function getAppVersion(): string {
   const appVersion = process.env.APP_VERSION?.trim();
-  return appVersion || packageJson.version;
+  return appVersion && appVersion !== '0.0.0' ? appVersion : packageJson.version;
 }

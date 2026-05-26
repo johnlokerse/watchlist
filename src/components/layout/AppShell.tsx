@@ -72,6 +72,8 @@ function BrandMark() {
 export default function AppShell() {
   return (
     <div className="app-bg min-h-screen">
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-[35] h-[calc(var(--safe-area-top)+2px)] bg-surface/95 backdrop-blur md:hidden" />
+
       {/* Desktop side nav */}
       <header className="hidden md:block fixed inset-y-0 left-0 z-50 w-[236px] border-r border-border-subtle bg-surface/95 backdrop-blur-xl">
         <nav className="flex h-full flex-col gap-6 px-4 py-5">
@@ -98,7 +100,7 @@ export default function AppShell() {
       </header>
 
       {/* Main content */}
-      <main className="min-h-screen w-full px-4 py-5 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pl-[260px] md:pr-6 md:py-6">
+      <main className="min-h-screen w-full px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[calc(1.25rem+var(--safe-area-top))] md:py-6 md:pl-[260px] md:pr-6">
         <div className="w-full">
         <Outlet />
         </div>

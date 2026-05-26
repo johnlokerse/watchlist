@@ -242,10 +242,6 @@ export default function DiscoverPage() {
           <p className="section-title mb-2">Recommendations and release radar</p>
           <h1 className="page-title">Discover</h1>
         </div>
-        <div className="control-surface flex items-center gap-2 px-3 py-2 text-sm text-text-muted">
-          <span className="h-2 w-2 rounded-full bg-success" />
-          Live TMDB feeds
-        </div>
       </div>
 
       {showMissingTokenBanner && (
