@@ -50,3 +50,8 @@
 - `Dockerfile` is multi-stage: builder compiles native deps (`better-sqlite3`) and Vite assets; runtime stage installs `gh` CLI and starts the server with `tsx`.
 - GHCR publishing is handled by `.github/workflows/docker-publish.yml` for `vX.Y.Z` tags only. It publishes `ghcr.io/johnlokerse/watchlist:X.Y.Z` and `latest` for linux/amd64 and linux/arm64.
 - In production (`NODE_ENV=production`), Express serves the built frontend from `dist/` and falls back to `index.html` for SPA routing.
+
+## Versioning
+
+- After making changes, bump the version in **both** `package.json` (`"version"`) and `Dockerfile` (`ARG APP_VERSION`). Keep them in sync.
+- Releases are triggered by pushing a `vX.Y.Z` tag matching the `package.json` version. The CI workflow passes the tag as `APP_VERSION` to the Docker build.
