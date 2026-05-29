@@ -3,6 +3,7 @@ import type { CoverSize } from '../../hooks/useSettings';
 export type ViewMode = 'cards' | 'list';
 
 const COVER_SIZES: [CoverSize, string][] = [
+  ['xs', 'XS'],
   ['small', 'S'],
   ['medium', 'M'],
   ['large', 'L'],

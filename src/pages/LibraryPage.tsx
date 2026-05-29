@@ -67,17 +67,18 @@ const STATUS_LABELS: Record<WatchedStatus, string> = {
   plan_to_watch: 'Plan to Watch',
 };
 
-type SortOption = 'added-desc' | 'added-asc' | 'rating-desc' | 'release-desc' | 'title-asc';
+type SortOption = 'added-desc' | 'added-asc' | 'rating-desc' | 'tmdb-rating-desc' | 'release-desc' | 'title-asc';
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'added-desc', label: 'Date added (newest)' },
   { value: 'added-asc', label: 'Date added (oldest)' },
-  { value: 'rating-desc', label: 'Rating (high to low)' },
+  { value: 'rating-desc', label: 'Your rating (high to low)' },
+  { value: 'tmdb-rating-desc', label: 'TMDB rating (high to low)' },
   { value: 'release-desc', label: 'Release date (newest)' },
   { value: 'title-asc', label: 'Title (A to Z)' },
 ];
 
-function sortItems(items: WatchedItem[], sort: SortOption): WatchedItem[] {
+function sortItems(items: WatchedItem[], sort: SortOption, tmdbRatings?: Map<string, number>): WatchedItem[] {
   const sorted = [...items];
   switch (sort) {
     case 'added-asc':
@@ -89,6 +90,18 @@ function sortItems(items: WatchedItem[], sort: SortOption): WatchedItem[] {
         if (a.userRating == null) return 1;
         if (b.userRating == null) return -1;
         return b.userRating - a.userRating;
+      });
+      break;
+    case 'tmdb-rating-desc':
+      sorted.sort((a, b) => {
+        const keyA = `${a.contentType}-${a.tmdbId}`;
+        const keyB = `${b.contentType}-${b.tmdbId}`;
+        const ra = tmdbRatings?.get(keyA) ?? null;
+        const rb = tmdbRatings?.get(keyB) ?? null;
+        if (ra == null && rb == null) return 0;
+        if (ra == null) return 1;
+        if (rb == null) return -1;
+        return rb - ra;
       });
       break;
     case 'release-desc':
@@ -273,7 +286,7 @@ function LibraryCollection({
       {collapsed ? null : (
         <>
       {viewMode === 'cards' ? (
-        <CardGrid compact={title === 'Watched'} coverSize={coverSize}>
+        <CardGrid compact={coverSize === 'xs' || title === 'Watched'} coverSize={coverSize}>
           {items.map((item) =>
             item.contentType === 'series' && item.status === 'watching' ? (
               <WatchingSeriesCard key={itemKey(item)} item={item} />
@@ -322,6 +335,7 @@ export default function LibraryPage() {
   const [collapsedSections, setCollapsedSections] = useLocalStorage<Record<string, boolean>>('library-collapsed-sections', {});
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('library-view', 'cards');
   const [sort, setSort] = useLocalStorage<SortOption>('library-sort', 'added-desc');
+  const [tmdbRatings, setTmdbRatings] = useState<Map<string, number>>(new Map());
   const debouncedSearch = useDebounce(search);
 
   const contentType: ContentType = tab === 'movies' ? 'movie' : 'series';
@@ -385,8 +399,8 @@ export default function LibraryPage() {
       });
     }
 
-    return sortItems(result, sort);
-  }, [items, debouncedSearch, statusFilters, genreFilters, search, contentType, sort]);
+    return sortItems(result, sort, tmdbRatings);
+  }, [items, debouncedSearch, statusFilters, genreFilters, search, contentType, sort, tmdbRatings]);
 
   const planToWatchItems = useMemo(() => filteredItems.filter((i) => i.status === 'plan_to_watch'), [filteredItems]);
   const watchedItems = useMemo(() => filteredItems.filter((i) => i.status === 'watched'), [filteredItems]);
@@ -447,6 +461,35 @@ export default function LibraryPage() {
       window.removeEventListener('resize', updateStuckState);
     };
   }, []);
+
+  useEffect(() => {
+    if (sort !== 'tmdb-rating-desc' || !items || items.length === 0) return;
+
+    let cancelled = false;
+
+    const fetchRatings = async () => {
+      try {
+        const payload = {
+          items: items.map((item) => ({ tmdbId: item.tmdbId, contentType: item.contentType })),
+        };
+        const res = await fetch('/api/tmdb-ratings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) return;
+        const { ratings } = await res.json() as { ratings: Record<string, number> };
+        if (!cancelled) {
+          setTmdbRatings(new Map(Object.entries(ratings)));
+        }
+      } catch {
+        // silently ignore fetch errors
+      }
+    };
+
+    fetchRatings();
+    return () => { cancelled = true; };
+  }, [sort, items]);
 
   const showCurrentFilters = isWide ? showWideFilters : showMobileFilters;
   const toggleCurrentFilters = () => {

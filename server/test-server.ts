@@ -72,6 +72,21 @@ app.get('/api/tmdb{/*tmdbPath}', (req: Request<TmdbProxyParams>, res) => {
   res.status(fixture.status).json(fixture.body);
 });
 
+app.post('/api/tmdb-ratings', (req, res) => {
+  const { items } = req.body as { items: { tmdbId: number; contentType: string }[] };
+  const ratings: Record<string, number> = {};
+  if (Array.isArray(items)) {
+    for (const { tmdbId, contentType } of items) {
+      const fixture = getTmdbFixtureResponse(`${contentType}/${tmdbId}`);
+      const data = fixture.body;
+      if (data?.vote_average != null) {
+        ratings[`${contentType}-${tmdbId}`] = data.vote_average as number;
+      }
+    }
+  }
+  res.json({ ratings });
+});
+
 app.get('/api/library', (req, res) => {
   const { contentType, status } = req.query as { contentType?: string; status?: string };
   res.json(queries.getAllItems(contentType, status));
