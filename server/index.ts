@@ -10,7 +10,7 @@ import { queries } from './db.js';
 import { createMcpRouter } from './mcp-server.js';
 import { handleWatchLinks } from './watch-links.js';
 import { getAppVersion } from './app-info.js';
-import { handleTmdbProxy, hasTmdbApiToken } from './tmdb.js';
+import { handleTmdbProxy, hasTmdbApiToken, tmdbFetchJson } from './tmdb.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -30,6 +30,45 @@ app.get('/api/version', (_req, res) => {
 
 // GET /api/tmdb/* — server-side TMDB proxy using the runtime settings token
 app.get('/api/tmdb{/*tmdbPath}', handleTmdbProxy);
+
+// POST /api/tmdb-ratings — fetch TMDB vote_average for library items
+app.post('/api/tmdb-ratings', async (req, res) => {
+  try {
+    const { items } = req.body as { items: { tmdbId: number; contentType: string }[] };
+    if (!Array.isArray(items) || items.length === 0) {
+      res.json({ ratings: {} });
+      return;
+    }
+
+    const ratings: Record<string, number> = {};
+    const BATCH_SIZE = 10;
+
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const batch = items.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async ({ tmdbId, contentType }) => {
+          const path = contentType === 'movie' ? `/movie/${tmdbId}` : `/tv/${tmdbId}`;
+          const data = await tmdbFetchJson(path);
+          const key = `${contentType}-${tmdbId}`;
+          if (data.vote_average != null) {
+            return { key, voteAverage: data.vote_average };
+          }
+          return null;
+        }),
+      );
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value) {
+          ratings[result.value.key] = result.value.voteAverage;
+        }
+      }
+    }
+
+    res.json({ ratings });
+  } catch (err) {
+    console.error('Failed to fetch TMDB ratings:', err);
+    res.status(500).json({ error: 'Failed to fetch TMDB ratings' });
+  }
+});
 
 // GET /api/library — list items (optional ?contentType=&status=)
 app.get('/api/library', (req, res) => {

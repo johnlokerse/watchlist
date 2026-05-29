@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { DEFAULT_COUNTRY } from '../utils/constants';
 import { applyTheme } from '../utils/themes';
 
-export type CoverSize = 'small' | 'medium' | 'large';
+export type CoverSize = 'xs' | 'small' | 'medium' | 'large';
 
 export interface AppSettings {
   country: string;

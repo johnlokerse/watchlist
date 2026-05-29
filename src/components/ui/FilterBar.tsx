@@ -2,9 +2,10 @@ interface Props {
   filters: { label: string; value: string }[];
   selected: string[];
   onChange: (selected: string[]) => void;
+  ariaLabel?: string;
 }
 
-export default function FilterBar({ filters, selected, onChange }: Props) {
+export default function FilterBar({ filters, selected, onChange, ariaLabel = 'Filters' }: Props) {
   const toggle = (value: string) => {
     onChange(
       selected.includes(value)
@@ -14,7 +15,7 @@ export default function FilterBar({ filters, selected, onChange }: Props) {
   };
 
   return (
-    <div className="flex flex-wrap gap-2" role="group" aria-label="Filters">
+    <div className="flex flex-wrap gap-2" role="group" aria-label={ariaLabel}>
       {filters.map((f) => (
         <button
           key={f.value}

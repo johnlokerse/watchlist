@@ -7,13 +7,17 @@ export interface SeedMovieOptions {
   releaseDate?: string | null;
   status?: 'watched' | 'plan_to_watch' | 'dropped';
   userRating?: number | null;
+  genreIds?: number[];
 }
 
 export interface SeedSeriesOptions {
   tmdbId?: number;
   title?: string;
   posterPath?: string;
+  releaseDate?: string | null;
   status?: 'watching' | 'watched' | 'plan_to_watch' | 'dropped';
+  userRating?: number | null;
+  genreIds?: number[];
 }
 
 /** Seed a movie into the test library via the REST API. Returns the DB id. */
@@ -28,6 +32,7 @@ export async function seedMovie(
     releaseDate = '2016-10-13',
     status = 'watched',
     userRating = null,
+    genreIds = [28, 53, 80],
   } = opts;
 
   const res = await request.post('/api/library', {
@@ -40,7 +45,7 @@ export async function seedMovie(
       status,
       userRating,
       notes: '',
-      genreIds: [28, 53, 80],
+      genreIds,
     },
   });
   const body = await res.json() as { id: number };
@@ -56,7 +61,10 @@ export async function seedSeries(
     tmdbId = 1396,
     title = 'Breaking Bad',
     posterPath = '/ggFHVNu6YYI5L9pCfOacjizRGt.jpg',
+    releaseDate = '2008-01-20',
     status = 'watching',
+    userRating = null,
+    genreIds = [18, 80],
   } = opts;
 
   const res = await request.post('/api/library', {
@@ -65,11 +73,11 @@ export async function seedSeries(
       contentType: 'series',
       title,
       posterPath,
-      releaseDate: '2008-01-20',
+      releaseDate,
       status,
-      userRating: null,
+      userRating,
       notes: '',
-      genreIds: [18, 80],
+      genreIds,
     },
   });
   const body = await res.json() as { id: number };
