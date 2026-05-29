@@ -102,6 +102,8 @@ test.describe('Library Page', () => {
     await page.goto('/library');
     await page.getByRole('tab', { name: 'Series' }).click();
 
+    // Wait for series content to render before reading section order.
+    await expect(page.getByRole('heading', { name: 'Watching' })).toBeVisible();
     const sectionTitles = await page.locator('h2.section-title').allTextContents();
     expect(sectionTitles.map((title) => title.trim()).slice(0, 2)).toEqual(['Watching', 'Plan to Watch']);
   });
@@ -119,8 +121,8 @@ test.describe('Library Page', () => {
     // Both items visible initially
     await expect(page.getByText('The Accountant')).toBeVisible();
     await expect(page.getByText('Interstellar')).toBeVisible();
-    // Filter to only Plan to Watch
-    await page.getByRole('button', { name: 'Plan to Watch' }).click();
+    // Filter to only Plan to Watch (scope to the filter chip, not the section heading)
+    await page.getByRole('group', { name: 'Filters' }).getByRole('button', { name: 'Plan to Watch' }).click();
     await expect(page.getByText('Interstellar')).toBeVisible();
     await expect(page.getByText('The Accountant')).not.toBeVisible();
   });
@@ -272,5 +274,161 @@ test.describe('Library Page', () => {
     await page.getByTitle('Card view').click();
     await expect(page.getByTitle('Card view')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByText('The Accountant')).toBeVisible();
+  });
+});
+
+const MOVIE_GENRES = [
+  { id: 28, name: 'Action' },
+  { id: 35, name: 'Comedy' },
+  { id: 53, name: 'Thriller' },
+  { id: 80, name: 'Crime' },
+  { id: 18, name: 'Drama' },
+];
+
+const SERIES_GENRES = [
+  { id: 18, name: 'Drama' },
+  { id: 80, name: 'Crime' },
+];
+
+async function mockGenres(page: import('@playwright/test').Page): Promise<void> {
+  await page.route('**/api/tmdb/genre/movie/list*', (route) =>
+    route.fulfill({ json: { genres: MOVIE_GENRES } }),
+  );
+  await page.route('**/api/tmdb/genre/tv/list*', (route) =>
+    route.fulfill({ json: { genres: SERIES_GENRES } }),
+  );
+}
+
+
+function movieCardTitles(page: import('@playwright/test').Page): Promise<string[]> {
+  return page.locator('a[href^="/movie/"] h3').allTextContents();
+}
+
+test.describe('Library sorting', () => {
+  test('sort dropdown renders', async ({ page }) => {
+    await setupTMDBMocks(page);
+    await page.goto('/library');
+    await expect(page.getByLabel('Sort library')).toBeVisible();
+  });
+
+  test('selecting Rating reorders cards', async ({ page, request }) => {
+    // Seed High Rated first, Low Rated second so default (newest added) puts Low Rated first.
+    await seedMovie(request, {
+      tmdbId: 11,
+      title: 'High Rated',
+      releaseDate: '2010-01-01',
+      status: 'watched',
+      userRating: 9,
+    });
+    await seedMovie(request, {
+      tmdbId: 12,
+      title: 'Low Rated',
+      releaseDate: '2011-01-01',
+      status: 'watched',
+      userRating: 3,
+    });
+    await setupTMDBMocks(page);
+    await page.goto('/library');
+
+    await expect(page.getByText('High Rated')).toBeVisible();
+    await expect(page.getByText('Low Rated')).toBeVisible();
+    // Default sort = newest added → Low Rated (seeded last) first.
+    expect(await movieCardTitles(page)).toEqual(['Low Rated', 'High Rated']);
+
+    await page.getByLabel('Sort library').selectOption('rating-desc');
+    // Now High Rated (9) comes before Low Rated (3).
+    await expect.poll(() => movieCardTitles(page)).toEqual(['High Rated', 'Low Rated']);
+  });
+});
+
+test.describe('Library genre filtering', () => {
+  test('genre chips render only for present genres', async ({ page, request }) => {
+    await seedMovie(request, {
+      tmdbId: 21,
+      title: 'Action Movie',
+      releaseDate: '2010-01-01',
+      status: 'watched',
+      genreIds: [28],
+    });
+    await seedMovie(request, {
+      tmdbId: 22,
+      title: 'Comedy Movie',
+      releaseDate: '2011-01-01',
+      status: 'watched',
+      genreIds: [35],
+    });
+    await setupTMDBMocks(page);
+    await mockGenres(page);
+    await page.goto('/library');
+
+    await expect(page.getByRole('button', { name: 'Action' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Comedy' })).toBeVisible();
+    // Genres not present among items should not render a chip.
+    await expect(page.getByRole('button', { name: 'Thriller' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Drama' })).toHaveCount(0);
+  });
+
+  test('selecting a genre narrows results', async ({ page, request }) => {
+    await seedMovie(request, {
+      tmdbId: 21,
+      title: 'Action Movie',
+      releaseDate: '2010-01-01',
+      status: 'watched',
+      genreIds: [28],
+    });
+    await seedMovie(request, {
+      tmdbId: 22,
+      title: 'Comedy Movie',
+      releaseDate: '2011-01-01',
+      status: 'watched',
+      genreIds: [35],
+    });
+    await setupTMDBMocks(page);
+    await mockGenres(page);
+    await page.goto('/library');
+    await expect(page.getByText('Action Movie')).toBeVisible();
+    await expect(page.getByText('Comedy Movie')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Action' }).click();
+    await expect(page.getByText('Action Movie')).toBeVisible();
+    await expect(page.getByText('Comedy Movie')).not.toBeVisible();
+  });
+
+  test('switching tabs clears genre selection', async ({ page, request }) => {
+    await seedMovie(request, {
+      tmdbId: 21,
+      title: 'Action Movie',
+      releaseDate: '2010-01-01',
+      status: 'watched',
+      genreIds: [28],
+    });
+    await seedMovie(request, {
+      tmdbId: 22,
+      title: 'Comedy Movie',
+      releaseDate: '2011-01-01',
+      status: 'watched',
+      genreIds: [35],
+    });
+    await seedSeries(request, {
+      tmdbId: 23,
+      title: 'Drama Series',
+      status: 'watching',
+      genreIds: [18],
+    });
+    await setupTMDBMocks(page);
+    await mockGenres(page);
+    await page.goto('/library');
+
+    await page.getByRole('button', { name: 'Action' }).click();
+    await expect(page.getByText('Comedy Movie')).not.toBeVisible();
+
+    // Switch to Series and back to Movies.
+    await page.getByRole('tab', { name: 'Series' }).click();
+    await expect(page.getByText('Drama Series')).toBeVisible();
+    await page.getByRole('tab', { name: 'Movies' }).click();
+
+    // Genre selection should be reset → both movies visible again.
+    await expect(page.getByText('Action Movie')).toBeVisible();
+    await expect(page.getByText('Comedy Movie')).toBeVisible();
   });
 });

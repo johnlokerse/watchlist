@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useWatchedItems, useSeriesProgress } from '../db/hooks';
-import { useSearchMovies, useSearchSeries } from '../api/tmdb';
+import { useSearchMovies, useSearchSeries, useMovieGenres, useSeriesGenres } from '../api/tmdb';
 import { useDebounce } from '../hooks/useDebounce';
 import { useSettings } from '../hooks/useSettings';
 import type { ContentType, WatchedItem, WatchedStatus } from '../db/models';
@@ -12,6 +12,7 @@ import ViewToggle from '../components/ui/ViewToggle';
 import type { ViewMode } from '../components/ui/ViewToggle';
 import SearchBar from '../components/ui/SearchBar';
 import FilterBar from '../components/ui/FilterBar';
+import Select from '../components/ui/Select';
 import Card from '../components/ui/Card';
 import CardGrid from '../components/ui/CardGrid';
 import SkeletonCard from '../components/ui/SkeletonCard';
@@ -65,6 +66,49 @@ const STATUS_LABELS: Record<WatchedStatus, string> = {
   watching: 'Watching',
   plan_to_watch: 'Plan to Watch',
 };
+
+type SortOption = 'added-desc' | 'added-asc' | 'rating-desc' | 'release-desc' | 'title-asc';
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'added-desc', label: 'Date added (newest)' },
+  { value: 'added-asc', label: 'Date added (oldest)' },
+  { value: 'rating-desc', label: 'Rating (high to low)' },
+  { value: 'release-desc', label: 'Release date (newest)' },
+  { value: 'title-asc', label: 'Title (A to Z)' },
+];
+
+function sortItems(items: WatchedItem[], sort: SortOption): WatchedItem[] {
+  const sorted = [...items];
+  switch (sort) {
+    case 'added-asc':
+      sorted.sort((a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime());
+      break;
+    case 'rating-desc':
+      sorted.sort((a, b) => {
+        if (a.userRating == null && b.userRating == null) return 0;
+        if (a.userRating == null) return 1;
+        if (b.userRating == null) return -1;
+        return b.userRating - a.userRating;
+      });
+      break;
+    case 'release-desc':
+      sorted.sort((a, b) => {
+        if (!a.releaseDate && !b.releaseDate) return 0;
+        if (!a.releaseDate) return 1;
+        if (!b.releaseDate) return -1;
+        return b.releaseDate.localeCompare(a.releaseDate);
+      });
+      break;
+    case 'title-asc':
+      sorted.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
+      break;
+    case 'added-desc':
+    default:
+      sorted.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
+      break;
+  }
+  return sorted;
+}
 
 function FilterToggleButton({
   expanded,
@@ -257,7 +301,6 @@ export default function LibraryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { settings, updateSettings } = useSettings();
   const controlsRef = useRef<HTMLDivElement>(null);
-  const wideQueryRef = useRef<MediaQueryList | null>(null);
   const tabParam = searchParams.get('tab');
   const tab: 'movies' | 'series' = tabParam === 'series' ? 'series' : 'movies';
   const setTab = (nextTab: 'movies' | 'series') => {
@@ -269,15 +312,43 @@ export default function LibraryPage() {
   };
   const [search, setSearch] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [genreFilters, setGenreFilters] = useState<string[]>([]);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [showWideFilters, setShowWideFilters] = useState(false);
+  const [showWideFilters, setShowWideFilters] = useState(true);
+  const [isWide, setIsWide] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
+  );
   const [isControlsStuck, setIsControlsStuck] = useState(false);
   const [collapsedSections, setCollapsedSections] = useLocalStorage<Record<string, boolean>>('library-collapsed-sections', {});
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('library-view', 'cards');
+  const [sort, setSort] = useLocalStorage<SortOption>('library-sort', 'added-desc');
   const debouncedSearch = useDebounce(search);
 
   const contentType: ContentType = tab === 'movies' ? 'movie' : 'series';
   const items = useWatchedItems(contentType);
+
+  // Genre id spaces differ between movies and TV, so reset genre selection on tab switch.
+  const [prevContentType, setPrevContentType] = useState(contentType);
+  if (contentType !== prevContentType) {
+    setPrevContentType(contentType);
+    setGenreFilters([]);
+  }
+
+  const movieGenres = useMovieGenres();
+  const seriesGenres = useSeriesGenres();
+  const genreList = contentType === 'movie' ? movieGenres.data : seriesGenres.data;
+
+  // Build chips only from genres actually present among this tab's library items.
+  const genreFilterOptions = useMemo(() => {
+    if (!items || !genreList) return [];
+    const genreMap = new Map(genreList.map((g) => [g.id, g.name]));
+    const presentIds = new Set<number>();
+    items.forEach((item) => item.genreIds.forEach((id) => presentIds.add(id)));
+    return Array.from(presentIds)
+      .filter((id) => genreMap.has(id))
+      .map((id) => ({ value: String(id), label: genreMap.get(id)! }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [items, genreList]);
 
   // Search TMDB for adding new items
   const movieSearch = useSearchMovies(contentType === 'movie' ? debouncedSearch : '');
@@ -299,6 +370,11 @@ export default function LibraryPage() {
       result = result.filter((i) => statusFilters.includes(i.status));
     }
 
+    if (genreFilters.length > 0) {
+      const selected = new Set(genreFilters.map(Number));
+      result = result.filter((i) => i.genreIds.some((id) => selected.has(id)));
+    }
+
     // Exclude movies shown on the Upcoming page
     if (contentType === 'movie') {
       const today = new Date().toISOString().slice(0, 10);
@@ -309,8 +385,8 @@ export default function LibraryPage() {
       });
     }
 
-    return result;
-  }, [items, debouncedSearch, statusFilters, search, contentType]);
+    return sortItems(result, sort);
+  }, [items, debouncedSearch, statusFilters, genreFilters, search, contentType, sort]);
 
   const planToWatchItems = useMemo(() => filteredItems.filter((i) => i.status === 'plan_to_watch'), [filteredItems]);
   const watchedItems = useMemo(() => filteredItems.filter((i) => i.status === 'watched'), [filteredItems]);
@@ -348,7 +424,10 @@ export default function LibraryPage() {
   const tmdbTokenConfigured = settings.tmdbApiToken.trim().length > 0;
 
   useEffect(() => {
-    wideQueryRef.current = window.matchMedia('(min-width: 768px)');
+    const wideQuery = window.matchMedia('(min-width: 768px)');
+    const handleWideChange = () => setIsWide(wideQuery.matches);
+    handleWideChange();
+    wideQuery.addEventListener('change', handleWideChange);
 
     const updateStuckState = () => {
       const top = controlsRef.current?.getBoundingClientRect().top ?? 1;
@@ -363,14 +442,15 @@ export default function LibraryPage() {
     window.addEventListener('scroll', updateStuckState, { passive: true });
     window.addEventListener('resize', updateStuckState);
     return () => {
+      wideQuery.removeEventListener('change', handleWideChange);
       window.removeEventListener('scroll', updateStuckState);
       window.removeEventListener('resize', updateStuckState);
     };
   }, []);
 
-  const showCurrentFilters = wideQueryRef.current?.matches ? showWideFilters : showMobileFilters;
+  const showCurrentFilters = isWide ? showWideFilters : showMobileFilters;
   const toggleCurrentFilters = () => {
-    if (wideQueryRef.current?.matches) {
+    if (isWide) {
       setShowWideFilters((value) => !value);
       return;
     }
@@ -397,7 +477,7 @@ export default function LibraryPage() {
         <div className={`flex gap-2 md:pr-0 ${isControlsStuck ? 'pr-14' : 'pr-0'}`}>
           <FilterToggleButton
             expanded={showCurrentFilters}
-            active={showCurrentFilters || statusFilters.length > 0}
+            active={showCurrentFilters || statusFilters.length > 0 || genreFilters.length > 0}
             onClick={toggleCurrentFilters}
           />
           <div className="min-w-0 flex-1">
@@ -408,23 +488,42 @@ export default function LibraryPage() {
             />
           </div>
         </div>
-        <div className={`${showMobileFilters ? 'flex' : 'hidden'} ${showWideFilters ? 'md:flex' : 'md:hidden'} mt-3 flex-col gap-3 md:flex-row md:items-center md:justify-between`}>
-          <div>
-            <ViewToggle
-              value={viewMode}
-              onChange={setViewMode}
-              coverSize={settings.coverSize}
-              onCoverSizeChange={(size) => updateSettings({ coverSize: size })}
+        <div className={`${showCurrentFilters ? 'flex' : 'hidden'} mt-3 flex-col gap-3`}>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-3">
+              <ViewToggle
+                value={viewMode}
+                onChange={setViewMode}
+                coverSize={settings.coverSize}
+                onCoverSizeChange={(size) => updateSettings({ coverSize: size })}
+              />
+              <Select
+                ariaLabel="Sort library"
+                options={SORT_OPTIONS}
+                value={sort}
+                onChange={(value) => setSort(value as SortOption)}
+              />
+            </div>
+            <FilterBar
+              filters={tab === 'movies' ? MOVIE_STATUS_FILTERS : SERIES_STATUS_FILTERS}
+              selected={statusFilters}
+              onChange={setStatusFilters}
             />
+            <p className="text-xs font-medium text-text-muted">
+              {isSearching ? `Searching TMDB for "${debouncedSearch}"` : `${filteredItems.length} ${tab} shown`}
+            </p>
           </div>
-          <FilterBar
-            filters={tab === 'movies' ? MOVIE_STATUS_FILTERS : SERIES_STATUS_FILTERS}
-            selected={statusFilters}
-            onChange={setStatusFilters}
-          />
-          <p className="text-xs font-medium text-text-muted">
-            {isSearching ? `Searching TMDB for "${debouncedSearch}"` : `${filteredItems.length} ${tab} shown`}
-          </p>
+          {genreFilterOptions.length > 0 && (
+            <div className="flex flex-col gap-2 border-t border-border-subtle pt-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Genres</span>
+              <FilterBar
+                filters={genreFilterOptions}
+                selected={genreFilters}
+                onChange={setGenreFilters}
+                ariaLabel="Genres"
+              />
+            </div>
+          )}
         </div>
       </div>
 
