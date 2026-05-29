@@ -254,7 +254,7 @@ export default function SeriesDetailPage() {
             <RatingStars value={watchedItem.userRating} onChange={handleRate} size="sm" />
           </div>
 
-          {watchedItem.id && (
+          {watchedItem.id && watchedItem.status === 'watched' && (
             <WatchHistory
               itemId={watchedItem.id}
               tmdbId={series.id}

@@ -180,7 +180,7 @@ export default function MovieDetailPage() {
             <span className="text-sm text-text-secondary">Your Rating:</span>
             <RatingStars value={watchedItem.userRating} onChange={handleRate} size="sm" />
           </div>
-          {watchedItem.id && (
+          {watchedItem.id && watchedItem.status === 'watched' && (
             <WatchHistory
               itemId={watchedItem.id}
               tmdbId={movie.id}
