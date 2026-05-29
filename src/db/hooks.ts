@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLibrary } from './LibraryContext';
-import type { WatchedItem, SeriesProgress, WatchedEpisode, ContentType, WatchedStatus } from './models';
+import type { WatchedItem, SeriesProgress, WatchedEpisode, WatchLogEntry, ContentType, WatchedStatus } from './models';
 
 const API = '/api';
 
@@ -138,6 +138,37 @@ export async function updateSeriesProgress(progress: Omit<SeriesProgress, 'id'>)
   triggerInvalidate();
 }
 
+export function useWatchLog(tmdbId: number, contentType: ContentType) {
+  useRegisterInvalidate();
+  const { version } = useLibrary();
+  const [entries, setEntries] = useState<WatchLogEntry[] | undefined>(undefined);
+
+  useEffect(() => {
+    if (!tmdbId) return;
+    apiFetch<WatchLogEntry[]>(`/library/${tmdbId}/${contentType}/watch-log`)
+      .then(setEntries)
+      .catch(() => setEntries(undefined));
+  }, [tmdbId, contentType, version]);
+
+  return entries;
+}
+
+export async function addWatchLogEntry(entry: {
+  tmdbId: number; contentType: ContentType; watchedAt?: string; note?: string;
+}) {
+  const result = await apiFetch<{ id: number }>('/watch-log', {
+    method: 'POST',
+    body: JSON.stringify(entry),
+  });
+  triggerInvalidate();
+  return result.id;
+}
+
+export async function removeWatchLogEntry(id: number) {
+  await apiFetch(`/watch-log/${id}`, { method: 'DELETE' });
+  triggerInvalidate();
+}
+
 export function useWatchedEpisodes(tmdbId: number, season: number) {
   useRegisterInvalidate();
   const { version } = useLibrary();
@@ -166,6 +197,7 @@ export async function exportLibrary() {
     items: unknown[];
     progress: unknown[];
     episodes: unknown[];
+    watchLog: unknown[];
   }>('/library/export');
 }
 

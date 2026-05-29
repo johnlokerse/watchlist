@@ -11,6 +11,7 @@ import CastCrewTab from '../components/detail/CastCrewTab';
 import WatchProvidersTab from '../components/detail/WatchProvidersTab';
 import TrailerTab from '../components/detail/TrailerTab';
 import RatingStars from '../components/ui/RatingStars';
+import WatchHistory from '../components/detail/WatchHistory';
 import { buildMovieReleaseTimeline } from '../utils/releaseTimeline';
 
 type Tab = 'overview' | 'cast' | 'providers' | 'trailer';
@@ -79,6 +80,7 @@ export default function MovieDetailPage() {
       userRating: null,
       notes: '',
       genreIds: movie.genres.map((g) => g.id),
+      watchedAt: null,
     });
     setShowAddDropdown(false);
   };
@@ -178,6 +180,14 @@ export default function MovieDetailPage() {
             <span className="text-sm text-text-secondary">Your Rating:</span>
             <RatingStars value={watchedItem.userRating} onChange={handleRate} size="sm" />
           </div>
+          {watchedItem.id && (
+            <WatchHistory
+              itemId={watchedItem.id}
+              tmdbId={movie.id}
+              contentType="movie"
+              watchedAt={watchedItem.watchedAt}
+            />
+          )}
           <div>
             <label className="text-sm text-text-secondary block mb-1">Notes</label>
             <div className="flex gap-2">

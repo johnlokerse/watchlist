@@ -12,8 +12,17 @@ export interface WatchedItem {
   userRating: number | null;
   notes: string;
   genreIds: number[];
+  watchedAt: string | null;
   addedAt: Date;
   updatedAt: Date;
+}
+
+export interface WatchLogEntry {
+  id: number;
+  tmdbId: number;
+  contentType: ContentType;
+  watchedAt: string;
+  note: string;
 }
 
 export interface WatchedEpisode {

@@ -12,6 +12,7 @@ import WatchProvidersTab from '../components/detail/WatchProvidersTab';
 import EpisodesTab from '../components/detail/EpisodesTab';
 import TrailerTab from '../components/detail/TrailerTab';
 import RatingStars from '../components/ui/RatingStars';
+import WatchHistory from '../components/detail/WatchHistory';
 import { buildSeriesReleaseTimeline } from '../utils/releaseTimeline';
 
 type Tab = 'overview' | 'episodes' | 'cast' | 'providers' | 'trailer';
@@ -99,6 +100,7 @@ export default function SeriesDetailPage() {
       userRating: null,
       notes: '',
       genreIds: series.genres.map((g) => g.id),
+      watchedAt: null,
     });
     if (itemId) {
       await updateSeriesProgress({
@@ -251,6 +253,15 @@ export default function SeriesDetailPage() {
             <span className="text-sm text-text-secondary">Your Rating:</span>
             <RatingStars value={watchedItem.userRating} onChange={handleRate} size="sm" />
           </div>
+
+          {watchedItem.id && (
+            <WatchHistory
+              itemId={watchedItem.id}
+              tmdbId={series.id}
+              contentType="series"
+              watchedAt={watchedItem.watchedAt}
+            />
+          )}
 
           <div>
             <label className="text-sm text-text-secondary block mb-1">Notes</label>

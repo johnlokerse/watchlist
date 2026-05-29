@@ -80,6 +80,7 @@ export async function importFromTraktProgress(
         userRating: null,
         notes: '',
         genreIds,
+        watchedAt: null,
       });
 
       if (resolved.type === 'series' && hasProgress && itemId) {

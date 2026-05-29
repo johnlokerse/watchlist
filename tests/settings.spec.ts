@@ -187,4 +187,50 @@ test.describe('Settings Page', () => {
     await page.getByLabel('Deep linking API key').fill('test-streaming-key');
     await expect(page.getByLabel('Deep linking API key')).toHaveValue('test-streaming-key');
   });
+
+  test('export includes watchedAt and watch_log, and re-import restores them', async ({ request }) => {
+    await clearLibrary(request);
+    await seedMovie(request, { status: 'watched' });
+
+    // Record a watched date + rewatch entry via the watch-log API.
+    await request.post('/api/watch-log', {
+      data: { tmdbId: 302946, contentType: 'movie', watchedAt: '2024-01-15T00:00:00.000Z', note: 'first viewing' },
+    });
+
+    const exported = await (await request.get('/api/library/export')).json() as {
+      items: { tmdbId: number; watchedAt?: string }[];
+      watchLog: { tmdbId: number; watchedAt: string; note?: string }[];
+    };
+    expect(exported.watchLog.length).toBe(1);
+    expect(exported.watchLog[0]).toMatchObject({ tmdbId: 302946, watchedAt: '2024-01-15T00:00:00.000Z', note: 'first viewing' });
+    expect(exported.items[0].watchedAt).toBe('2024-01-15T00:00:00.000Z');
+
+    // Wipe and re-import from the exported backup.
+    await clearLibrary(request);
+    await request.post('/api/migrate', { data: exported });
+
+    const item = await (await request.get('/api/library/302946/movie')).json() as { watchedAt: string | null };
+    expect(item.watchedAt).toBe('2024-01-15T00:00:00.000Z');
+
+    const log = await (await request.get('/api/library/302946/movie/watch-log')).json() as { note: string }[];
+    expect(log.length).toBe(1);
+    expect(log[0].note).toBe('first viewing');
+  });
+
+  test('import old backup without watchedAt/watch_log still works', async ({ request }) => {
+    await clearLibrary(request);
+    // A legacy backup shape with no watchedAt or watchLog fields.
+    await request.post('/api/migrate', {
+      data: {
+        items: [{ tmdbId: 550, title: 'Fight Club', contentType: 'movie', status: 'watched' }],
+        progress: [],
+        episodes: [],
+      },
+    });
+    const item = await (await request.get('/api/library/550/movie')).json() as { watchedAt: string | null; title: string };
+    expect(item.title).toBe('Fight Club');
+    expect(item.watchedAt).toBeNull();
+    const log = await (await request.get('/api/library/550/movie/watch-log')).json() as unknown[];
+    expect(log.length).toBe(0);
+  });
 });

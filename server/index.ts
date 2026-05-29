@@ -138,6 +138,26 @@ app.post('/api/episodes/season', (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/library/:tmdbId/:type/watch-log — list rewatch entries
+app.get('/api/library/:tmdbId/:type/watch-log', (req, res) => {
+  res.json(queries.getWatchLog(Number(req.params.tmdbId), req.params.type));
+});
+
+// POST /api/watch-log — append a rewatch entry
+app.post('/api/watch-log', (req, res) => {
+  const { tmdbId, contentType, watchedAt, note } = req.body as {
+    tmdbId: number; contentType: string; watchedAt?: string; note?: string;
+  };
+  const id = queries.addWatchLog({ tmdbId, contentType, watchedAt, note });
+  res.json({ id });
+});
+
+// DELETE /api/watch-log/:id — remove a rewatch entry
+app.delete('/api/watch-log/:id', (req, res) => {
+  queries.deleteWatchLog(Number(req.params.id));
+  res.json({ ok: true });
+});
+
 // POST /api/migrate — one-time Dexie import
 app.post('/api/migrate', (req, res) => {
   try {
