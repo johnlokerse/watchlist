@@ -154,6 +154,7 @@ export default function CopilotChat() {
         userRating: null,
         notes: '',
         genreIds: data.genres?.map((g) => g.id) ?? data.genre_ids ?? [],
+        watchedAt: null,
       });
     },
     [],

@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { clearLibrary, addToLibrary, exportLibrary, updateSeriesProgress, bulkImportEpisodes, updateWatchedItem } from '../db/hooks';
+import { clearLibrary, addToLibrary, exportLibrary, updateSeriesProgress, bulkImportEpisodes, updateWatchedItem, addWatchLogEntry } from '../db/hooks';
 import type { WatchedStatus, ContentType } from '../db/models';
 import { useSettings } from '../hooks/useSettings';
 import { THEMES } from '../utils/themes';
@@ -51,6 +51,7 @@ const EXAMPLE_JSON = JSON.stringify(
         status: 'watched',
         posterPath: '/fceheXB5fC4WrLVuWJ6OZv9FXYr.jpg',
         releaseDate: '2016-10-13',
+        watchedAt: '2024-01-15T00:00:00.000Z',
       },
       {
         tmdbId: 1396,
@@ -74,6 +75,9 @@ const EXAMPLE_JSON = JSON.stringify(
       { tmdbId: 1396, season: 1, episode: 1 },
       { tmdbId: 1396, season: 1, episode: 2 },
     ],
+    watchLog: [
+      { tmdbId: 302946, contentType: 'movie', watchedAt: '2024-01-15T00:00:00.000Z', note: 'first viewing' },
+    ],
   },
   null,
   2,
@@ -88,6 +92,7 @@ interface ImportEntry {
   releaseDate?: string | null;
   userRating?: number | null;
   notes?: string;
+  watchedAt?: string | null;
 }
 
 interface ImportProgress {
@@ -102,6 +107,13 @@ interface ImportEpisode {
   tmdbId: number;
   season: number;
   episode: number;
+}
+
+interface ImportWatchLog {
+  tmdbId: number;
+  contentType: ContentType;
+  watchedAt: string;
+  note?: string;
 }
 
 interface AppVersionResponse {
@@ -494,15 +506,18 @@ export default function SettingsPage() {
       let entries: ImportEntry[];
       let progressEntries: ImportProgress[];
       let episodeEntries: ImportEpisode[];
+      let watchLogEntries: ImportWatchLog[];
       if (Array.isArray(parsed)) {
         entries = parsed as ImportEntry[];
         progressEntries = [];
         episodeEntries = [];
+        watchLogEntries = [];
       } else if (parsed && typeof parsed === 'object' && 'items' in parsed) {
-        const data = parsed as { items: ImportEntry[]; progress?: ImportProgress[]; episodes?: ImportEpisode[] };
+        const data = parsed as { items: ImportEntry[]; progress?: ImportProgress[]; episodes?: ImportEpisode[]; watchLog?: ImportWatchLog[] };
         entries = data.items ?? [];
         progressEntries = data.progress ?? [];
         episodeEntries = data.episodes ?? [];
+        watchLogEntries = data.watchLog ?? [];
       } else {
         throw new Error('JSON must be an array or an object with an "items" array.');
       }
@@ -524,12 +539,14 @@ export default function SettingsPage() {
           userRating: entry.userRating ?? null,
           notes: entry.notes ?? '',
           genreIds: [],
+          watchedAt: entry.watchedAt ?? null,
         });
 
         if (!id) { skipped++; continue; }
         await updateWatchedItem(id, {
           userRating: entry.userRating ?? null,
           notes: entry.notes ?? '',
+          watchedAt: entry.watchedAt ?? null,
         });
         added++;
 
@@ -550,6 +567,16 @@ export default function SettingsPage() {
 
       if (episodeEntries.length) {
         await bulkImportEpisodes(episodeEntries);
+      }
+
+      for (const entry of watchLogEntries) {
+        if (!entry.tmdbId || !entry.contentType || !entry.watchedAt) continue;
+        await addWatchLogEntry({
+          tmdbId: entry.tmdbId,
+          contentType: entry.contentType,
+          watchedAt: entry.watchedAt,
+          note: entry.note,
+        });
       }
 
       setImportResult({ added, skipped });

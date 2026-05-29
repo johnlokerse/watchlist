@@ -155,6 +155,25 @@ app.post('/api/episodes/season', (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Watch log (rewatch history) ────────────────────────────────────
+
+app.get('/api/library/:tmdbId/:type/watch-log', (req, res) => {
+  res.json(queries.getWatchLog(Number(req.params.tmdbId), req.params.type));
+});
+
+app.post('/api/watch-log', (req, res) => {
+  const { tmdbId, contentType, watchedAt, note } = req.body as {
+    tmdbId: number; contentType: string; watchedAt?: string; note?: string;
+  };
+  const id = queries.addWatchLog({ tmdbId, contentType, watchedAt, note });
+  res.json({ id });
+});
+
+app.delete('/api/watch-log/:id', (req, res) => {
+  queries.deleteWatchLog(Number(req.params.id));
+  res.json({ ok: true });
+});
+
 // ── Settings ───────────────────────────────────────────────────────
 
 app.get('/api/settings', (_req, res) => {

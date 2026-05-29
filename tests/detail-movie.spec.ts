@@ -248,4 +248,30 @@ test.describe('Movie Detail Page', () => {
     const item = await res.json() as { status: string };
     expect(item.status).toBe('plan_to_watch');
   });
+
+  test('marking a movie watched records a "Watched on" date', async ({ page, request }) => {
+    await seedMovie(request, { status: 'plan_to_watch' });
+    await setupTMDBMocks(page);
+    await page.goto('/movie/302946');
+    await page.getByRole('combobox').selectOption('watched');
+    await expect(page.getByText(/Watched on/)).toBeVisible();
+    await expect(page.getByLabel('Watched on date')).toBeVisible();
+    // The server auto-stamps watchedAt on the transition to watched.
+    const item = await (await request.get('/api/library/302946/movie')).json() as { watchedAt: string | null };
+    expect(item.watchedAt).not.toBeNull();
+  });
+
+  test('logging a rewatch increments the watch count', async ({ page, request }) => {
+    await seedMovie(request, { status: 'plan_to_watch' });
+    await setupTMDBMocks(page);
+    await page.goto('/movie/302946');
+    await page.getByRole('combobox').selectOption('watched');
+    // Auto-stamp creates the first watch_log entry.
+    await expect(page.getByText(/Watched 1×/)).toBeVisible();
+    await page.getByRole('button', { name: 'Log rewatch' }).click();
+    await page.getByRole('button', { name: 'Save rewatch' }).click();
+    await expect(page.getByText(/Watched 2×/)).toBeVisible();
+    const log = await (await request.get('/api/library/302946/movie/watch-log')).json() as unknown[];
+    expect(log.length).toBe(2);
+  });
 });
