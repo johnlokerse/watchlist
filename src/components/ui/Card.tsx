@@ -85,7 +85,7 @@ export default function Card({
           </div>
         )}
       </div>
-      <div className={compact ? 'min-h-[4.5rem] p-2 sm:min-h-[5rem] sm:p-3' : 'min-h-[5rem] p-3'}>
+      <div className={compact ? 'p-2 sm:p-3' : 'p-3'}>
         <h3 className={`${compact ? 'text-xs sm:text-sm' : 'text-sm'} truncate font-semibold leading-snug text-text-primary transition-colors group-hover/card:text-accent`}>
           {title}
         </h3>
