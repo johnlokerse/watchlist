@@ -24,6 +24,8 @@ body {
 
 html {
   background: var(--color-surface);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 :root {

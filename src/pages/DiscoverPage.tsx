@@ -12,7 +12,7 @@ import SkeletonCard from '../components/ui/SkeletonCard';
 import SearchBar from '../components/ui/SearchBar';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { formatDate } from '../utils/date';
-import { posterUrl } from '../utils/image';
+import { posterUrl, backdropUrl } from '../utils/image';
 
 type ContentFilter = 'all' | 'movies' | 'series';
 
@@ -20,6 +20,7 @@ interface DiscoveryItem {
   id: number;
   title: string;
   posterPath: string | null;
+  backdropPath: string | null;
   releaseDate: string;
   voteAverage: number;
   overview: string;
@@ -46,6 +47,7 @@ function movieToDiscoveryItem(movie: TMDBMovie, status: WatchedStatus | null): D
     id: movie.id,
     title: movie.title,
     posterPath: movie.poster_path,
+    backdropPath: movie.backdrop_path,
     releaseDate: movie.release_date,
     voteAverage: movie.vote_average,
     overview: movie.overview,
@@ -59,6 +61,7 @@ function seriesToDiscoveryItem(series: TMDBSeries, status: WatchedStatus | null)
     id: series.id,
     title: series.name,
     posterPath: series.poster_path,
+    backdropPath: series.backdrop_path,
     releaseDate: series.first_air_date,
     voteAverage: series.vote_average,
     overview: series.overview,
@@ -74,48 +77,42 @@ function itemHref(item: DiscoveryItem) {
 function DiscoverySpotlight({ item, totalMatches }: { item?: DiscoveryItem; totalMatches: number }) {
   if (!item) {
     return (
-      <div className="app-panel-soft flex min-h-[220px] items-center justify-center p-4 text-center text-sm text-text-muted">
+      <div className="flex min-h-[220px] items-center justify-center border border-border-subtle/60 p-4 text-center text-sm text-text-muted">
         No matching titles in the current feeds.
       </div>
     );
   }
 
-  const poster = posterUrl(item.posterPath, 'w185');
+  const backdrop = backdropUrl(item.backdropPath, 'w780') ?? posterUrl(item.posterPath, 'w780');
 
   return (
-    <div className="app-panel-soft grid gap-4 p-4 sm:grid-cols-[96px_1fr]">
-      <div className="aspect-[2/3] w-24 overflow-hidden rounded-lg border border-border-subtle bg-surface-overlay">
-        {poster ? (
-          <img src={poster} alt={item.title} className="h-full w-full object-cover" />
-        ) : (
-          <div className="grid h-full place-items-center text-xs text-text-muted">N/A</div>
-        )}
-      </div>
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-md border border-border-subtle bg-surface-overlay px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-text-muted">
-            Focus
-          </span>
-          <span className="text-xs font-semibold text-warning">★ {item.voteAverage.toFixed(1)}</span>
-          {item.status && (
-            <span className="rounded-md bg-accent/15 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-accent">
-              In Library
-            </span>
-          )}
+    <Link
+      to={itemHref(item)}
+      className="group relative flex min-h-[260px] flex-col justify-end overflow-hidden border border-border-subtle/60 focus:outline-none focus:ring-2 focus:ring-accent/50"
+    >
+      {backdrop ? (
+        <img
+          src={backdrop}
+          alt={item.title}
+          className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-surface-overlay" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-black/10" />
+      <div className="relative p-5">
+        <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
+          <span className="uppercase tracking-[0.18em] text-accent">Focus</span>
+          <span className="text-warning">★ {item.voteAverage.toFixed(1)}</span>
+          {item.status && <span className="uppercase tracking-wide text-text-secondary">In Library</span>}
         </div>
-        <h2 className="mt-3 line-clamp-2 text-2xl font-bold leading-tight text-text-primary">{item.title}</h2>
-        <p className="mt-2 text-sm text-text-secondary">
+        <h2 className="mt-2 line-clamp-2 text-3xl font-bold leading-tight text-white drop-shadow">{item.title}</h2>
+        <p className="mt-1.5 text-sm font-medium text-white/70">
           {item.type === 'movie' ? 'Movie' : 'Series'} · {item.releaseDate ? formatDate(item.releaseDate) : 'TBA'} · {totalMatches} matches
         </p>
-        <p className="mt-3 line-clamp-3 text-sm leading-6 text-text-muted">{item.overview || 'No overview available yet.'}</p>
-        <Link
-          to={itemHref(item)}
-          className="mt-4 inline-flex rounded-lg bg-accent px-3 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-accent-hover"
-        >
-          Open Details
-        </Link>
+        <p className="mt-2 line-clamp-2 max-w-2xl text-sm leading-6 text-white/60">{item.overview || 'No overview available yet.'}</p>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -135,12 +132,12 @@ function DiscoverySection({
   coverSize: CoverSize;
 }) {
   return (
-    <section className="app-panel p-4">
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <div>
-          <p className="section-title">{eyebrow}</p>
-          <h2 className="mt-1 text-xl font-bold">{title}</h2>
-        </div>
+    <section>
+      <div className="mb-3 flex items-baseline justify-between gap-3 border-b border-border-subtle/60 pb-2">
+        <h2 className="flex items-baseline gap-2 text-lg font-bold tracking-tight text-text-primary">
+          <span>{title}</span>
+          <span className="section-title font-semibold">{eyebrow}</span>
+        </h2>
         <span className="text-xs font-medium text-text-muted">{meta}</span>
       </div>
       {isLoading ? (
@@ -148,7 +145,7 @@ function DiscoverySection({
           {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </ScrollRow>
       ) : items.length === 0 ? (
-        <div className="rounded-lg border border-border-subtle bg-surface-overlay p-6 text-center text-sm text-text-muted">
+        <div className="py-6 text-center text-sm text-text-muted">
           No matches in this feed.
         </div>
       ) : (
@@ -236,7 +233,7 @@ export default function DiscoverPage() {
   const spotlight = visibleItems.find((item) => !item.status) ?? visibleItems[0];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="section-title mb-2">Recommendations and release radar</p>
@@ -255,7 +252,7 @@ export default function DiscoverPage() {
       )}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="app-panel p-3 sm:p-4">
+        <div className="py-1">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="min-w-0 flex-1">
               <SearchBar
@@ -273,14 +270,6 @@ export default function DiscoverPage() {
               value={contentFilter}
               onChange={(value) => setContentFilter(value as ContentFilter)}
             />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-text-muted">
-            <span className="rounded-md border border-border-subtle bg-surface-overlay px-2 py-1">
-              {visibleItems.length} visible
-            </span>
-            <span className="rounded-md border border-border-subtle bg-surface-overlay px-2 py-1">
-              {visibleItems.filter((item) => item.status).length} already in library
-            </span>
           </div>
         </div>
         <DiscoverySpotlight item={spotlight} totalMatches={visibleItems.length} />

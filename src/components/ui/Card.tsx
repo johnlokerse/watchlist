@@ -93,7 +93,7 @@ export default function Card({
           <p className={`mt-1 truncate text-xs text-text-secondary ${compact ? 'hidden sm:block' : ''}`}>{subtitle}</p>
         )}
         {releaseDate && (
-          <p className={`mt-1 text-xs text-text-muted ${compact ? 'hidden sm:block' : ''}`}>{formatDate(releaseDate)}</p>
+          <p className={`mt-1 truncate whitespace-nowrap text-xs text-text-muted ${compact ? 'hidden sm:block' : ''}`}>{formatDate(releaseDate)}</p>
         )}
       </div>
     </Link>
