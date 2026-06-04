@@ -183,6 +183,32 @@ export function useSeriesDetailBatch(ids: number[]) {
   });
 }
 
+// --- Recommendations ---
+
+export function useMovieRecommendations(id: number | undefined) {
+  return useQuery({
+    queryKey: ['movie', id, 'recommendations'],
+    queryFn: () =>
+      tmdbFetch<TMDBPagedResponse<TMDBMovie>>(`/movie/${id}/recommendations`, {
+        page: '1',
+      }),
+    enabled: !!id,
+    staleTime: STALE_TIME_LIST,
+  });
+}
+
+export function useSeriesRecommendations(id: number | undefined) {
+  return useQuery({
+    queryKey: ['series', id, 'recommendations'],
+    queryFn: () =>
+      tmdbFetch<TMDBPagedResponse<TMDBSeries>>(`/tv/${id}/recommendations`, {
+        page: '1',
+      }),
+    enabled: !!id,
+    staleTime: STALE_TIME_LIST,
+  });
+}
+
 // --- Watch Providers ---
 
 export function useAvailableProviders(authVersion = '') {

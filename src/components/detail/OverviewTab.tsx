@@ -1,4 +1,5 @@
 import ReleaseTimeline from './ReleaseTimeline';
+import RecommendedSection from './RecommendedSection';
 import type { ReleaseTimelineEvent } from '../../utils/releaseTimeline';
 
 interface Props {
@@ -75,6 +76,8 @@ export default function OverviewTab({
           TMDB ↗
         </a>
       </div>
+
+      <RecommendedSection tmdbId={tmdbId} type={type} />
     </div>
   );
 }
