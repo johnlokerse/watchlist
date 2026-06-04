@@ -49,7 +49,7 @@ export default function Card({
       to={linkTo}
       onClick={onClick}
       data-scroll-restore-id={scrollRestoreId}
-      className="group/card flex h-full flex-col overflow-hidden rounded-lg border border-border-subtle bg-surface-raised shadow-[0_14px_40px_rgb(0_0_0_/_0.16)] transition-all hover:-translate-y-0.5 hover:border-accent/45 hover:bg-surface-overlay focus:outline-none focus:ring-2 focus:ring-accent/50"
+      className="group/card block overflow-hidden rounded-lg border border-border-subtle bg-surface-raised shadow-[0_14px_40px_rgb(0_0_0_/_0.16)] transition-all hover:-translate-y-0.5 hover:border-accent/45 hover:bg-surface-overlay focus:outline-none focus:ring-2 focus:ring-accent/50"
     >
       <div className="relative aspect-[2/3] bg-surface-overlay">
         {url ? (
@@ -85,7 +85,7 @@ export default function Card({
           </div>
         )}
       </div>
-      <div className={compact ? 'flex min-h-[4.5rem] flex-1 flex-col p-2 sm:min-h-[5rem] sm:p-3' : 'flex min-h-[5rem] flex-1 flex-col p-3'}>
+      <div className={compact ? 'min-h-[4.5rem] p-2 sm:min-h-[5rem] sm:p-3' : 'min-h-[5rem] p-3'}>
         <h3 className={`${compact ? 'text-xs sm:text-sm' : 'text-sm'} truncate font-semibold leading-snug text-text-primary transition-colors group-hover/card:text-accent`}>
           {title}
         </h3>
