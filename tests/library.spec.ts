@@ -206,12 +206,13 @@ test.describe('Library Page', () => {
     await page.goto('/library?tab=series');
     await page.getByTitle('List view').click();
 
-    const target = page.locator('[data-library-item-id="series-3024"]');
+    const target = page.locator('[data-scroll-restore-id="series-3024"]');
     await target.scrollIntoViewIfNeeded();
 
     const scrollBeforeOpen = await page.evaluate(() => window.scrollY);
 
-    await target.click();
+    // Click the inner <Link> — the list-item div itself has no navigation handler
+    await target.getByRole('link').click();
     await expect(page).toHaveURL('/series/3024');
 
     await page.getByRole('button', { name: /Back/i }).click();

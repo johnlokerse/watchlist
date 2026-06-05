@@ -62,7 +62,8 @@ test.describe('Discover Page', () => {
   test('clicking a series card navigates to /series/:id', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/discover');
-    await page.getByText('Breaking Bad').first().click();
+    // Use getByRole link to click the card (not the spotlight heading)
+    await page.getByRole('link', { name: /Breaking Bad/ }).first().click();
     await expect(page).toHaveURL('/series/1396');
   });
 

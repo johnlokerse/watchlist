@@ -195,9 +195,12 @@ function LibraryTable({
         {items.map((item) => {
           const poster = posterUrl(item.posterPath, 'w92');
 
+          const restoreId = getLibraryItemRestoreId(item.contentType, item.tmdbId);
+
           return (
             <div
               key={itemKey(item)}
+              data-scroll-restore-id={restoreId}
               className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 px-3 py-3 transition hover:bg-surface-overlay md:grid-cols-[minmax(0,1.7fr)_130px_130px_110px] md:items-center md:px-4"
             >
               <div className="flex min-w-0 items-center gap-3">

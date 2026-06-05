@@ -32,6 +32,7 @@
 ## Testing
 
 - Playwright E2E only (`tests/`). No unit tests.
+- **IMPORTANT: Stop `npm run dev` before running tests.** Playwright's `reuseExistingServer` is enabled locally, so if a real server is already on port 3001 it will be used instead of the test server, causing incorrect failures.
 - `playwright.config.ts` auto-starts **two** webServers: the test Express backend (port 3001) and Vite dev server in `test` mode (port 5173).
 - TMDB API calls are mocked via `page.route()` using JSON fixtures in `tests/fixtures/tmdb/`.
 - Every mutation test should call `clearLibrary(request)` in `beforeEach`.
