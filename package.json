@@ -1,7 +1,7 @@
 {
   "name": "movie-db-copilot-sdk",
   "private": true,
-  "version": "1.2.1",
+  "version": "1.2.2",
   "type": "module",
   "scripts": {
     "dev": "concurrently -n vite,server -c cyan,magenta \"vite\" \"tsx watch --env-file .env server/index.ts\"",
