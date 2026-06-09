@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import CopilotChat from '../chat/CopilotChat';
+
+const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed';
 
 const navItems = [
   { to: '/upcoming', label: 'Upcoming', icon: 'calendar' },
@@ -8,7 +11,7 @@ const navItems = [
   { to: '/settings', label: 'Settings', icon: 'settings' },
 ];
 
-function NavIcon({ icon }: { icon: string }) {
+function NavIcon({ icon, 'aria-hidden': ariaHidden }: { icon: string; 'aria-hidden'?: boolean | 'true' }) {
   const common = {
     className: 'h-4 w-4',
     fill: 'none',
@@ -17,6 +20,7 @@ function NavIcon({ icon }: { icon: string }) {
     strokeLinejoin: 'round' as const,
     strokeWidth: 1.8,
     viewBox: '0 0 24 24',
+    'aria-hidden': ariaHidden,
   };
 
   switch (icon) {
@@ -53,56 +57,113 @@ function NavIcon({ icon }: { icon: string }) {
   }
 }
 
-function BrandMark() {
+function BrandMark({ collapsed }: { collapsed: boolean }) {
+  const logo = (
+    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-accent/30 bg-accent/15 text-accent">
+      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 7h16v12.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5V7Z" />
+        <path d="m4 7 2.8-4h4L8 7M12 7l2.8-4h4L16 7M4 11h16" />
+      </svg>
+    </span>
+  );
+
+  if (collapsed) {
+    return <div className="flex justify-center">{logo}</div>;
+  }
+
   return (
     <div className="flex items-center gap-3">
-      <span className="grid h-9 w-9 place-items-center rounded-lg border border-accent/30 bg-accent/15 text-accent">
-        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 7h16v12.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5V7Z" />
-          <path d="m4 7 2.8-4h4L8 7M12 7l2.8-4h4L16 7M4 11h16" />
-        </svg>
-      </span>
-      <div>
-        <span className="block text-sm font-bold text-text-primary">Watchlist</span>
-      </div>
+      {logo}
+      <span className="block text-sm font-bold text-text-primary">Watchlist</span>
     </div>
   );
 }
 
+function ChevronIcon({ direction, 'aria-hidden': ariaHidden }: { direction: 'left' | 'right'; 'aria-hidden'?: boolean | 'true' }) {
+  return (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} viewBox="0 0 24 24" aria-hidden={ariaHidden}>
+      {direction === 'left' ? (
+        <path d="M15 18l-6-6 6-6" />
+      ) : (
+        <path d="M9 18l6-6-6-6" />
+      )}
+    </svg>
+  );
+}
+
+function safeLocalStorage(action: 'get', key: string): string | null;
+function safeLocalStorage(action: 'set', key: string, value: string): void;
+function safeLocalStorage(action: 'get' | 'set', key: string, value?: string): string | null | void {
+  try {
+    if (action === 'get') return localStorage.getItem(key);
+    localStorage.setItem(key, value!);
+  } catch {
+    // localStorage unavailable (private browsing, storage blocked, etc.)
+  }
+  return null;
+}
+
 export default function AppShell() {
+  const [collapsed, setCollapsed] = useState(
+    () => safeLocalStorage('get', SIDEBAR_COLLAPSED_KEY) === 'true',
+  );
+
+  function toggleSidebar() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      safeLocalStorage('set', SIDEBAR_COLLAPSED_KEY, String(next));
+      return next;
+    });
+  }
+
   return (
     <div className="app-bg min-h-screen">
       <div className="pointer-events-none fixed inset-x-0 top-0 z-[35] h-[calc(var(--safe-area-top)+2px)] bg-surface/95 backdrop-blur md:hidden" />
 
       {/* Desktop side nav */}
-      <header className="hidden md:block fixed inset-y-0 left-0 z-50 w-[236px] border-r border-border-subtle bg-surface/95 backdrop-blur-xl">
-        <nav className="flex h-full flex-col gap-6 px-4 py-5">
-          <BrandMark />
+      <header className={`hidden md:block fixed inset-y-0 left-0 z-50 border-r border-border-subtle bg-surface/95 backdrop-blur-xl transition-all duration-200 ${collapsed ? 'w-[64px]' : 'w-[236px]'}`}>
+        <nav className="flex h-full flex-col gap-6 px-3 py-5">
+          <BrandMark collapsed={collapsed} />
           <div className="space-y-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-accent/15 text-accent border border-accent/20'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-raised border border-transparent'
-                }`
-              }
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                aria-label={collapsed ? item.label : undefined}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-lg text-sm font-medium transition-colors ${collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'} ${
+                    isActive
+                      ? 'bg-accent/15 text-accent border border-accent/20'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-raised border border-transparent'
+                  }`
+                }
+              >
+                <NavIcon icon={item.icon} aria-hidden />
+                {!collapsed && <span>{item.label}</span>}
+              </NavLink>
+            ))}
+          </div>
+
+          {/* Collapse toggle */}
+          <div className="mt-auto">
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!collapsed}
+              className={`flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-raised hover:text-text-primary ${collapsed ? 'justify-center px-2' : ''}`}
             >
-              <NavIcon icon={item.icon} />
-              {item.label}
-            </NavLink>
-          ))}
+              <ChevronIcon direction={collapsed ? 'right' : 'left'} aria-hidden />
+              {!collapsed && <span>Collapse</span>}
+            </button>
           </div>
         </nav>
       </header>
 
       {/* Main content */}
-      <main className="min-h-screen w-full px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[calc(1.25rem+var(--safe-area-top))] md:py-6 md:pl-[260px] md:pr-6">
+      <main className={`min-h-screen w-full px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[calc(1.25rem+var(--safe-area-top))] md:py-6 md:pr-6 transition-all duration-200 ${collapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
         <div className="w-full">
-        <Outlet />
+          <Outlet />
         </div>
       </main>
 

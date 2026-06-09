@@ -41,6 +41,25 @@ test.describe('Library Page', () => {
     await expect(page.getByRole('button', { name: 'Plan to Watch' })).toBeVisible();
   });
 
+  test('mobile filter panel state persists after refresh', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setupTMDBMocks(page);
+    await page.goto('/library');
+
+    const filterToggle = page.getByRole('button', { name: 'Toggle library filters' });
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
+
+    await filterToggle.click();
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'true');
+    await page.reload();
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'true');
+
+    await filterToggle.click();
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
+    await page.reload();
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
   test('series tab has 3 filter pills including Watching', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/library');
@@ -206,12 +225,13 @@ test.describe('Library Page', () => {
     await page.goto('/library?tab=series');
     await page.getByTitle('List view').click();
 
-    const target = page.locator('[data-library-item-id="series-3024"]');
+    const target = page.locator('[data-scroll-restore-id="series-3024"]');
     await target.scrollIntoViewIfNeeded();
 
     const scrollBeforeOpen = await page.evaluate(() => window.scrollY);
 
-    await target.click();
+    // Click the inner <Link> — the list-item div itself has no navigation handler
+    await target.getByRole('link').click();
     await expect(page).toHaveURL('/series/3024');
 
     await page.getByRole('button', { name: /Back/i }).click();

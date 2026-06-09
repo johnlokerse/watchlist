@@ -20,6 +20,42 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { formatDate } from '../utils/date';
 import { posterUrl } from '../utils/image';
 
+const LIBRARY_SCROLL_RESTORE_KEY = 'library-scroll-restore';
+
+function getLibraryScrollPath() {
+  return `${window.location.pathname}${window.location.search}`;
+}
+
+function saveLibraryScrollPosition() {
+  try {
+    sessionStorage.setItem(
+      LIBRARY_SCROLL_RESTORE_KEY,
+      JSON.stringify({ path: getLibraryScrollPath(), y: window.scrollY }),
+    );
+  } catch {
+    // Storage can be unavailable in restricted browser contexts.
+  }
+}
+
+function restoreLibraryScrollPosition() {
+  try {
+    const raw = sessionStorage.getItem(LIBRARY_SCROLL_RESTORE_KEY);
+    if (!raw) return;
+
+    const value = JSON.parse(raw) as { path?: string; y?: number };
+    if (value.path !== getLibraryScrollPath() || typeof value.y !== 'number') return;
+
+    window.scrollTo({ top: value.y, behavior: 'auto' });
+    sessionStorage.removeItem(LIBRARY_SCROLL_RESTORE_KEY);
+  } catch {
+    try {
+      sessionStorage.removeItem(LIBRARY_SCROLL_RESTORE_KEY);
+    } catch {
+      // Ignore when sessionStorage is unavailable.
+    }
+  }
+}
+
 function useSeriesProgressLabel(tmdbId: number) {
   const progress = useSeriesProgress(tmdbId);
   return progress && progress.currentEpisode > 0
@@ -178,11 +214,7 @@ function SeriesProgressValue({ tmdbId }: { tmdbId: number }) {
 }
 
 
-function LibraryTable({
-  items,
-}: {
-  items: WatchedItem[];
-}) {
+function LibraryTable({ items, onOpen }: { items: WatchedItem[]; onOpen: () => void }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border-subtle bg-surface-raised">
       <div className="hidden grid-cols-[minmax(0,1.7fr)_130px_130px_110px] gap-3 border-b border-border-subtle px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-text-muted md:grid">
@@ -195,9 +227,12 @@ function LibraryTable({
         {items.map((item) => {
           const poster = posterUrl(item.posterPath, 'w92');
 
+          const restoreId = getLibraryItemRestoreId(item.contentType, item.tmdbId);
+
           return (
             <div
               key={itemKey(item)}
+              data-scroll-restore-id={restoreId}
               className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 px-3 py-3 transition hover:bg-surface-overlay md:grid-cols-[minmax(0,1.7fr)_130px_130px_110px] md:items-center md:px-4"
             >
               <div className="flex min-w-0 items-center gap-3">
@@ -211,7 +246,10 @@ function LibraryTable({
                 <div className="min-w-0">
                   <Link
                     to={itemHref(item)}
-                    onClick={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onOpen();
+                    }}
                     className="block truncate font-semibold text-text-primary transition hover:text-accent"
                   >
                     {item.title}
@@ -246,6 +284,7 @@ function LibraryCollection({
   coverSize,
   collapsed,
   onToggleCollapse,
+  onOpenItem,
 }: {
   title: string;
   items: WatchedItem[];
@@ -253,6 +292,7 @@ function LibraryCollection({
   coverSize: CoverSize;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  onOpenItem: () => void;
 }) {
   if (items.length === 0) return null;
 
@@ -289,7 +329,7 @@ function LibraryCollection({
         <CardGrid compact={coverSize === 'xs' || title === 'Watched'} coverSize={coverSize}>
           {items.map((item) =>
             item.contentType === 'series' && item.status === 'watching' ? (
-              <WatchingSeriesCard key={itemKey(item)} item={item} />
+              <WatchingSeriesCard key={itemKey(item)} item={item} onOpen={onOpenItem} />
             ) : (
               <Card
                 key={itemKey(item)}
@@ -297,12 +337,14 @@ function LibraryCollection({
                 title={item.title}
                 posterPath={item.posterPath}
                 type={item.contentType}
+                onClick={onOpenItem}
+                scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
               />
             ),
           )}
         </CardGrid>
       ) : (
-        <LibraryTable items={items} />
+        <LibraryTable items={items} onOpen={onOpenItem} />
       )}
         </>
       )}
@@ -326,7 +368,7 @@ export default function LibraryPage() {
   const [search, setSearch] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [genreFilters, setGenreFilters] = useState<string[]>([]);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useLocalStorage('library-mobile-filters-open', false);
   const [showWideFilters, setShowWideFilters] = useState(true);
   const [isWide, setIsWide] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
@@ -436,6 +478,20 @@ export default function LibraryPage() {
   const searchLoading = contentType === 'movie' ? movieSearch.isLoading : seriesSearch.isLoading;
   const searchError = contentType === 'movie' ? movieSearch.isError : seriesSearch.isError;
   const tmdbTokenConfigured = settings.tmdbApiToken.trim().length > 0;
+
+  useEffect(() => {
+    if (!items || isSearching || filteredItems.length === 0) return;
+
+    let restoreFrame = 0;
+    const renderFrame = requestAnimationFrame(() => {
+      restoreFrame = requestAnimationFrame(restoreLibraryScrollPosition);
+    });
+
+    return () => {
+      cancelAnimationFrame(renderFrame);
+      cancelAnimationFrame(restoreFrame);
+    };
+  }, [items, filteredItems.length, viewMode, tab, isSearching]);
 
   useEffect(() => {
     const wideQuery = window.matchMedia('(min-width: 768px)');
@@ -602,6 +658,7 @@ export default function LibraryPage() {
                     ...prev,
                     [`${tab}-${section.status}`]: !prev[`${tab}-${section.status}`],
                   }))}
+                  onOpenItem={saveLibraryScrollPosition}
                 />
               ))}
             </div>

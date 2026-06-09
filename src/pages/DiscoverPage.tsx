@@ -77,7 +77,7 @@ function itemHref(item: DiscoveryItem) {
 function DiscoverySpotlight({ item, totalMatches }: { item?: DiscoveryItem; totalMatches: number }) {
   if (!item) {
     return (
-      <div className="flex min-h-[220px] items-center justify-center border border-border-subtle/60 p-4 text-center text-sm text-text-muted">
+      <div className="flex min-h-[300px] items-center justify-center p-4 text-center text-sm text-text-muted">
         No matching titles in the current feeds.
       </div>
     );
@@ -88,7 +88,7 @@ function DiscoverySpotlight({ item, totalMatches }: { item?: DiscoveryItem; tota
   return (
     <Link
       to={itemHref(item)}
-      className="group relative flex min-h-[260px] flex-col justify-end overflow-hidden border border-border-subtle/60 focus:outline-none focus:ring-2 focus:ring-accent/50"
+      className="discover-spotlight group relative flex min-h-[300px] flex-col justify-end overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
     >
       {backdrop ? (
         <img
@@ -100,7 +100,10 @@ function DiscoverySpotlight({ item, totalMatches }: { item?: DiscoveryItem; tota
         <div className="absolute inset-0 bg-surface-overlay" />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-black/10" />
-      <div className="relative p-5">
+      {/* Side fades so the banner melts seamlessly into the page background (dark themes only) */}
+      <div className="discover-spotlight-fade pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[var(--color-surface)] to-transparent" />
+      <div className="discover-spotlight-fade pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[var(--color-surface)] to-transparent" />
+      <div className="relative p-5 sm:p-8">
         <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
           <span className="uppercase tracking-[0.18em] text-accent">Focus</span>
           <span className="text-warning">★ {item.voteAverage.toFixed(1)}</span>
@@ -251,29 +254,26 @@ export default function DiscoverPage() {
         </div>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="py-1">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="min-w-0 flex-1">
-              <SearchBar
-                value={query}
-                onChange={setQuery}
-                placeholder="Search trending and anticipated..."
-              />
-            </div>
-            <SegmentedControl
-              options={[
-                { value: 'all', label: 'All' },
-                { value: 'movies', label: 'Movies' },
-                { value: 'series', label: 'Series' },
-              ]}
-              value={contentFilter}
-              onChange={(value) => setContentFilter(value as ContentFilter)}
-            />
-          </div>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="min-w-0 flex-1">
+          <SearchBar
+            value={query}
+            onChange={setQuery}
+            placeholder="Search trending and anticipated..."
+          />
         </div>
-        <DiscoverySpotlight item={spotlight} totalMatches={visibleItems.length} />
+        <SegmentedControl
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'movies', label: 'Movies' },
+            { value: 'series', label: 'Series' },
+          ]}
+          value={contentFilter}
+          onChange={(value) => setContentFilter(value as ContentFilter)}
+        />
       </div>
+
+      <DiscoverySpotlight item={spotlight} totalMatches={visibleItems.length} />
 
       {showSeries && (
         <DiscoverySection

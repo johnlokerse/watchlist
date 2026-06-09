@@ -149,6 +149,8 @@ export function applyTheme(id: string): void {
     root.style.setProperty(prop, value);
   }
   root.dataset.theme = theme.id;
-  root.style.colorScheme = theme.id === 'solarized-light' ? 'light' : 'dark';
+  const scheme = theme.id === 'solarized-light' ? 'light' : 'dark';
+  root.dataset.scheme = scheme;
+  root.style.colorScheme = scheme;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.vars['--color-surface'] ?? '#000000');
 }

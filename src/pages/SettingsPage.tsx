@@ -500,6 +500,7 @@ export default function SettingsPage() {
     setImportResult(null);
     setImporting(true);
     try {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       const text = await file.text();
       const parsed: unknown = JSON.parse(text);
 
@@ -679,11 +680,22 @@ export default function SettingsPage() {
                   <p className="text-xs text-text-secondary mt-0.5">Restore from an export file or a plain items array</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => fileRef.current?.click()}
                   disabled={importing}
-                  className="shrink-0 sm:ml-4 px-3 py-1.5 bg-accent/15 text-accent rounded-lg text-sm font-medium hover:bg-accent/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={importing ? 'Importing JSON file' : 'Choose JSON file'}
+                  className="inline-flex min-w-[105px] shrink-0 items-center justify-center rounded-lg bg-accent/15 px-3 py-1.5 text-sm font-medium text-accent transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50 sm:ml-4"
                 >
-                  {importing ? 'Importing…' : 'Choose file'}
+                  {importing ? (
+                    <span
+                      role="status"
+                      className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-accent/30 border-t-accent"
+                    >
+                      <span className="sr-only">Importing…</span>
+                    </span>
+                  ) : (
+                    'Choose file'
+                  )}
                 </button>
               </div>
               <input

@@ -144,6 +144,39 @@ textarea {
   letter-spacing: 0;
 }
 
+/* Discover hero banner: seamless edge-melt in dark themes; a polished
+   contained card in light themes (where fading a dark photo into a light
+   page would read as a hazy grey wash). */
+
+/* On mobile, break out to the full device width (PWA edge-to-edge banner),
+   regardless of the page's horizontal padding or safe-area insets. */
+@media (max-width: 767.98px) {
+  .discover-spotlight {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+  }
+}
+
+:root[data-scheme='light'] .discover-spotlight {
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text-primary) 6%, transparent),
+    0 10px 30px -8px color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+}
+
+/* Keep the light-theme card edge-to-edge on mobile too (no rounding/shadow
+   would look odd butting against the screen edge). */
+@media (max-width: 767.98px) {
+  :root[data-scheme='light'] .discover-spotlight {
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+:root[data-scheme='light'] .discover-spotlight-fade {
+  display: none;
+}
+
 .section-title {
   font-size: 0.8rem;
   line-height: 1.2;
