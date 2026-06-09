@@ -41,6 +41,25 @@ test.describe('Library Page', () => {
     await expect(page.getByRole('button', { name: 'Plan to Watch' })).toBeVisible();
   });
 
+  test('mobile filter panel state persists after refresh', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setupTMDBMocks(page);
+    await page.goto('/library');
+
+    const filterToggle = page.getByRole('button', { name: 'Toggle library filters' });
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
+
+    await filterToggle.click();
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'true');
+    await page.reload();
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'true');
+
+    await filterToggle.click();
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
+    await page.reload();
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
   test('series tab has 3 filter pills including Watching', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/library');
