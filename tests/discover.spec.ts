@@ -62,8 +62,9 @@ test.describe('Discover Page', () => {
   test('clicking a series card navigates to /series/:id', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/discover');
-    // Use getByRole link to click the card (not the spotlight heading)
-    await page.getByRole('link', { name: /Breaking Bad/ }).first().click();
+    // Scope to the Shows section to avoid matching the spotlight hero link
+    const showsSection = page.locator('section').filter({ hasText: 'Shows' }).first();
+    await showsSection.getByRole('link', { name: /Breaking Bad/ }).first().click();
     await expect(page).toHaveURL('/series/1396');
   });
 

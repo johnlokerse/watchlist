@@ -11,7 +11,7 @@ const navItems = [
   { to: '/settings', label: 'Settings', icon: 'settings' },
 ];
 
-function NavIcon({ icon }: { icon: string }) {
+function NavIcon({ icon, 'aria-hidden': ariaHidden }: { icon: string; 'aria-hidden'?: boolean | 'true' }) {
   const common = {
     className: 'h-4 w-4',
     fill: 'none',
@@ -20,6 +20,7 @@ function NavIcon({ icon }: { icon: string }) {
     strokeLinejoin: 'round' as const,
     strokeWidth: 1.8,
     viewBox: '0 0 24 24',
+    'aria-hidden': ariaHidden,
   };
 
   switch (icon) {
@@ -78,9 +79,9 @@ function BrandMark({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
+function ChevronIcon({ direction, 'aria-hidden': ariaHidden }: { direction: 'left' | 'right'; 'aria-hidden'?: boolean | 'true' }) {
   return (
-    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} viewBox="0 0 24 24">
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} viewBox="0 0 24 24" aria-hidden={ariaHidden}>
       {direction === 'left' ? (
         <path d="M15 18l-6-6 6-6" />
       ) : (
@@ -90,15 +91,27 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
   );
 }
 
+function safeLocalStorage(action: 'get', key: string): string | null;
+function safeLocalStorage(action: 'set', key: string, value: string): void;
+function safeLocalStorage(action: 'get' | 'set', key: string, value?: string): string | null | void {
+  try {
+    if (action === 'get') return localStorage.getItem(key);
+    localStorage.setItem(key, value!);
+  } catch {
+    // localStorage unavailable (private browsing, storage blocked, etc.)
+  }
+  return null;
+}
+
 export default function AppShell() {
   const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true',
+    () => safeLocalStorage('get', SIDEBAR_COLLAPSED_KEY) === 'true',
   );
 
   function toggleSidebar() {
     setCollapsed((prev) => {
       const next = !prev;
-      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      safeLocalStorage('set', SIDEBAR_COLLAPSED_KEY, String(next));
       return next;
     });
   }
@@ -116,7 +129,7 @@ export default function AppShell() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                title={collapsed ? item.label : undefined}
+                aria-label={collapsed ? item.label : undefined}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-lg text-sm font-medium transition-colors ${collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'} ${
                     isActive
@@ -125,8 +138,8 @@ export default function AppShell() {
                   }`
                 }
               >
-                <NavIcon icon={item.icon} />
-                {!collapsed && item.label}
+                <NavIcon icon={item.icon} aria-hidden />
+                {!collapsed && <span>{item.label}</span>}
               </NavLink>
             ))}
           </div>
@@ -134,11 +147,13 @@ export default function AppShell() {
           {/* Collapse toggle */}
           <div className="mt-auto">
             <button
+              type="button"
               onClick={toggleSidebar}
-              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!collapsed}
               className={`flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-raised hover:text-text-primary ${collapsed ? 'justify-center px-2' : ''}`}
             >
-              <ChevronIcon direction={collapsed ? 'right' : 'left'} />
+              <ChevronIcon direction={collapsed ? 'right' : 'left'} aria-hidden />
               {!collapsed && <span>Collapse</span>}
             </button>
           </div>
