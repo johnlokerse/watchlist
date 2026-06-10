@@ -140,6 +140,25 @@ export const THEMES: Theme[] = [
       '--color-danger':           '#d15c43',
     },
   },
+  {
+    id: 'amber',
+    name: 'Amber',
+    swatches: ['#33312B', '#F2E8CE', '#C0522A', '#7CB87A', '#EAA71B'],
+    vars: {
+      '--color-surface':          '#33312B',
+      '--color-surface-raised':   '#413C33',
+      '--color-surface-overlay':  '#504738',
+      '--color-border-subtle':    '#6B5E42',
+      '--color-accent':           '#EAA71B',
+      '--color-accent-hover':     '#F4BC3A',
+      '--color-text-primary':     '#F2E8CE',
+      '--color-text-secondary':   '#C4A96A',
+      '--color-text-muted':       '#967C44',
+      '--color-success':          '#7CB87A',
+      '--color-warning':          '#D4891A',
+      '--color-danger':           '#C0522A',
+    },
+  },
 ];
 
 export function applyTheme(id: string): void {
