@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useWatchedItems, useSeriesProgress } from '../db/hooks';
-import { useSearchMovies, useSearchSeries, useMovieGenres, useSeriesGenres } from '../api/tmdb';
+import { useSearchMovies, useSearchSeries, useMovieGenres, useSeriesGenres, useAvailableProviders } from '../api/tmdb';
 import { useDebounce } from '../hooks/useDebounce';
 import { useSettings } from '../hooks/useSettings';
 import type { ContentType, WatchedItem, WatchedStatus } from '../db/models';
@@ -18,7 +18,7 @@ import CardGrid from '../components/ui/CardGrid';
 import SkeletonCard from '../components/ui/SkeletonCard';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { formatDate } from '../utils/date';
-import { posterUrl } from '../utils/image';
+import { posterUrl, logoUrl } from '../utils/image';
 
 const LIBRARY_SCROLL_RESTORE_KEY = 'library-scroll-restore';
 
@@ -195,6 +195,13 @@ function itemKey(item: WatchedItem) {
   return `${item.contentType}-${item.tmdbId}`;
 }
 
+// Streaming-service filtering only makes sense for items you haven't seen yet — once
+// something is watched (or currently being watched), its live availability is irrelevant.
+// Skipping these also avoids fetching provider data for them entirely.
+function needsStreamingAvailability(item: WatchedItem) {
+  return item.status === 'plan_to_watch';
+}
+
 function itemHref(item: WatchedItem) {
   return item.contentType === 'movie' ? `/movie/${item.tmdbId}` : `/series/${item.tmdbId}`;
 }
@@ -366,8 +373,13 @@ export default function LibraryPage() {
     setSearchParams({});
   };
   const [search, setSearch] = useState('');
-  const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [genreFilters, setGenreFilters] = useState<string[]>([]);
+  // Persisted (not plain useState) so filter selections survive navigating away to a
+  // movie/series detail page and back — they only clear when the user deselects them.
+  const [statusFilters, setStatusFilters] = useLocalStorage<string[]>('library-status-filters', []);
+  const [genreFilters, setGenreFilters] = useLocalStorage<string[]>('library-genre-filters', []);
+  const [streamingFilters, setStreamingFilters] = useLocalStorage<string[]>('library-streaming-filters', []);
+  const [providerMap, setProviderMap] = useState<Map<string, number[]>>(new Map());
+  const [providersLoading, setProvidersLoading] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useLocalStorage('library-mobile-filters-open', false);
   const [showWideFilters, setShowWideFilters] = useState(true);
   const [isWide, setIsWide] = useState(() =>
@@ -406,6 +418,65 @@ export default function LibraryPage() {
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [items, genreList]);
 
+  // Streaming filter chips are dynamic: only the services the user selected in Settings.
+  const { providers: availableProviders } = useAvailableProviders(settings.tmdbApiToken.trim());
+  const streamingFilterOptions = useMemo(() => {
+    if (settings.streamingServices.length === 0) return [];
+    const providerMeta = new Map(availableProviders.map((p) => [p.provider_id, p]));
+    return settings.streamingServices
+      .map((id) => providerMeta.get(id))
+      .filter((p): p is NonNullable<typeof p> => p !== undefined)
+      .map((p) => ({ value: String(p.provider_id), label: p.provider_name, icon: logoUrl(p.logo_path, 'w45') }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [settings.streamingServices, availableProviders]);
+
+  // Streaming availability is fetched live from TMDB (not persisted, since it changes
+  // over time) and only when a streaming filter is actually in use.
+  useEffect(() => {
+    setProviderMap(new Map());
+  }, [settings.country]);
+
+  useEffect(() => {
+    if (streamingFilters.length === 0 || !items || items.length === 0) return;
+
+    const missing = items.filter((i) => needsStreamingAvailability(i) && !providerMap.has(itemKey(i)));
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    setProvidersLoading(true);
+
+    (async () => {
+      try {
+        const res = await fetch('/api/tmdb-watch-providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: missing.map((i) => ({ tmdbId: i.tmdbId, contentType: i.contentType })),
+            country: settings.country,
+          }),
+        });
+        if (!res.ok) return;
+        const { providers: fetched } = await res.json() as { providers: Record<string, number[]> };
+        if (!cancelled) {
+          setProviderMap((prev) => {
+            const next = new Map(prev);
+            Object.entries(fetched).forEach(([key, ids]) => next.set(key, ids));
+            return next;
+          });
+        }
+      } catch {
+        // Silently ignore — filter simply won't match items whose data failed to load.
+      } finally {
+        if (!cancelled) setProvidersLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  // providerMap is intentionally excluded: this effect only fetches missing keys and
+  // must not re-run every time providerMap is updated by itself.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streamingFilters.length, items, settings.country]);
+
   // Search TMDB for adding new items
   const movieSearch = useSearchMovies(contentType === 'movie' ? debouncedSearch : '');
   const seriesSearch = useSearchSeries(contentType === 'series' ? debouncedSearch : '');
@@ -431,6 +502,15 @@ export default function LibraryPage() {
       result = result.filter((i) => i.genreIds.some((id) => selected.has(id)));
     }
 
+    if (streamingFilters.length > 0) {
+      const selected = new Set(streamingFilters.map(Number));
+      result = result.filter((i) => {
+        if (!needsStreamingAvailability(i)) return true; // already watched/watching — always shown
+        const availableIds = providerMap.get(itemKey(i));
+        return availableIds ? availableIds.some((id) => selected.has(id)) : false;
+      });
+    }
+
     // Exclude movies shown on the Upcoming page
     if (contentType === 'movie') {
       const today = new Date().toISOString().slice(0, 10);
@@ -442,7 +522,7 @@ export default function LibraryPage() {
     }
 
     return sortItems(result, sort, tmdbRatings);
-  }, [items, debouncedSearch, statusFilters, genreFilters, search, contentType, sort, tmdbRatings]);
+  }, [items, debouncedSearch, statusFilters, genreFilters, streamingFilters, providerMap, search, contentType, sort, tmdbRatings]);
 
   const planToWatchItems = useMemo(() => filteredItems.filter((i) => i.status === 'plan_to_watch'), [filteredItems]);
   const watchedItems = useMemo(() => filteredItems.filter((i) => i.status === 'watched'), [filteredItems]);
@@ -576,7 +656,7 @@ export default function LibraryPage() {
         <div className={`flex gap-2 md:pr-0 ${isControlsStuck ? 'pr-14' : 'pr-0'}`}>
           <FilterToggleButton
             expanded={showCurrentFilters}
-            active={showCurrentFilters || statusFilters.length > 0 || genreFilters.length > 0}
+            active={showCurrentFilters || statusFilters.length > 0 || genreFilters.length > 0 || streamingFilters.length > 0}
             onClick={toggleCurrentFilters}
           />
           <div className="min-w-0 flex-1">
@@ -620,6 +700,22 @@ export default function LibraryPage() {
                 selected={genreFilters}
                 onChange={setGenreFilters}
                 ariaLabel="Genres"
+              />
+            </div>
+          )}
+          {streamingFilterOptions.length > 0 && (
+            <div className="flex flex-col gap-2 border-t border-border-subtle pt-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                Streaming
+                {providersLoading && streamingFilters.length > 0 && (
+                  <span className="ml-2 normal-case text-text-muted">Checking availability…</span>
+                )}
+              </span>
+              <FilterBar
+                filters={streamingFilterOptions}
+                selected={streamingFilters}
+                onChange={setStreamingFilters}
+                ariaLabel="Streaming services"
               />
             </div>
           )}
