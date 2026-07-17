@@ -70,6 +70,49 @@ app.post('/api/tmdb-ratings', async (req, res) => {
   }
 });
 
+// POST /api/tmdb-watch-providers — fetch flatrate provider IDs for library items
+app.post('/api/tmdb-watch-providers', async (req, res) => {
+  try {
+    const { items, country } = req.body as {
+      items: { tmdbId: number; contentType: string }[];
+      country?: string;
+    };
+    if (!Array.isArray(items) || items.length === 0) {
+      res.json({ providers: {} });
+      return;
+    }
+
+    const regionCode = (country ?? '').trim().toUpperCase() || 'US';
+    const providers: Record<string, number[]> = {};
+    const BATCH_SIZE = 10;
+
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const batch = items.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async ({ tmdbId, contentType }) => {
+          const path = contentType === 'movie' ? `/movie/${tmdbId}/watch/providers` : `/tv/${tmdbId}/watch/providers`;
+          const data = await tmdbFetchJson<{
+            results?: Record<string, { flatrate?: { provider_id: number }[] }>;
+          }>(path);
+          const key = `${contentType}-${tmdbId}`;
+          const ids = data.results?.[regionCode]?.flatrate?.map((p) => p.provider_id) ?? [];
+          return { key, ids };
+        }),
+      );
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          providers[result.value.key] = result.value.ids;
+        }
+      }
+    }
+
+    res.json({ providers });
+  } catch (err) {
+    console.error('Failed to fetch TMDB watch providers:', err);
+    res.status(500).json({ error: 'Failed to fetch TMDB watch providers' });
+  }
+});
+
 // GET /api/library — list items (optional ?contentType=&status=)
 app.get('/api/library', (req, res) => {
   const { contentType, status } = req.query as { contentType?: string; status?: string };
