@@ -134,7 +134,7 @@ test.describe('Settings Page', () => {
 
     page.on('dialog', (dialog) => dialog.dismiss());
     await page.getByText(/Clear All Library Data/).click();
-    await page.goto('/library');
+    await page.goto('/movies');
     await expect(page.getByText('The Accountant')).toBeVisible();
   });
 

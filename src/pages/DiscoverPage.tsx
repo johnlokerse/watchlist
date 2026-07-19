@@ -270,6 +270,7 @@ export default function DiscoverPage() {
           ]}
           value={contentFilter}
           onChange={(value) => setContentFilter(value as ContentFilter)}
+          ariaLabel="Discover content type"
         />
       </div>
 

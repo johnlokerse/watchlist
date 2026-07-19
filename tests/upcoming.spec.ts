@@ -6,18 +6,19 @@ test.beforeEach(async ({ request }) => {
   await clearLibrary(request);
 });
 
-test.describe('Upcoming Page', () => {
-  test('shows "Upcoming" heading', async ({ page }) => {
+test.describe('Upcoming views', () => {
+  test('shows Movies heading with Upcoming selected', async ({ page }) => {
     await setupTMDBMocks(page);
-    await page.goto('/upcoming');
-    await expect(page.getByRole('heading', { name: 'Upcoming' })).toBeVisible();
+    await page.goto('/movies?view=upcoming');
+    await expect(page.getByRole('heading', { name: 'Movies' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Upcoming' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('Movies/Series segmented control is visible', async ({ page }) => {
+  test('Library/Upcoming segmented control is visible', async ({ page }) => {
     await setupTMDBMocks(page);
-    await page.goto('/upcoming');
-    await expect(page.getByRole('tab', { name: 'Movies' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Series' })).toBeVisible();
+    await page.goto('/movies?view=upcoming');
+    await expect(page.getByRole('tab', { name: 'Library' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Upcoming' })).toBeVisible();
   });
 
   test('empty state shown when no upcoming movies', async ({ page }) => {
@@ -58,8 +59,7 @@ test.describe('Upcoming Page', () => {
 
   test('series tab shows empty state when no series in library', async ({ page }) => {
     await setupTMDBMocks(page);
-    await page.goto('/upcoming');
-    await page.getByRole('tab', { name: 'Series' }).click();
+    await page.goto('/series?view=upcoming');
     await expect(page.getByText('Nothing upcoming yet')).toBeVisible();
   });
 
@@ -84,22 +84,20 @@ test.describe('Upcoming Page', () => {
       route.fulfill({ json: futureFixture }),
     );
 
-    await page.goto('/upcoming');
-    await page.getByRole('tab', { name: 'Series' }).click();
+    await page.goto('/series?view=upcoming');
     await expect(page.getByText('Breaking Bad')).toBeVisible();
   });
 
-  test('back from series detail returns to Upcoming series tab', async ({ page, request }) => {
+  test('back from series detail returns to the Series upcoming view', async ({ page, request }) => {
     await seedSeries(request, { status: 'watching' });
     await setupTMDBMocks(page);
-    await page.goto('/upcoming');
-    await page.getByRole('tab', { name: 'Series' }).click();
-    await expect(page).toHaveURL('/upcoming?tab=series');
+    await page.goto('/series?view=upcoming');
+    await expect(page).toHaveURL('/series?view=upcoming');
     await page.getByText('Breaking Bad').first().click();
     await expect(page).toHaveURL('/series/1396');
     await page.getByRole('button', { name: /Back/i }).click();
-    await expect(page).toHaveURL('/upcoming?tab=series');
-    await expect(page.getByRole('tab', { name: 'Series' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page).toHaveURL('/series?view=upcoming');
+    await expect(page.getByRole('tab', { name: 'Upcoming' })).toHaveAttribute('aria-selected', 'true');
   });
 
   test('ended section shows series with Ended TMDB status', async ({ page, request }) => {
@@ -107,8 +105,7 @@ test.describe('Upcoming Page', () => {
     await seedSeries(request, { status: 'watching' });
     await setupTMDBMocks(page);
 
-    await page.goto('/upcoming');
-    await page.getByRole('tab', { name: 'Series' }).click();
+    await page.goto('/series?view=upcoming');
     await expect(page.getByRole('heading', { name: 'Ended' })).toBeVisible();
     await expect(page.getByText('Breaking Bad')).toBeVisible();
   });

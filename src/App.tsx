@@ -1,8 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AppShell from './components/layout/AppShell';
-import UpcomingPage from './pages/UpcomingPage';
-import LibraryPage from './pages/LibraryPage';
+import MediaPage from './pages/MediaPage';
 import DiscoverPage from './pages/DiscoverPage';
 import SettingsPage from './pages/SettingsPage';
 import MovieDetailPage from './pages/MovieDetailPage';
@@ -17,15 +16,23 @@ const queryClient = new QueryClient({
   },
 });
 
+function LegacyMediaRedirect({ view }: { view: 'library' | 'upcoming' }) {
+  const [searchParams] = useSearchParams();
+  const path = searchParams.get('tab') === 'series' ? '/series' : '/movies';
+  return <Navigate to={view === 'upcoming' ? `${path}?view=upcoming` : path} replace />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
           <Route element={<AppShell />}>
-            <Route path="/" element={<Navigate to="/upcoming" replace />} />
-            <Route path="/upcoming" element={<UpcomingPage />} />
-            <Route path="/library" element={<LibraryPage />} />
+        <Route path="/" element={<Navigate to="/movies" replace />} />
+        <Route path="/movies" element={<MediaPage contentType="movie" />} />
+        <Route path="/series" element={<MediaPage contentType="series" />} />
+        <Route path="/library" element={<LegacyMediaRedirect view="library" />} />
+        <Route path="/upcoming" element={<LegacyMediaRedirect view="upcoming" />} />
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/movie/:id" element={<MovieDetailPage />} />

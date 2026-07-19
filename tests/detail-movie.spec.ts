@@ -21,10 +21,10 @@ test.describe('Movie Detail Page', () => {
 
   test('Back button navigates to previous page', async ({ page }) => {
     await setupTMDBMocks(page);
-    await page.goto('/library');
+    await page.goto('/movies');
     await page.goto('/movie/302946');
     await page.getByRole('button', { name: /Back/i }).click();
-    await expect(page).toHaveURL('/library');
+    await expect(page).toHaveURL('/movies');
   });
 
   test('shows Overview, Cast & Crew, and Where to Watch tabs', async ({ page }) => {
@@ -234,7 +234,7 @@ test.describe('Movie Detail Page', () => {
     await notesInput.fill('Persistent note');
     await page.getByRole('button', { name: 'Save' }).click();
     // Navigate away and back
-    await page.goto('/library');
+    await page.goto('/movies');
     await page.goto('/movie/302946');
     await expect(page.getByPlaceholder('Add personal notes...')).toHaveValue('Persistent note');
   });

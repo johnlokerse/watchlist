@@ -260,7 +260,7 @@ test.describe('Episode Recap — Settings toggle', () => {
     await goToEpisodesTab(page);
     await expect(page.getByRole('button', { name: 'Recap' })).not.toBeVisible();
     // Navigate away and back
-    await page.goto('/library');
+    await page.goto('/series');
     await goToEpisodesTab(page);
     await expect(page.getByRole('button', { name: 'Recap' })).not.toBeVisible();
   });
