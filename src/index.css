@@ -239,3 +239,14 @@ textarea {
   50%       { transform: translateY(-6px); }
 }
 .animate-dot-bounce { animation: dot-bounce 0.7s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

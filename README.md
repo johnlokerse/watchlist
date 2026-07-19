@@ -17,13 +17,13 @@ Most watchlist apps are either too generic or too noisy. Watchlist is built for 
 
 ## Highlights
 
-### A Library That Feels Like a Database
+### Separate Movie and Series Workspaces
 
-Track movies and series with `watched`, `watching`, and `plan_to_watch` statuses. Switch between poster cards and a denser database-style list, keep personal ratings and notes, and continue series from your last watched episode.
+Movies and series have their own primary navigation destinations. Within each one, switch between your current library and upcoming releases while keeping poster cards, the denser database-style list, ratings, notes, and series progress close at hand.
 
 ### Release Planning
 
-Upcoming movies and series are pulled into a dedicated release view with countdown badges, so your watchlist doubles as a lightweight premiere calendar.
+Each Movies and Series workspace includes an Upcoming view with countdown badges and release status, so your watchlist doubles as a lightweight premiere calendar.
 
 ### Discovery Radar
 
@@ -45,9 +45,8 @@ The app is designed to work well on a phone, with touch-friendly controls, botto
 
 | Area | What You Can Do |
 |------|------------------|
-| Library | Track movies and series, filter by status, search locally or on TMDB, add ratings and notes |
-| Series Progress | Store current season/episode, mark episodes watched, generate episode recaps |
-| Upcoming | See release countdowns for unreleased movies and upcoming series episodes |
+| Movies | Switch between your movie library and upcoming releases; filter, search, rate, and add notes |
+| Series | Switch between your series library and upcoming episodes; track progress and generate recaps |
 | Discover | Browse trending and anticipated movies/series with library status overlays |
 | Details | View metadata, cast, crew, videos, watch providers, and library controls |
 | AI Assistant | Ask for recommendations, similar titles, actor-based searches, and library-aware suggestions |
@@ -123,7 +122,7 @@ Inside the app, use Settings to configure:
 
 ## Docker image and releases
 
-Published images use `ghcr.io/johnlokerse/watchlist` and support `linux/amd64` and `linux/arm64`. The publishing workflow only publishes two tags: `latest` and the exact package version, for example `1.2.3`.
+Published images use `ghcr.io/johnlokerse/watchlist` and support `linux/amd64` and `linux/arm64`. The publishing workflow only publishes two tags: `latest` and the exact package version, for example `1.2.4`.
 
 Release flow:
 

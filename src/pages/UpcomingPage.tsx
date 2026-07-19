@@ -1,14 +1,11 @@
 import { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { useUpcomingFromLibrary, usePlannedMovies } from '../db/hooks';
+import type { ContentType } from '../db/models';
 import { useSeriesDetailBatch } from '../api/tmdb';
 import { useSettings } from '../hooks/useSettings';
-import SegmentedControl from '../components/ui/SegmentedControl';
 import Card from '../components/ui/Card';
 import CardGrid from '../components/ui/CardGrid';
 import SkeletonCard from '../components/ui/SkeletonCard';
-
-type ContentTab = 'movies' | 'series';
 
 const UPCOMING_STATUSES = new Set(['Returning Series', 'In Production', 'Planned']);
 const ENDED_STATUSES = new Set(['Ended', 'Canceled']);
@@ -22,21 +19,16 @@ function seriesStatusLabel(status: string): string {
   }
 }
 
-export default function UpcomingPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { settings } = useSettings();
-  const tabParam = searchParams.get('tab');
-  const tab: ContentTab = tabParam === 'series' ? 'series' : 'movies';
-  const setTab = (nextTab: ContentTab) => {
-    if (nextTab === 'series') {
-      setSearchParams({ tab: 'series' });
-      return;
-    }
-    setSearchParams({});
-  };
+interface UpcomingPageProps {
+  contentType: ContentType;
+}
 
-  const movies = useUpcomingFromLibrary('movie');
-  const series = useUpcomingFromLibrary('series');
+export default function UpcomingPage({ contentType }: UpcomingPageProps) {
+  const { settings } = useSettings();
+  const tab = contentType === 'movie' ? 'movies' : 'series';
+  const upcomingItems = useUpcomingFromLibrary(contentType);
+  const movies = contentType === 'movie' ? upcomingItems : undefined;
+  const series = contentType === 'series' ? upcomingItems : undefined;
   const plannedMovies = usePlannedMovies();
 
   const today = new Date().toISOString().slice(0, 10);
@@ -97,21 +89,6 @@ export default function UpcomingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="section-title mb-2">Release planning</p>
-          <h1 className="page-title">Upcoming</h1>
-        </div>
-        <SegmentedControl
-          options={[
-            { value: 'movies', label: 'Movies' },
-            { value: 'series', label: 'Series' },
-          ]}
-          value={tab}
-          onChange={(v) => setTab(v as ContentTab)}
-        />
-      </div>
-
       {/* ── Movies tab ── */}
       {tab === 'movies' && (
         <>

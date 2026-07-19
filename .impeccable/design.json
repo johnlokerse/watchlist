@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-18T13:30:09.864+02:00",
+  "title": "Design System: Watchlist",
+  "extensions": {
+    "colorMeta": {
+      "deep-teal-black": {
+        "role": "neutral",
+        "displayName": "Deep Teal Black",
+        "canonical": "#071014",
+        "tonalRamp": ["#031012", "#07181b", "#102429", "#23373c", "#4b5f62", "#809193", "#bbc6c5", "#eef2f0"]
+      },
+      "signal-teal": {
+        "role": "primary",
+        "displayName": "Signal Teal",
+        "canonical": "#0f9f9a",
+        "tonalRamp": ["#06302f", "#07504e", "#08706c", "#0b8b87", "#0f9f9a", "#46b9b4", "#91d4d0", "#d9efed"]
+      },
+      "warm-white": {
+        "role": "neutral",
+        "displayName": "Warm White",
+        "canonical": "#f4f0e8",
+        "tonalRamp": ["#292824", "#45433d", "#625f57", "#817d73", "#a29d91", "#c2bdb2", "#dfdbd2", "#f4f0e8"]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Page Headline",
+        "purpose": "Route-level titles only."
+      },
+      "body": {
+        "displayName": "Product Body",
+        "purpose": "Controls, settings, descriptions, and supporting copy."
+      },
+      "label": {
+        "displayName": "Database Label",
+        "purpose": "Section labels, metadata headers, and compact controls."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel-ambient",
+        "value": "0 18px 60px rgb(0 0 0 / 0.18)",
+        "purpose": "Separates large control groups from the application background."
+      },
+      {
+        "name": "card-ambient",
+        "value": "0 14px 40px rgb(0 0 0 / 0.16)",
+        "purpose": "Gives poster cards quiet depth in standard themes."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "200ms ease-out",
+        "purpose": "Navigation, selection, hover, and disclosure state changes."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0ms",
+        "purpose": "Non-essential movement is removed when reduced motion is requested."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Selected Segment",
+      "kind": "button",
+      "refersTo": "segmented-selected",
+      "description": "The active option in a compact peer-view switcher.",
+      "html": "<button class=\"ds-segment\" type=\"button\">Library</button>",
+      "css": ".ds-segment { border: 0; border-radius: 6px; background: var(--color-accent, #0f9f9a); color: #000; padding: 6px 16px; font: 600 14px/1.4 Inter, system-ui, sans-serif; transition: background-color 200ms ease-out; } .ds-segment:hover { background: var(--color-accent-hover, #14b8ad); } .ds-segment:focus-visible { outline: 2px solid var(--color-accent, #0f9f9a); outline-offset: 2px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "The standard local and remote title search control.",
+      "html": "<input class=\"ds-search\" type=\"search\" placeholder=\"Search your movies...\">",
+      "css": ".ds-search { width: 320px; border: 1px solid var(--color-border-subtle, #26393f); border-radius: 8px; background: var(--color-surface-raised, #101b20); color: var(--color-text-primary, #f4f0e8); padding: 10px 12px; font: 400 14px/1.5 Inter, system-ui, sans-serif; transition: border-color 200ms ease-out, box-shadow 200ms ease-out; } .ds-search::placeholder { color: var(--color-text-muted, #6f8384); } .ds-search:focus-visible { border-color: var(--color-accent, #0f9f9a); outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent, #0f9f9a) 35%, transparent); }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "description": "A compact status, genre, or streaming filter.",
+      "html": "<button class=\"ds-chip\" type=\"button\" aria-pressed=\"true\">Watching</button>",
+      "css": ".ds-chip { border: 1px solid color-mix(in srgb, var(--color-accent, #0f9f9a) 45%, transparent); border-radius: 6px; background: color-mix(in srgb, var(--color-accent, #0f9f9a) 15%, transparent); color: var(--color-accent, #0f9f9a); padding: 6px 12px; font: 600 12px/1.3 Inter, system-ui, sans-serif; transition: background-color 200ms ease-out; } .ds-chip:hover { background: color-mix(in srgb, var(--color-accent, #0f9f9a) 22%, transparent); } .ds-chip:focus-visible { outline: 2px solid var(--color-accent, #0f9f9a); outline-offset: 2px; }"
+    },
+    {
+      "name": "Poster Card",
+      "kind": "card",
+      "refersTo": "poster-card",
+      "description": "Artwork-first collection card with compact title metadata.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-poster\"></div><h3>Movie title</h3><p>Release date</p></article>",
+      "css": ".ds-card { width: 180px; overflow: hidden; border: 1px solid var(--color-border-subtle, #26393f); border-radius: 8px; background: var(--color-surface-raised, #101b20); color: var(--color-text-primary, #f4f0e8); box-shadow: 0 14px 40px rgb(0 0 0 / 0.16); transition: transform 200ms ease-out, border-color 200ms ease-out; } .ds-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--color-accent, #0f9f9a) 45%, var(--color-border-subtle, #26393f)); } .ds-poster { aspect-ratio: 2 / 3; background: var(--color-surface-overlay, #17272d); } .ds-card h3 { margin: 12px 12px 0; font: 600 14px/1.35 Inter, system-ui, sans-serif; } .ds-card p { margin: 4px 12px 12px; color: var(--color-text-muted, #6f8384); font: 400 12px/1.4 Inter, system-ui, sans-serif; } .ds-card:focus-within { outline: 2px solid var(--color-accent, #0f9f9a); outline-offset: 2px; }"
+    },
+    {
+      "name": "Active Navigation Item",
+      "kind": "nav",
+      "description": "The selected destination in the desktop rail or mobile bar.",
+      "html": "<a class=\"ds-nav\" href=\"#\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3.5\" y=\"5\" width=\"17\" height=\"14\" rx=\"2.5\"></rect><path d=\"M3.5 9h17M8 5l2.5 4M14 5l2.5 4\"></path></svg><span>Movies</span></a>",
+      "css": ".ds-nav { display: inline-flex; align-items: center; gap: 12px; border: 1px solid color-mix(in srgb, var(--color-accent, #0f9f9a) 20%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--color-accent, #0f9f9a) 15%, transparent); color: var(--color-accent, #0f9f9a); padding: 10px 12px; font: 500 14px/1.4 Inter, system-ui, sans-serif; text-decoration: none; transition: background-color 200ms ease-out; } .ds-nav svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; } .ds-nav:hover { background: color-mix(in srgb, var(--color-accent, #0f9f9a) 22%, transparent); } .ds-nav:focus-visible { outline: 2px solid var(--color-accent, #0f9f9a); outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Personal Screening Room",
+    "overview": "Watchlist combines the concentration of a private screening room with the precision of a personal database. Dark, subtly teal surfaces recede behind poster artwork, while compact controls and clear state changes keep collection management fast. The interface is restrained rather than theatrical: atmosphere comes from artwork and tonal depth, not oversized decoration.",
+    "keyCharacteristics": [
+      "Compact, information-dense controls with 6–8px geometry.",
+      "Artwork-first cards on quiet, layered surfaces.",
+      "One signal-teal accent reserved for selection, focus, and primary state.",
+      "Familiar navigation, tabs, filters, and responsive structural changes."
+    ],
+    "rules": [
+      {
+        "name": "The Signal Rule",
+        "body": "Use the accent for current selection, focus, progress, and primary actions—not as ambient decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Compact Hierarchy Rule",
+        "body": "Strengthen hierarchy through weight before increasing type size; product controls should never feel promotional.",
+        "section": "typography"
+      },
+      {
+        "name": "The Quiet Depth Rule",
+        "body": "Borders define structure; shadows support separation without becoming visible decoration.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use 6–8px geometry and one-pixel borders consistently.",
+      "Do preserve the current compact style when adding or reorganizing product surfaces.",
+      "Do let posters and backdrops carry most of the visual atmosphere.",
+      "Do maintain WCAG 2.2 AA contrast, visible focus, keyboard operation, and reduced-motion behavior."
+    ],
+    "donts": [
+      "Don't make a large redesign; preserve the current compact style.",
+      "Don't imitate a generic streaming-service home screen with oversized promotional rails.",
+      "Don't add decorative UI that competes with poster artwork or slows collection management.",
+      "Don't use glassmorphism, gradient text, colored side-stripe borders, or arbitrary radii."
+    ]
+  }
+}

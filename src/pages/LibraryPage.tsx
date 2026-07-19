@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useWatchedItems, useSeriesProgress } from '../db/hooks';
 import { useSearchMovies, useSearchSeries, useMovieGenres, useSeriesGenres, useAvailableProviders } from '../api/tmdb';
 import { useDebounce } from '../hooks/useDebounce';
@@ -7,7 +7,6 @@ import { useSettings } from '../hooks/useSettings';
 import type { ContentType, WatchedItem, WatchedStatus } from '../db/models';
 import type { TMDBMovie, TMDBSeries } from '../api/types';
 import type { CoverSize } from '../hooks/useSettings';
-import SegmentedControl from '../components/ui/SegmentedControl';
 import ViewToggle from '../components/ui/ViewToggle';
 import type { ViewMode } from '../components/ui/ViewToggle';
 import SearchBar from '../components/ui/SearchBar';
@@ -359,19 +358,14 @@ function LibraryCollection({
   );
 }
 
-export default function LibraryPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+interface LibraryPageProps {
+  contentType: ContentType;
+}
+
+export default function LibraryPage({ contentType }: LibraryPageProps) {
   const { settings, updateSettings } = useSettings();
   const controlsRef = useRef<HTMLDivElement>(null);
-  const tabParam = searchParams.get('tab');
-  const tab: 'movies' | 'series' = tabParam === 'series' ? 'series' : 'movies';
-  const setTab = (nextTab: 'movies' | 'series') => {
-    if (nextTab === 'series') {
-      setSearchParams({ tab: 'series' });
-      return;
-    }
-    setSearchParams({});
-  };
+  const tab = contentType === 'movie' ? 'movies' : 'series';
   const [search, setSearch] = useState('');
   // Persisted (not plain useState) so filter selections survive navigating away to a
   // movie/series detail page and back — they only clear when the user deselects them.
@@ -392,7 +386,6 @@ export default function LibraryPage() {
   const [tmdbRatings, setTmdbRatings] = useState<Map<string, number>>(new Map());
   const debouncedSearch = useDebounce(search);
 
-  const contentType: ContentType = tab === 'movies' ? 'movie' : 'series';
   const items = useWatchedItems(contentType);
 
   // Genre id spaces differ between movies and TV, so reset genre selection on tab switch.
@@ -638,20 +631,6 @@ export default function LibraryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="relative z-40 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="page-title">Your Library</h1>
-        </div>
-        <SegmentedControl
-          options={[
-            { value: 'movies', label: 'Movies' },
-            { value: 'series', label: 'Series' },
-          ]}
-          value={tab}
-          onChange={(v) => setTab(v as 'movies' | 'series')}
-        />
-      </div>
-
       <div ref={controlsRef} className="mobile-safe-sticky-top sticky top-[var(--safe-area-top)] z-30 -mx-4 border-y border-border-subtle bg-surface/95 p-3 shadow-lg backdrop-blur md:static md:mx-0 md:rounded-lg md:border md:bg-surface-raised md:p-4 md:shadow-[0_18px_60px_rgb(0_0_0_/_0.18)]">
         <div className={`flex gap-2 md:pr-0 ${isControlsStuck ? 'pr-14' : 'pr-0'}`}>
           <FilterToggleButton

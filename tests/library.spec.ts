@@ -7,10 +7,10 @@ test.beforeEach(async ({ request }) => {
 });
 
 test.describe('Library Page', () => {
-  test('shows "Your Library" heading', async ({ page }) => {
+  test('shows "Movies" heading', async ({ page }) => {
     await setupTMDBMocks(page);
-    await page.goto('/library');
-    await expect(page.getByRole('heading', { name: 'Your Library' })).toBeVisible();
+    await page.goto('/movies');
+    await expect(page.getByRole('heading', { name: 'Movies' })).toBeVisible();
   });
 
   test('shows empty state when library is empty', async ({ page }) => {
@@ -20,17 +20,26 @@ test.describe('Library Page', () => {
     await expect(page.getByText('Search above to find and add some!')).toBeVisible();
   });
 
-  test('Movies/Series segmented control is visible', async ({ page }) => {
+  test('Library/Upcoming segmented control is visible', async ({ page }) => {
     await setupTMDBMocks(page);
-    await page.goto('/library');
-    await expect(page.getByRole('tab', { name: 'Movies' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Series' })).toBeVisible();
+    await page.goto('/movies');
+    await expect(page.getByRole('tab', { name: 'Library' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Upcoming' })).toBeVisible();
   });
 
-  test('switching to Series tab shows series empty state', async ({ page }) => {
+  test('segmented control supports arrow-key navigation', async ({ page }) => {
     await setupTMDBMocks(page);
-    await page.goto('/library');
-    await page.getByRole('tab', { name: 'Series' }).click();
+    await page.goto('/movies');
+    const libraryTab = page.getByRole('tab', { name: 'Library' });
+    await libraryTab.focus();
+    await libraryTab.press('ArrowRight');
+    await expect(page).toHaveURL('/movies?view=upcoming');
+    await expect(page.getByRole('tab', { name: 'Upcoming' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('Series route shows series empty state', async ({ page }) => {
+    await setupTMDBMocks(page);
+    await page.goto('/series');
     await expect(page.getByText('No series in your library yet.')).toBeVisible();
   });
 
@@ -62,8 +71,7 @@ test.describe('Library Page', () => {
 
   test('series tab has 3 filter pills including Watching', async ({ page }) => {
     await setupTMDBMocks(page);
-    await page.goto('/library');
-    await page.getByRole('tab', { name: 'Series' }).click();
+    await page.goto('/series');
     await expect(page.getByRole('button', { name: 'Watched' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Watching' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Plan to Watch' })).toBeVisible();
@@ -77,8 +85,7 @@ test.describe('Library Page', () => {
 
   test('search placeholder updates when switching to series tab', async ({ page }) => {
     await setupTMDBMocks(page);
-    await page.goto('/library');
-    await page.getByRole('tab', { name: 'Series' }).click();
+    await page.goto('/series');
     await expect(page.getByPlaceholder('Search your series or find new ones...')).toBeVisible();
   });
 
@@ -104,8 +111,7 @@ test.describe('Library Page', () => {
   test('seeded series appears in Watching section', async ({ page, request }) => {
     await seedSeries(request, { status: 'watching' });
     await setupTMDBMocks(page);
-    await page.goto('/library');
-    await page.getByRole('tab', { name: 'Series' }).click();
+    await page.goto('/series');
     await expect(page.getByText('Breaking Bad')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Watching' })).toBeVisible();
   });
@@ -118,8 +124,7 @@ test.describe('Library Page', () => {
       status: 'plan_to_watch',
     });
     await setupTMDBMocks(page);
-    await page.goto('/library');
-    await page.getByRole('tab', { name: 'Series' }).click();
+    await page.goto('/series');
 
     // Wait for series content to render before reading section order.
     await expect(page.getByRole('heading', { name: 'Watching' })).toBeVisible();
@@ -206,8 +211,7 @@ test.describe('Library Page', () => {
   test('clicking a series card navigates to /series/:id', async ({ page, request }) => {
     await seedSeries(request, { status: 'watching' });
     await setupTMDBMocks(page);
-    await page.goto('/library');
-    await page.getByRole('tab', { name: 'Series' }).click();
+    await page.goto('/series');
     await page.getByText('Breaking Bad').click();
     await expect(page).toHaveURL('/series/1396');
   });
@@ -222,7 +226,7 @@ test.describe('Library Page', () => {
     }
 
     await setupTMDBMocks(page);
-    await page.goto('/library?tab=series');
+    await page.goto('/series');
     await page.getByTitle('List view').click();
 
     const target = page.locator('[data-scroll-restore-id="series-3024"]');
@@ -235,7 +239,7 @@ test.describe('Library Page', () => {
     await expect(page).toHaveURL('/series/3024');
 
     await page.getByRole('button', { name: /Back/i }).click();
-    await expect(page).toHaveURL('/library?tab=series');
+    await expect(page).toHaveURL('/series');
     await expect(target).toBeVisible();
 
     const scrollAfterBack = await page.evaluate(() => window.scrollY);
@@ -278,8 +282,7 @@ test.describe('Library Page', () => {
   test('list view shows series with progress label', async ({ page, request }) => {
     await seedSeries(request, { status: 'watching' });
     await setupTMDBMocks(page);
-    await page.goto('/library');
-    await page.getByRole('tab', { name: 'Series' }).click();
+    await page.goto('/series');
     await page.getByTitle('List view').click();
     await expect(page.getByText('Breaking Bad')).toBeVisible();
   });
@@ -414,7 +417,7 @@ test.describe('Library genre filtering', () => {
     await expect(page.getByText('Comedy Movie')).not.toBeVisible();
   });
 
-  test('switching tabs clears genre selection', async ({ page, request }) => {
+  test('switching media routes clears genre selection', async ({ page, request }) => {
     await seedMovie(request, {
       tmdbId: 21,
       title: 'Action Movie',
@@ -443,9 +446,9 @@ test.describe('Library genre filtering', () => {
     await expect(page.getByText('Comedy Movie')).not.toBeVisible();
 
     // Switch to Series and back to Movies.
-    await page.getByRole('tab', { name: 'Series' }).click();
+    await page.locator('header nav').getByRole('link', { name: 'Series' }).click();
     await expect(page.getByText('Drama Series')).toBeVisible();
-    await page.getByRole('tab', { name: 'Movies' }).click();
+    await page.locator('header nav').getByRole('link', { name: 'Movies' }).click();
 
     // Genre selection should be reset → both movies visible again.
     await expect(page.getByText('Action Movie')).toBeVisible();

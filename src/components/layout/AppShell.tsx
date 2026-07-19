@@ -5,9 +5,9 @@ import CopilotChat from '../chat/CopilotChat';
 const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed';
 
 const navItems = [
-  { to: '/upcoming', label: 'Upcoming', icon: 'calendar' },
-  { to: '/library', label: 'Library', icon: 'library' },
-  { to: '/discover', label: 'Discover', icon: 'search' },
+  { to: '/movies', label: 'Movies', icon: 'movie' },
+  { to: '/series', label: 'Series', icon: 'series' },
+  { to: '/discover', label: 'Discover', icon: 'binoculars' },
   { to: '/settings', label: 'Settings', icon: 'settings' },
 ];
 
@@ -24,36 +24,41 @@ function NavIcon({ icon, 'aria-hidden': ariaHidden }: { icon: string; 'aria-hidd
   };
 
   switch (icon) {
-    case 'calendar':
+    case 'movie':
       return (
         <svg {...common}>
-          <rect x="3.5" y="4.5" width="17" height="16" rx="2.5" />
-          <path d="M8 2.8v4M16 2.8v4M3.5 9h17" />
-          <path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01" />
+          <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+          <path d="M3.5 9h17M8 5l2.5 4M14 5l2.5 4" />
+          <path d="m10 12 4 2.5-4 2.5v-5Z" />
         </svg>
       );
-    case 'library':
+    case 'series':
       return (
         <svg {...common}>
-          <path d="M4 5.5h11.5a2.5 2.5 0 0 1 2.5 2.5v11.5H6.5A2.5 2.5 0 0 1 4 17V5.5Z" />
-          <path d="M7.5 5.5v14M9.5 9h5M9.5 12h5" />
-          <path d="M18 8h2a1.5 1.5 0 0 1 1.5 1.5v10H18" />
+          <rect x="3.5" y="5.5" width="17" height="13" rx="2.5" />
+          <path d="m9 2.5 3 3 3-3M8 21h8" />
+          <path d="M16.5 10.5h.01M16.5 14h.01" />
         </svg>
       );
-    case 'search':
+    case 'binoculars':
       return (
         <svg {...common}>
-          <circle cx="10.5" cy="10.5" r="6" />
-          <path d="m15 15 5 5" />
+          <path d="m8.5 6-1-2h-2L3.5 14M15.5 6l1-2h2l2 10" />
+          <path d="M8.5 6h7l2 8H6.5l2-8Z" />
+          <circle cx="6" cy="16" r="3" />
+          <circle cx="18" cy="16" r="3" />
+          <path d="M9 16h6" />
         </svg>
       );
-    default:
+    case 'settings':
       return (
         <svg {...common}>
           <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
           <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 0 1-4 0v-.09a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.97a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8.97 4.6 1.7 1.7 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 0 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" />
         </svg>
       );
+    default:
+      return null;
   }
 }
 
