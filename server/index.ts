@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import { CopilotClient } from '@github/copilot-sdk';
 import { tmdbTools } from './tools.js';
 import { queries } from './db.js';
+import type { SeasonCheckInput } from './db.js';
 import { createMcpRouter } from './mcp-server.js';
 import { handleWatchLinks } from './watch-links.js';
 import { getAppVersion } from './app-info.js';
@@ -144,10 +145,26 @@ app.delete('/api/library/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/progress — all series progress rows (library badges)
+app.get('/api/progress', (_req, res) => {
+  res.json(queries.getAllProgress());
+});
+
 // GET /api/progress/:tmdbId — series progress
 app.get('/api/progress/:tmdbId', (req, res) => {
   const p = queries.getProgress(Number(req.params.tmdbId));
   res.json(p);
+});
+
+// GET /api/series/season-check/pending — series due for a TMDB season check
+app.get('/api/series/season-check/pending', (_req, res) => {
+  res.json({ tmdbIds: queries.getPendingSeasonChecks() });
+});
+
+// POST /api/series/season-check — reconcile series against current TMDB seasons
+app.post('/api/series/season-check', (req, res) => {
+  const { checks } = req.body as { checks?: SeasonCheckInput[] };
+  res.json({ results: queries.applySeasonChecks(checks ?? []) });
 });
 
 // PUT /api/progress — upsert series progress

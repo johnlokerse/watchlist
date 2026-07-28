@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLibrary } from './LibraryContext';
-import type { WatchedItem, SeriesProgress, WatchedEpisode, WatchLogEntry, ContentType, WatchedStatus } from './models';
+import type { WatchedItem, SeriesProgress, WatchedEpisode, WatchLogEntry, ContentType, WatchedStatus, SeasonCheckInput, SeasonCheckResult } from './models';
 
 const API = '/api';
 
@@ -45,21 +45,35 @@ export function useUpcomingFromLibrary(contentType: ContentType) {
   const [items, setItems] = useState<WatchedItem[] | undefined>(undefined);
 
   useEffect(() => {
-    apiFetch<WatchedItem[]>(`/library?contentType=${contentType}`).then((all) => {
-      const today = new Date().toISOString().slice(0, 10);
-      if (contentType === 'movie') {
+    if (contentType === 'movie') {
+      apiFetch<WatchedItem[]>('/library?contentType=movie').then((all) => {
+        const today = new Date().toISOString().slice(0, 10);
         setItems(
           all
             .filter((i) => i.releaseDate && i.releaseDate >= today)
             .sort((a, b) => (a.releaseDate ?? '').localeCompare(b.releaseDate ?? '')),
         );
-      } else {
-        setItems(
-          all
-            .filter((i) => i.status === 'watching' || i.status === 'plan_to_watch')
-            .sort((a, b) => a.title.localeCompare(b.title)),
-        );
-      }
+      });
+      return;
+    }
+
+    Promise.all([
+      apiFetch<WatchedItem[]>('/library?contentType=series'),
+      apiFetch<SeriesProgress[]>('/progress').catch(() => [] as SeriesProgress[]),
+    ]).then(([all, progress]) => {
+      // Completed series normally drop off this page, but one with a newly
+      // announced or airing season is exactly what "upcoming" is about.
+      const flagged = new Set(progress.filter((p) => p.newSeasonState).map((p) => p.tmdbId));
+      setItems(
+        all
+          .filter(
+            (i) =>
+              i.status === 'watching' ||
+              i.status === 'plan_to_watch' ||
+              (i.status === 'watched' && flagged.has(i.tmdbId)),
+          )
+          .sort((a, b) => a.title.localeCompare(b.title)),
+      );
     });
   }, [contentType, version]);
 
@@ -112,6 +126,39 @@ export function useSeriesProgress(tmdbId: number) {
   }, [tmdbId, version]);
 
   return progress;
+}
+
+/**
+ * All series progress rows keyed by tmdbId. The library renders one badge per
+ * card, so a single request beats one request per visible poster.
+ */
+export function useAllSeriesProgress() {
+  useRegisterInvalidate();
+  const { version } = useLibrary();
+  const [byTmdbId, setByTmdbId] = useState<Map<number, SeriesProgress> | undefined>(undefined);
+
+  useEffect(() => {
+    apiFetch<SeriesProgress[]>('/progress')
+      .then((rows) => setByTmdbId(new Map(rows.map((r) => [r.tmdbId, r]))))
+      .catch(() => setByTmdbId(undefined));
+  }, [version]);
+
+  return byTmdbId;
+}
+
+export async function fetchPendingSeasonChecks(): Promise<number[]> {
+  const { tmdbIds } = await apiFetch<{ tmdbIds: number[] }>('/series/season-check/pending');
+  return tmdbIds;
+}
+
+export async function postSeasonChecks(checks: SeasonCheckInput[]): Promise<SeasonCheckResult[]> {
+  if (!checks.length) return [];
+  const { results } = await apiFetch<{ results: SeasonCheckResult[] }>('/series/season-check', {
+    method: 'POST',
+    body: JSON.stringify({ checks }),
+  });
+  triggerInvalidate();
+  return results;
 }
 
 export async function addToLibrary(item: Omit<WatchedItem, 'id' | 'addedAt' | 'updatedAt'>) {

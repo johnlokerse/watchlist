@@ -70,3 +70,61 @@ export async function setupTMDBMocks(page: Page): Promise<void> {
  * Returns the movie detail fixture for TMDB ID 302946 (The Accountant).
  */
 export { movieDetail302946, seriesDetail1396 };
+
+/**
+ * Overrides the series detail route with a copy of the Breaking Bad fixture that
+ * has one extra season appended, so new-season detection can be exercised.
+ * Registered after setupTMDBMocks so it wins (routes match LIFO).
+ */
+export async function mockSeriesWithNewSeason(
+  page: Page,
+  opts: { seasonNumber: number; airDate: string; episodeCount?: number; aired?: boolean; placeholderSeason?: number },
+): Promise<void> {
+  const { seasonNumber, airDate, episodeCount = 10, aired = false, placeholderSeason } = opts;
+  const detail = {
+    ...seriesDetail1396,
+    status: aired ? 'Returning Series' : 'In Production',
+    number_of_seasons: placeholderSeason ?? seasonNumber,
+    number_of_episodes: seriesDetail1396.number_of_episodes + episodeCount,
+    seasons: [
+      ...seriesDetail1396.seasons,
+      {
+        id: 900000 + seasonNumber,
+        name: `Season ${seasonNumber}`,
+        season_number: seasonNumber,
+        episode_count: episodeCount,
+        air_date: airDate,
+        poster_path: null,
+        overview: '',
+      },
+      // TMDB often lists the next season as an empty stub with no air date.
+      ...(placeholderSeason
+        ? [
+            {
+              id: 900000 + placeholderSeason,
+              name: `Season ${placeholderSeason}`,
+              season_number: placeholderSeason,
+              episode_count: 0,
+              air_date: null,
+              poster_path: null,
+              overview: '',
+            },
+          ]
+        : []),
+    ],
+    last_episode_to_air: aired
+      ? {
+          id: 990001,
+          name: 'New beginnings',
+          air_date: airDate,
+          episode_number: 1,
+          season_number: seasonNumber,
+          overview: '',
+          still_path: null,
+          runtime: 50,
+        }
+      : seriesDetail1396.last_episode_to_air,
+  };
+
+  await routeTMDB(page, 'tv/1396*', detail);
+}
