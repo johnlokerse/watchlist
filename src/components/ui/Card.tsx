@@ -3,7 +3,12 @@ import { Link } from 'react-router-dom';
 import { posterUrl } from '../../utils/image';
 import { formatDate } from '../../utils/date';
 import CountdownBadge from './CountdownBadge';
-import type { WatchedStatus } from '../../db/models';
+import type { NewSeasonState, WatchedStatus } from '../../db/models';
+
+export interface NewSeasonInfo {
+  number: number;
+  state: NewSeasonState;
+}
 
 interface Props {
   id: number;
@@ -17,6 +22,7 @@ interface Props {
   compact?: boolean;
   status?: WatchedStatus | null;
   progressLabel?: string;
+  newSeason?: NewSeasonInfo | null;
   onClick?: MouseEventHandler<HTMLAnchorElement>;
   scrollRestoreId?: string;
 }
@@ -39,10 +45,14 @@ function PlaceholderPoster() {
 }
 
 export default function Card({
-  id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact, status, progressLabel, onClick, scrollRestoreId,
+  id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact, status, progressLabel, newSeason, onClick, scrollRestoreId,
 }: Props) {
   const url = posterUrl(posterPath, 'w342');
   const linkTo = type === 'movie' ? `/movie/${id}` : `/series/${id}`;
+  const cornerLabel = newSeason
+    ? `S${newSeason.number}${newSeason.state === 'airing' ? ' new' : ''}`
+    : null;
+  const bottomLabel = newSeason ? null : progressLabel;
 
   return (
     <Link
@@ -69,6 +79,19 @@ export default function Card({
             </span>
           </div>
         )}
+        {cornerLabel && (
+          <div
+            className="absolute left-2 top-2 flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-warning/90 px-1.5 py-1 text-[10px] font-bold uppercase leading-none tracking-wide text-[#1a1205] shadow"
+            title={
+              newSeason!.state === 'airing'
+                ? `Season ${newSeason!.number} is airing`
+                : `Season ${newSeason!.number} announced`
+            }
+          >
+            <span className="text-[9px] leading-none text-white" aria-hidden="true">★</span>
+            {cornerLabel}
+          </div>
+        )}
         {showCountdown && releaseDate && (
           <div className="absolute right-2 top-2">
             <CountdownBadge dateStr={releaseDate} />
@@ -79,9 +102,9 @@ export default function Card({
             ★ {voteAverage.toFixed(1)}
           </div>
         )}
-        {progressLabel && (
+        {bottomLabel && (
           <div className="absolute bottom-2 right-2 rounded-md bg-surface-overlay/90 px-2 py-0.5 text-xs font-semibold text-accent backdrop-blur-sm">
-            {progressLabel}
+            {bottomLabel}
           </div>
         )}
       </div>

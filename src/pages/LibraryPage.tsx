@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useWatchedItems, useSeriesProgress } from '../db/hooks';
+import { useWatchedItems, useAllSeriesProgress } from '../db/hooks';
+import { useNewSeasonCheck } from '../hooks/useNewSeasonCheck';
 import { useSearchMovies, useSearchSeries, useMovieGenres, useSeriesGenres, useAvailableProviders } from '../api/tmdb';
 import { useDebounce } from '../hooks/useDebounce';
 import { useSettings } from '../hooks/useSettings';
-import type { ContentType, WatchedItem, WatchedStatus } from '../db/models';
+import type { ContentType, SeriesProgress, WatchedItem, WatchedStatus } from '../db/models';
 import type { TMDBMovie, TMDBSeries } from '../api/types';
 import type { CoverSize } from '../hooks/useSettings';
 import ViewToggle from '../components/ui/ViewToggle';
@@ -13,6 +14,7 @@ import SearchBar from '../components/ui/SearchBar';
 import FilterBar from '../components/ui/FilterBar';
 import Select from '../components/ui/Select';
 import Card from '../components/ui/Card';
+import type { NewSeasonInfo } from '../components/ui/Card';
 import CardGrid from '../components/ui/CardGrid';
 import SkeletonCard from '../components/ui/SkeletonCard';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -55,34 +57,22 @@ function restoreLibraryScrollPosition() {
   }
 }
 
-function useSeriesProgressLabel(tmdbId: number) {
-  const progress = useSeriesProgress(tmdbId);
+function progressLabelFor(progress: SeriesProgress | undefined) {
   return progress && progress.currentEpisode > 0
     ? `S${progress.currentSeason}E${progress.currentEpisode}`
     : undefined;
 }
 
+function newSeasonInfo(progress: SeriesProgress | undefined): NewSeasonInfo | null {
+  return progress?.newSeasonNumber && progress.newSeasonState
+    ? { number: progress.newSeasonNumber, state: progress.newSeasonState }
+    : null;
+}
+
+type ProgressMap = Map<number, SeriesProgress> | undefined;
+
 function getLibraryItemRestoreId(contentType: ContentType, tmdbId: number) {
   return `${contentType}-${tmdbId}`;
-}
-
-function WatchingSeriesCard({ item, onOpen }: { item: WatchedItem; onOpen?: () => void }) {
-  const progressLabel = useSeriesProgressLabel(item.tmdbId);
-  return (
-    <Card
-      id={item.tmdbId}
-      title={item.title}
-      posterPath={item.posterPath}
-      type={item.contentType}
-      progressLabel={progressLabel}
-      onClick={onOpen}
-      scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
-    />
-  );
-}
-
-function WatchingSeriesListRow({ item }: { item: WatchedItem }) {
-  return <SeriesProgressValue tmdbId={item.tmdbId} />;
 }
 
 const MOVIE_STATUS_FILTERS = [
@@ -209,8 +199,17 @@ function itemReleaseLabel(item: WatchedItem) {
   return item.releaseDate ? formatDate(item.releaseDate) : 'TBA';
 }
 
-function SeriesProgressValue({ tmdbId }: { tmdbId: number }) {
-  const label = useSeriesProgressLabel(tmdbId);
+function SeriesProgressValue({ progress }: { progress: SeriesProgress | undefined }) {
+  const label = progressLabelFor(progress);
+  const newSeason = newSeasonInfo(progress);
+
+  if (newSeason) {
+    return (
+      <span className="font-semibold text-warning">
+        {newSeason.state === 'airing' ? `New S${newSeason.number} airing` : `S${newSeason.number} announced`}
+      </span>
+    );
+  }
 
   return (
     <span className={label ? 'font-semibold text-accent' : 'text-text-muted'}>
@@ -220,7 +219,7 @@ function SeriesProgressValue({ tmdbId }: { tmdbId: number }) {
 }
 
 
-function LibraryTable({ items, onOpen }: { items: WatchedItem[]; onOpen: () => void }) {
+function LibraryTable({ items, progressByTmdbId, onOpen }: { items: WatchedItem[]; progressByTmdbId: ProgressMap; onOpen: () => void }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border-subtle bg-surface-raised">
       <div className="hidden grid-cols-[minmax(0,1.7fr)_130px_130px_110px] gap-3 border-b border-border-subtle px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-text-muted md:grid">
@@ -268,7 +267,7 @@ function LibraryTable({ items, onOpen }: { items: WatchedItem[]; onOpen: () => v
               <span className="hidden text-sm font-semibold text-text-primary md:block">{STATUS_LABELS[item.status]}</span>
               <span className="self-center justify-self-end text-sm md:justify-self-start">
                 {item.contentType === 'series' ? (
-                  <WatchingSeriesListRow item={item} />
+                  <SeriesProgressValue progress={progressByTmdbId?.get(item.tmdbId)} />
                 ) : (
                   <span className={item.userRating ? 'font-semibold text-warning' : 'text-text-muted'}>
                     {item.userRating ? `${item.userRating}/10` : 'No rating'}
@@ -286,6 +285,7 @@ function LibraryTable({ items, onOpen }: { items: WatchedItem[]; onOpen: () => v
 function LibraryCollection({
   title,
   items,
+  progressByTmdbId,
   viewMode,
   coverSize,
   collapsed,
@@ -294,6 +294,7 @@ function LibraryCollection({
 }: {
   title: string;
   items: WatchedItem[];
+  progressByTmdbId: ProgressMap;
   viewMode: ViewMode;
   coverSize: CoverSize;
   collapsed: boolean;
@@ -333,24 +334,25 @@ function LibraryCollection({
         <>
       {viewMode === 'cards' ? (
         <CardGrid compact={coverSize === 'xs' || title === 'Watched'} coverSize={coverSize}>
-          {items.map((item) =>
-            item.contentType === 'series' && item.status === 'watching' ? (
-              <WatchingSeriesCard key={itemKey(item)} item={item} onOpen={onOpenItem} />
-            ) : (
+          {items.map((item) => {
+            const progress = item.contentType === 'series' ? progressByTmdbId?.get(item.tmdbId) : undefined;
+            return (
               <Card
                 key={itemKey(item)}
                 id={item.tmdbId}
                 title={item.title}
                 posterPath={item.posterPath}
                 type={item.contentType}
+                progressLabel={item.status === 'watching' ? progressLabelFor(progress) : undefined}
+                newSeason={newSeasonInfo(progress)}
                 onClick={onOpenItem}
                 scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
               />
-            ),
-          )}
+            );
+          })}
         </CardGrid>
       ) : (
-        <LibraryTable items={items} onOpen={onOpenItem} />
+        <LibraryTable items={items} progressByTmdbId={progressByTmdbId} onOpen={onOpenItem} />
       )}
         </>
       )}
@@ -387,6 +389,8 @@ export default function LibraryPage({ contentType }: LibraryPageProps) {
   const debouncedSearch = useDebounce(search);
 
   const items = useWatchedItems(contentType);
+  const progressByTmdbId = useAllSeriesProgress();
+  useNewSeasonCheck(contentType === 'series');
 
   // Genre id spaces differ between movies and TV, so reset genre selection on tab switch.
   const [prevContentType, setPrevContentType] = useState(contentType);
@@ -726,6 +730,7 @@ export default function LibraryPage({ contentType }: LibraryPageProps) {
                   key={section.status}
                   title={section.title}
                   items={section.items}
+                  progressByTmdbId={progressByTmdbId}
                   viewMode={viewMode}
                   coverSize={settings.coverSize}
                   collapsed={Boolean(collapsedSections[`${tab}-${section.status}`])}

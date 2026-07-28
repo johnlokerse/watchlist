@@ -77,6 +77,20 @@ const watchedItemsCols = db.prepare(`PRAGMA table_info(watched_items)`).all() as
 if (!watchedItemsCols.some((c) => c.name === 'watchedAt')) {
   db.exec(`ALTER TABLE watched_items ADD COLUMN watchedAt TEXT`);
 }
+
+// New-season tracking columns. Added separately so pre-existing databases pick them up.
+const seriesProgressCols = db.prepare(`PRAGMA table_info(series_progress)`).all() as { name: string }[];
+for (const [name, type] of [
+  ['newSeasonNumber', 'INTEGER'],
+  ['newSeasonState', 'TEXT'],
+  ['newSeasonAirDate', 'TEXT'],
+  ['lastCheckedAt', 'TEXT'],
+] as const) {
+  if (!seriesProgressCols.some((c) => c.name === name)) {
+    db.exec(`ALTER TABLE series_progress ADD COLUMN ${name} ${type}`);
+  }
+}
+
 const stmts = {
   // watched_items
   getAllItems: db.prepare(`SELECT * FROM watched_items ORDER BY addedAt DESC`),
@@ -101,6 +115,28 @@ const stmts = {
 
   // series_progress
   getProgress: db.prepare(`SELECT * FROM series_progress WHERE tmdbId = ?`),
+  getAllProgressRows: db.prepare(`SELECT * FROM series_progress`),
+  getPendingSeasonChecks: db.prepare(`
+    SELECT i.tmdbId FROM watched_items i
+    LEFT JOIN series_progress p ON p.tmdbId = i.tmdbId
+    WHERE i.contentType = 'series' AND i.status IN ('watching', 'watched')
+      AND (p.lastCheckedAt IS NULL OR p.lastCheckedAt < ?)
+    ORDER BY p.lastCheckedAt IS NOT NULL, p.lastCheckedAt ASC
+    LIMIT ?
+  `),
+  updateSeasonCheck: db.prepare(`
+    UPDATE series_progress SET
+      totalSeasons=@totalSeasons, totalEpisodes=@totalEpisodes,
+      newSeasonNumber=@newSeasonNumber, newSeasonState=@newSeasonState,
+      newSeasonAirDate=@newSeasonAirDate, lastCheckedAt=@lastCheckedAt
+    WHERE tmdbId=@tmdbId
+  `),
+  clearNewSeasonFlag: db.prepare(`
+    UPDATE series_progress
+    SET newSeasonNumber=NULL, newSeasonState=NULL, newSeasonAirDate=NULL
+    WHERE tmdbId = ?
+  `),
+  updateProgressTotals: db.prepare(`UPDATE series_progress SET totalSeasons=?, totalEpisodes=? WHERE tmdbId = ?`),
   upsertProgress: db.prepare(`
     INSERT INTO series_progress (watchedItemId, tmdbId, currentSeason, currentEpisode, totalSeasons, totalEpisodes)
     VALUES (@watchedItemId, @tmdbId, @currentSeason, @currentEpisode, @totalSeasons, @totalEpisodes)
@@ -182,6 +218,52 @@ export interface WatchLogRow {
   note: string;
 }
 
+export type NewSeasonState = 'announced' | 'airing';
+
+export interface SeriesProgressRow {
+  id: number;
+  watchedItemId: number;
+  tmdbId: number;
+  currentSeason: number;
+  currentEpisode: number;
+  totalSeasons: number;
+  totalEpisodes: number;
+  newSeasonNumber: number | null;
+  newSeasonState: NewSeasonState | null;
+  newSeasonAirDate: string | null;
+  lastCheckedAt: string | null;
+}
+
+export interface SeasonSummary {
+  season: number;
+  airDate: string | null;
+  episodeCount: number;
+}
+
+/** Compact TMDB summary posted by the client for a single series. */
+export interface SeasonCheckInput {
+  tmdbId: number;
+  /** Every non-special season TMDB knows about, so gaps and placeholders are visible. */
+  seasons?: SeasonSummary[];
+  /** Highest non-special season number known to TMDB. */
+  latestSeason: number;
+  /** Air date of that season, when TMDB has one. */
+  latestSeasonAirDate?: string | null;
+  /** Episode count across all non-special seasons. */
+  numberOfEpisodes: number;
+  /** Season/episode of the most recently aired episode, when known. */
+  lastAiredSeason?: number | null;
+  lastAiredEpisode?: number | null;
+}
+
+export interface SeasonCheckResult {
+  tmdbId: number;
+  status: string;
+  newSeasonNumber: number | null;
+  newSeasonState: NewSeasonState | null;
+  changed: boolean;
+}
+
 /** Convert a DB row to the frontend-friendly shape (parse genreIds JSON) */
 function rowToItem(row: WatchedItemRow) {
   return {
@@ -197,7 +279,7 @@ function rowToItem(row: WatchedItemRow) {
  * Only acts when the current status is 'watching' or 'watched'.
  */
 function checkAndUpdateSeriesStatus(tmdbId: number) {
-  const progress = stmts.getProgress.get(tmdbId) as { totalEpisodes: number } | undefined;
+  const progress = stmts.getProgress.get(tmdbId) as SeriesProgressRow | undefined;
   if (!progress || !progress.totalEpisodes) return;
 
   const { count } = stmts.countWatchedEpisodes.get(tmdbId) as { count: number };
@@ -207,6 +289,10 @@ function checkAndUpdateSeriesStatus(tmdbId: number) {
   if (item.status !== 'watching' && item.status !== 'watched') return;
 
   const newStatus = count >= progress.totalEpisodes ? 'watched' : 'watching';
+  if (newStatus === 'watched' && progress.newSeasonState) {
+    // Everything TMDB knows about is watched, so the new-season signal is stale.
+    stmts.clearNewSeasonFlag.run(tmdbId);
+  }
   if (item.status !== newStatus) {
     const now = new Date().toISOString();
     if (newStatus === 'watched' && item.watchedAt == null) {
@@ -216,6 +302,227 @@ function checkAndUpdateSeriesStatus(tmdbId: number) {
       stmts.updateItemStatusByTmdb.run(newStatus, now, tmdbId);
     }
   }
+}
+
+/**
+ * Once the user watches anything from the flagged season, the badge has served
+ * its purpose — drop it and adopt the new season as the accepted baseline.
+ */
+function acknowledgeNewSeason(tmdbId: number, season: number) {
+  const progress = stmts.getProgress.get(tmdbId) as SeriesProgressRow | undefined;
+  if (!progress?.newSeasonNumber || season < progress.newSeasonNumber) return;
+  stmts.updateProgressTotals.run(
+    Math.max(progress.totalSeasons ?? 0, progress.newSeasonNumber),
+    progress.totalEpisodes,
+    tmdbId,
+  );
+  stmts.clearNewSeasonFlag.run(tmdbId);
+}
+
+function isAired(date: string | null | undefined): boolean {
+  return !!date && date <= new Date().toISOString().slice(0, 10);
+}
+
+/** Normalised, ascending season list; falls back to the legacy single-season payload. */
+function seasonList(input: SeasonCheckInput): SeasonSummary[] {
+  if (input.seasons?.length) {
+    return input.seasons.filter((s) => s.season > 0).sort((a, b) => a.season - b.season);
+  }
+  if (!input.latestSeason) return [];
+  return [
+    {
+      season: input.latestSeason,
+      airDate: input.latestSeasonAirDate ?? null,
+      episodeCount: input.numberOfEpisodes,
+    },
+  ];
+}
+
+function hasAired(season: SeasonSummary, input: SeasonCheckInput): boolean {
+  if (isAired(season.airDate)) return true;
+  return input.lastAiredSeason != null && input.lastAiredSeason >= season.season;
+}
+
+/**
+ * TMDB frequently lists the next season as a stub with no air date and no
+ * episodes long before anything is actually confirmed. Those are noise, not an
+ * announcement.
+ */
+function isPlaceholder(season: SeasonSummary): boolean {
+  return !season.airDate && season.episodeCount <= 0;
+}
+
+/**
+ * Reconcile one series against the current TMDB season line-up.
+ *
+ * `totalSeasons` is the baseline the user has accepted. It is never advanced by
+ * a check — only by the user actually watching something from the new season
+ * (`acknowledgeNewSeason`) — so the flag survives repeated checks and an
+ * announced season is still detected once it starts airing.
+ */
+function applySeasonCheck(input: SeasonCheckInput): SeasonCheckResult | null {
+  const item = stmts.getItemByTmdb.get(input.tmdbId, 'series') as WatchedItemRow | undefined;
+  if (!item) return null;
+
+  const now = new Date().toISOString();
+  let progress = stmts.getProgress.get(input.tmdbId) as SeriesProgressRow | undefined;
+  if (!progress) {
+    // Items added without progress (imports, API seeds) still need a baseline row.
+    stmts.upsertProgress.run({
+      watchedItemId: item.id,
+      tmdbId: input.tmdbId,
+      currentSeason: 1,
+      currentEpisode: 0,
+      totalSeasons: 0,
+      totalEpisodes: 0,
+    });
+    progress = stmts.getProgress.get(input.tmdbId) as SeriesProgressRow;
+  }
+
+  // Only tracked series participate; planned series have no progress to reconcile.
+  if (item.status !== 'watching' && item.status !== 'watched') {
+    stmts.updateSeasonCheck.run({
+      tmdbId: input.tmdbId,
+      totalSeasons: progress.totalSeasons,
+      totalEpisodes: progress.totalEpisodes,
+      newSeasonNumber: null,
+      newSeasonState: null,
+      newSeasonAirDate: null,
+      lastCheckedAt: now,
+    });
+    return { tmdbId: input.tmdbId, status: item.status, newSeasonNumber: null, newSeasonState: null, changed: false };
+  }
+
+  const seasons = seasonList(input);
+  const baseline = progress.totalSeasons ?? 0;
+
+  let newSeasonNumber: number | null = null;
+  let newSeasonState: NewSeasonState | null = null;
+  let newSeasonAirDate: string | null = null;
+  const totalSeasons = progress.totalSeasons;
+  let totalEpisodes = progress.totalEpisodes;
+
+  /** Episodes up to and including `season`, so unaired seasons never inflate the total. */
+  const episodesThrough = (season: number) =>
+    seasons.length
+      ? seasons.filter((s) => s.season <= season).reduce((sum, s) => sum + s.episodeCount, 0)
+      : input.numberOfEpisodes;
+
+  if (item.status === 'watching' && !progress.newSeasonState) {
+    // The user is already working through this series. Adopt the latest real
+    // season silently; the new-season signal is reserved for series that the
+    // app moved from Watched back to Watching.
+    const meaningful = seasons.filter((season) => !isPlaceholder(season));
+    const aired = seasons.filter((season) => hasAired(season, input));
+    const adoptedSeason = meaningful.length
+      ? meaningful[meaningful.length - 1].season
+      : baseline;
+    const latestAiredSeason = aired.length ? aired[aired.length - 1].season : baseline;
+    const adoptedEpisodes = episodesThrough(latestAiredSeason) || progress.totalEpisodes;
+
+    stmts.updateSeasonCheck.run({
+      tmdbId: input.tmdbId,
+      totalSeasons: Math.max(baseline, adoptedSeason),
+      totalEpisodes: adoptedEpisodes,
+      newSeasonNumber: null,
+      newSeasonState: null,
+      newSeasonAirDate: null,
+      lastCheckedAt: now,
+    });
+    return {
+      tmdbId: input.tmdbId,
+      status: item.status,
+      newSeasonNumber: null,
+      newSeasonState: null,
+      changed: false,
+    };
+  }
+
+  if (!baseline) {
+    // No usable baseline (fresh or imported row) — record one instead of
+    // reporting every existing season as new. Anchor it to the newest season
+    // that has actually aired so a pending season is still picked up later.
+    const aired = seasons.filter((s) => hasAired(s, input));
+    const anchor = aired.length ? aired[aired.length - 1].season : input.latestSeason ?? 0;
+    stmts.updateProgressTotals.run(anchor, episodesThrough(anchor) || input.numberOfEpisodes, input.tmdbId);
+    stmts.updateSeasonCheck.run({
+      tmdbId: input.tmdbId,
+      totalSeasons: anchor,
+      totalEpisodes: episodesThrough(anchor) || input.numberOfEpisodes,
+      newSeasonNumber: null,
+      newSeasonState: null,
+      newSeasonAirDate: null,
+      lastCheckedAt: now,
+    });
+    return { tmdbId: input.tmdbId, status: item.status, newSeasonNumber: null, newSeasonState: null, changed: false };
+  }
+
+  const ahead = seasons.filter((s) => s.season > baseline);
+  const aired = ahead.filter((s) => hasAired(s, input));
+
+  if (aired.length) {
+    // Prefer the newest season that is actually out — a placeholder for a later
+    // season must not mask the one the user can watch right now.
+    const target = aired[aired.length - 1];
+    newSeasonNumber = target.season;
+    newSeasonAirDate = target.airDate;
+    newSeasonState = 'airing';
+    totalEpisodes = episodesThrough(target.season);
+  } else {
+    const upcoming = ahead.find((s) => !isPlaceholder(s));
+    if (upcoming) {
+      newSeasonNumber = upcoming.season;
+      newSeasonAirDate = upcoming.airDate;
+      newSeasonState = 'announced';
+      // Totals stay frozen: nothing new is watchable yet.
+    } else {
+      totalEpisodes = episodesThrough(baseline);
+    }
+  }
+
+  stmts.updateSeasonCheck.run({
+    tmdbId: input.tmdbId,
+    totalSeasons,
+    totalEpisodes,
+    newSeasonNumber,
+    newSeasonState,
+    newSeasonAirDate,
+    lastCheckedAt: now,
+  });
+
+  let status = item.status;
+  if (item.status === 'watched' && shouldResumeWatching(input, newSeasonState)) {
+    status = 'watching';
+    stmts.updateItemStatusByTmdb.run(status, now, input.tmdbId);
+  }
+
+  return {
+    tmdbId: input.tmdbId,
+    status,
+    newSeasonNumber,
+    newSeasonState,
+    changed: status !== item.status || newSeasonState !== progress.newSeasonState,
+  };
+}
+
+/**
+ * A completed series goes back to "watching" when the new season is actually
+ * airing, or — for users who tick episodes — when the latest aired episode of
+ * an already-known season is still unwatched.
+ */
+function shouldResumeWatching(input: SeasonCheckInput, newSeasonState: NewSeasonState | null): boolean {
+  if (newSeasonState === 'airing') return true;
+  if (newSeasonState === 'announced') return false;
+
+  const { lastAiredSeason, lastAiredEpisode } = input;
+  if (lastAiredSeason == null || lastAiredEpisode == null || lastAiredSeason < 1) return false;
+
+  // Without any episode ticks we cannot tell "seen it all" from "never tracked",
+  // so stay put rather than un-completing a manually watched series.
+  const { count } = stmts.countWatchedEpisodes.get(input.tmdbId) as { count: number };
+  if (count === 0) return false;
+
+  return !stmts.getEpisode.get(input.tmdbId, lastAiredSeason, lastAiredEpisode);
 }
 
 export const queries = {
@@ -296,6 +603,16 @@ export const queries = {
         note: '',
       });
     }
+
+    // Manually choosing either active/completed state dismisses the signal. The
+    // automatic watched-to-watching transition bypasses this method, so its
+    // badge remains until the user starts the new season.
+    if (
+      (changes.status === 'watched' || changes.status === 'watching') &&
+      existing?.contentType === 'series'
+    ) {
+      acknowledgeNewSeason(existing.tmdbId, Number.MAX_SAFE_INTEGER);
+    }
   },
 
   deleteItem(id: number) {
@@ -308,7 +625,37 @@ export const queries = {
   },
 
   upsertProgress(p: { watchedItemId: number; tmdbId: number; currentSeason: number; currentEpisode: number; totalSeasons: number; totalEpisodes: number }) {
+    // Keep the accepted baseline frozen while a new season is flagged, otherwise
+    // simply viewing the detail page would silently dismiss the badge.
+    const existing = stmts.getProgress.get(p.tmdbId) as SeriesProgressRow | undefined;
+    if (existing?.newSeasonState) {
+      stmts.upsertProgress.run({ ...p, totalSeasons: existing.totalSeasons, totalEpisodes: existing.totalEpisodes });
+      return;
+    }
     stmts.upsertProgress.run(p);
+  },
+
+  getAllProgress() {
+    return stmts.getAllProgressRows.all() as SeriesProgressRow[];
+  },
+
+  /** tmdbIds of tracked series whose TMDB data has not been checked recently. */
+  getPendingSeasonChecks(maxAgeMs = 12 * 60 * 60 * 1000, limit = 20) {
+    const cutoff = new Date(Date.now() - maxAgeMs).toISOString();
+    const rows = stmts.getPendingSeasonChecks.all(cutoff, limit) as { tmdbId: number }[];
+    return rows.map((r) => r.tmdbId);
+  },
+
+  applySeasonChecks(inputs: SeasonCheckInput[]) {
+    const results: SeasonCheckResult[] = [];
+    const tx = db.transaction(() => {
+      for (const input of inputs) {
+        const result = applySeasonCheck(input);
+        if (result) results.push(result);
+      }
+    });
+    tx();
+    return results;
   },
 
   getEpisodes(tmdbId: number, season: number) {
@@ -323,6 +670,7 @@ export const queries = {
       return { action: 'removed' };
     }
     stmts.insertEpisode.run(tmdbId, season, episode);
+    acknowledgeNewSeason(tmdbId, season);
     checkAndUpdateSeriesStatus(tmdbId);
     return { action: 'added' };
   },
@@ -335,6 +683,7 @@ export const queries = {
       }
     });
     tx();
+    if (episodes.length > 0) acknowledgeNewSeason(tmdbId, season);
     checkAndUpdateSeriesStatus(tmdbId);
   },
 

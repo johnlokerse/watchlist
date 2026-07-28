@@ -14,6 +14,8 @@ import TrailerTab from '../components/detail/TrailerTab';
 import RatingStars from '../components/ui/RatingStars';
 import WatchHistory from '../components/detail/WatchHistory';
 import { buildSeriesReleaseTimeline } from '../utils/releaseTimeline';
+import { formatDate } from '../utils/date';
+import { getInitialEpisodeSeason } from '../utils/seriesProgress';
 
 type Tab = 'overview' | 'episodes' | 'cast' | 'providers' | 'trailer';
 
@@ -53,15 +55,21 @@ export default function SeriesDetailPage() {
     tabInitRef.current = null;
   }, [seriesId]);
 
-  // Auto-switch to Episodes tab for in-progress series
+  // Auto-switch to Episodes for active progress and newly available seasons.
   useEffect(() => {
     if (!seriesId || tabInitRef.current === seriesId) return;
     if (watchedItem === undefined) return;
+    if (watchedItem.status === 'watched' && progress === undefined) return;
     tabInitRef.current = seriesId;
-    if (watchedItem.status === 'watching') {
+    if (watchedItem.status === 'watching' || progress?.newSeasonNumber) {
       setActiveTab('episodes');
     }
-  }, [watchedItem, seriesId]);
+  }, [watchedItem, progress, seriesId]);
+
+  const initialEpisodeSeason = useMemo(
+    () => getInitialEpisodeSeason(watchedItem?.status, progress, series?.seasons),
+    [watchedItem?.status, progress, series?.seasons],
+  );
 
   const timelineEvents = useMemo(
     () => (series ? buildSeriesReleaseTimeline(series) : []),
@@ -222,6 +230,28 @@ export default function SeriesDetailPage() {
       {/* Progress & Rating for library items */}
       {watchedItem && (
         <div className="app-panel mb-6 space-y-3 p-4">
+          {progress?.newSeasonNumber && progress.newSeasonState && (
+            <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-text-primary">
+              <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-sm bg-warning text-[10px] leading-none text-white" aria-hidden="true">
+                ★
+              </span>
+              <span>
+                {progress.newSeasonState === 'airing' ? (
+                  <>
+                    <strong>Season {progress.newSeasonNumber} is airing.</strong>{' '}
+                    This series moved back to Watching so you can pick it up again.
+                  </>
+                ) : (
+                  <>
+                    <strong>Season {progress.newSeasonNumber} has been announced</strong>
+                    {progress.newSeasonAirDate ? ` for ${formatDate(progress.newSeasonAirDate)}` : ''}. It stays
+                    marked as watched until the first episode airs.
+                  </>
+                )}
+              </span>
+            </div>
+          )}
+
           {/* Progress tracker */}
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm text-text-secondary">Progress:</span>
@@ -322,7 +352,7 @@ export default function SeriesDetailPage() {
         <EpisodesTab
           tmdbId={series.id}
           totalSeasons={series.number_of_seasons}
-          initialSeason={progress?.currentSeason ?? 1}
+          initialSeason={initialEpisodeSeason}
           seriesTitle={series.name}
           imdbId={imdbId ?? undefined}
           onEpisodeWatched={handleProgressChange}

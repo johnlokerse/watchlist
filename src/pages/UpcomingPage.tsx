@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useUpcomingFromLibrary, usePlannedMovies } from '../db/hooks';
 import type { ContentType } from '../db/models';
 import { useSeriesDetailBatch } from '../api/tmdb';
+import { useNewSeasonCheck } from '../hooks/useNewSeasonCheck';
 import { useSettings } from '../hooks/useSettings';
 import Card from '../components/ui/Card';
 import CardGrid from '../components/ui/CardGrid';
@@ -27,6 +28,7 @@ export default function UpcomingPage({ contentType }: UpcomingPageProps) {
   const { settings } = useSettings();
   const tab = contentType === 'movie' ? 'movies' : 'series';
   const upcomingItems = useUpcomingFromLibrary(contentType);
+  useNewSeasonCheck(contentType === 'series');
   const movies = contentType === 'movie' ? upcomingItems : undefined;
   const series = contentType === 'series' ? upcomingItems : undefined;
   const plannedMovies = usePlannedMovies();

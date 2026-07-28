@@ -11,6 +11,7 @@ import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { queries } from './db.js';
+import type { SeasonCheckInput } from './db.js';
 import { getAppVersion } from './app-info.js';
 
 const app = express();
@@ -62,6 +63,15 @@ function getTmdbFixtureResponse(pathname: string): { status: number; body: Recor
 }
 
 // ── Library REST API (identical to production server) ──────────────
+
+/**
+ * Marker route that only the test server exposes. The Playwright helpers probe
+ * it before any destructive call, so a suite run can never wipe a real library
+ * if `npm run dev` is still holding port 3001.
+ */
+app.get('/api/test/marker', (_req, res) => {
+  res.json({ testServer: true });
+});
 
 app.get('/api/version', (_req, res) => {
   res.json({ version: getAppVersion() });
@@ -124,9 +134,22 @@ app.post('/api/library/clear', (_req, res) => {
 
 // ── Progress & Episodes ────────────────────────────────────────────
 
+app.get('/api/progress', (_req, res) => {
+  res.json(queries.getAllProgress());
+});
+
 app.get('/api/progress/:tmdbId', (req, res) => {
   const p = queries.getProgress(Number(req.params.tmdbId));
   res.json(p);
+});
+
+app.get('/api/series/season-check/pending', (_req, res) => {
+  res.json({ tmdbIds: queries.getPendingSeasonChecks() });
+});
+
+app.post('/api/series/season-check', (req, res) => {
+  const { checks } = req.body as { checks?: SeasonCheckInput[] };
+  res.json({ results: queries.applySeasonChecks(checks ?? []) });
 });
 
 app.put('/api/progress', (req, res) => {
