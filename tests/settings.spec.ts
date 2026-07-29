@@ -18,7 +18,11 @@ test.describe('Settings Page', () => {
   test('lists all theme options', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/settings');
-    for (const name of ['Default', 'Dracula', 'Nord', 'Solarized Dark', 'Solarized Light', 'Gruvbox']) {
+    for (const name of [
+      'Default', 'True OLED', 'Midnight Velvet', 'Dracula', 'Nord', 'Solarized Dark',
+      'Solarized Light', 'Paper & Ink', 'Daylight Teal', 'Nord Light', 'Gruvbox Light',
+      'Rosé Pine Dawn', 'Gruvbox',
+    ]) {
       await expect(page.getByText(name)).toBeVisible();
     }
   });
@@ -29,6 +33,36 @@ test.describe('Settings Page', () => {
     await page.getByRole('button', { name: /Dracula/i }).click();
     const draculaButton = page.getByRole('button', { name: /Dracula/i });
     await expect(draculaButton.locator('span').filter({ hasText: '✓' })).toBeVisible();
+  });
+
+  test('dynamic themes toggle shows Light and Dark tabs', async ({ page }) => {
+    await setupTMDBMocks(page);
+    await page.goto('/settings');
+    await expect(page.getByText('Dynamic themes')).toBeVisible();
+    await page.getByRole('switch', { name: 'Dynamic themes' }).click();
+    await expect(page.getByRole('tab', { name: 'Light' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Dark' })).toBeVisible();
+  });
+
+  test('dynamic Light tab lists light themes only', async ({ page }) => {
+    await setupTMDBMocks(page);
+    await page.goto('/settings');
+    await page.getByRole('switch', { name: 'Dynamic themes' }).click();
+    await page.getByRole('tab', { name: 'Light' }).click();
+    for (const name of ['Solarized Light', 'Paper & Ink', 'Daylight Teal', 'Nord Light', 'Gruvbox Light', 'Rosé Pine Dawn']) {
+      await expect(page.getByRole('button', { name: new RegExp(name, 'i') })).toBeVisible();
+    }
+    await expect(page.getByRole('button', { name: /^Dracula/i })).toHaveCount(0);
+  });
+
+  test('dynamic Dark tab lists dark themes only', async ({ page }) => {
+    await setupTMDBMocks(page);
+    await page.goto('/settings');
+    await page.getByRole('switch', { name: 'Dynamic themes' }).click();
+    await page.getByRole('tab', { name: 'Dark' }).click();
+    await expect(page.getByRole('button', { name: /Midnight Velvet/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Dracula/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Paper & Ink/i })).toHaveCount(0);
   });
 
   test('shows Export to JSON button', async ({ page }) => {
