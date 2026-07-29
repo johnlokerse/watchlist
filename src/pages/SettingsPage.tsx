@@ -2,7 +2,14 @@ import { useRef, useState, useEffect } from 'react';
 import { clearLibrary, addToLibrary, exportLibrary, updateSeriesProgress, bulkImportEpisodes, updateWatchedItem, addWatchLogEntry } from '../db/hooks';
 import type { WatchedStatus, ContentType } from '../db/models';
 import { useSettings } from '../hooks/useSettings';
-import { THEMES } from '../utils/themes';
+import {
+  THEMES,
+  getTheme,
+  getThemesForScheme,
+  getSystemPrefersDark,
+  resolveThemeId,
+  type ColorScheme,
+} from '../utils/themes';
 import { useAvailableProviders } from '../api/tmdb';
 import { logoUrl } from '../utils/image';
 
@@ -386,11 +393,12 @@ function ModelPicker({ models, values, onChange, disabled, loading }: ModelPicke
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label?: string }) {
   return (
     <button
       role="switch"
       aria-checked={checked}
+      aria-label={label}
       onClick={onChange}
       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-surface-raised ${
         checked ? 'bg-accent' : 'bg-surface-overlay'
@@ -414,6 +422,7 @@ export default function SettingsPage() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ added: number; skipped: number } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [schemeTab, setSchemeTab] = useState<ColorScheme>(() => (getSystemPrefersDark() ? 'dark' : 'light'));
   const fileRef = useRef<HTMLInputElement>(null);
 
   const tmdbTokenConfigured = settings.tmdbApiToken.trim().length > 0;
@@ -609,13 +618,91 @@ export default function SettingsPage() {
               </div>
               <h2 className="text-base font-semibold">Appearance</h2>
             </div>
-            {THEMES.map((theme, i) => {
-              const isActive = settings.theme === theme.id;
+
+            <div className="flex items-center justify-between gap-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Dynamic themes</p>
+                <p className="text-xs text-text-secondary mt-0.5">
+                  Follow system light/dark appearance
+                </p>
+              </div>
+              <Toggle
+                label="Dynamic themes"
+                checked={settings.dynamicTheme}
+                onChange={() => {
+                  const next = !settings.dynamicTheme;
+                  if (next) {
+                    const current = getTheme(settings.theme);
+                    updateSettings({
+                      dynamicTheme: true,
+                      ...(current.scheme === 'light'
+                        ? { themeLight: current.id }
+                        : { themeDark: current.id }),
+                    });
+                    setSchemeTab(current.scheme);
+                  } else {
+                    updateSettings({
+                      dynamicTheme: false,
+                      theme: resolveThemeId(settings),
+                    });
+                  }
+                }}
+              />
+            </div>
+
+            {settings.dynamicTheme && (
+              <>
+                <div className="border-t border-border-subtle" />
+                <div className="py-3">
+                  <div
+                    className="control-surface inline-flex items-center gap-1 p-1 w-full"
+                    role="tablist"
+                    aria-label="Theme scheme"
+                  >
+                    {(['light', 'dark'] as const).map((scheme) => {
+                      const active = schemeTab === scheme;
+                      return (
+                        <button
+                          key={scheme}
+                          role="tab"
+                          aria-selected={active}
+                          onClick={() => setSchemeTab(scheme)}
+                          className={`flex-1 rounded-md px-3 py-1.5 text-sm font-semibold transition-all ${
+                            active
+                              ? 'bg-accent text-white shadow-sm'
+                              : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
+                          }`}
+                        >
+                          {scheme === 'light' ? 'Light' : 'Dark'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="border-t border-border-subtle" />
+
+            {(settings.dynamicTheme ? getThemesForScheme(schemeTab) : THEMES).map((theme, i) => {
+              const isActive = settings.dynamicTheme
+                ? (schemeTab === 'light' ? settings.themeLight : settings.themeDark) === theme.id
+                : settings.theme === theme.id;
               return (
                 <div key={theme.id}>
                   {i > 0 && <div className="border-t border-border-subtle" />}
                   <button
-                    onClick={() => updateSettings({ theme: theme.id })}
+                    onClick={() => {
+                      if (settings.dynamicTheme) {
+                        updateSettings(
+                          schemeTab === 'light'
+                            ? { themeLight: theme.id }
+                            : { themeDark: theme.id },
+                        );
+                      } else {
+                        updateSettings({ theme: theme.id });
+                      }
+                    }}
                     className={`w-full flex items-center justify-between py-3 px-2 rounded-lg transition-colors ${
                       isActive ? 'bg-accent/5' : 'hover:bg-surface-overlay cursor-pointer'
                     }`}
