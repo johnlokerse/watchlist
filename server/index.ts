@@ -186,7 +186,7 @@ app.post('/api/episodes/toggle', (req, res) => {
 
 // POST /api/episodes/import — bulk INSERT OR IGNORE, used by JSON import
 app.post('/api/episodes/import', (req, res) => {
-  const { entries } = req.body as { entries: { tmdbId: number; season: number; episode: number }[] };
+  const { entries } = req.body as { entries: { tmdbId: number; season: number; episode: number; watchedAt?: string | null }[] };
   queries.bulkInsertEpisodes(entries ?? []);
   res.json({ ok: true });
 });
@@ -196,6 +196,11 @@ app.post('/api/episodes/season', (req, res) => {
   const { tmdbId, season, episodes } = req.body;
   queries.markSeasonWatched(tmdbId, season, episodes);
   res.json({ ok: true });
+});
+
+// GET /api/insights — dated watch events for the insights dashboard
+app.get('/api/insights', (_req, res) => {
+  res.json(queries.getInsights());
 });
 
 // GET /api/library/:tmdbId/:type/watch-log — list rewatch entries
@@ -352,6 +357,10 @@ function buildLibraryContext(library: LibraryItem[]): string {
   return sections.join('\n\n');
 }
 
+// Default Watch Assistant model (used when OpenRouter is not configured)
+const DEFAULT_CHAT_MODEL = 'gpt-6-luna';
+const DEFAULT_CHAT_REASONING_EFFORT = 'high' as const;
+
 // POST /api/chat/session — create a new Copilot session with library context
 app.post('/api/chat/session', async (req, res) => {
   try {
@@ -369,7 +378,7 @@ app.post('/api/chat/session', async (req, res) => {
     const openrouterModel = typeof allSettings.openrouterModel === 'string' ? allSettings.openrouterModel : '';
 
     // Resolve the model to use: request-body override > DB setting > default
-    const resolvedModel = modelOverride ?? (openrouterEnabled && openrouterModel ? openrouterModel : 'claude-sonnet-4.6');
+    const resolvedModel = modelOverride ?? (openrouterEnabled && openrouterModel ? openrouterModel : DEFAULT_CHAT_MODEL);
 
     const sessionConfig: Parameters<typeof client.createSession>[0] = {
       model: resolvedModel,
@@ -378,6 +387,8 @@ app.post('/api/chat/session', async (req, res) => {
       configDir: watchlistCopilotConfigDir,
       tools: tmdbTools,
       onPermissionRequest: approveAllPermissions,
+      // Reasoning effort is tuned for the default model; OpenRouter models may not support it.
+      ...(resolvedModel === DEFAULT_CHAT_MODEL && { reasoningEffort: DEFAULT_CHAT_REASONING_EFFORT }),
       systemMessage: {
         content: `You are a friendly movie and TV series recommendation assistant embedded in the user's personal watchlist app.
 

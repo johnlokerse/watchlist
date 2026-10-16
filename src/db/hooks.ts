@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLibrary } from './LibraryContext';
-import type { WatchedItem, SeriesProgress, WatchedEpisode, WatchLogEntry, ContentType, WatchedStatus, SeasonCheckInput, SeasonCheckResult } from './models';
+import type { WatchedItem, SeriesProgress, WatchedEpisode, WatchLogEntry, InsightsData, ContentType, WatchedStatus, SeasonCheckInput, SeasonCheckResult } from './models';
 
 const API = '/api';
 
@@ -239,6 +239,21 @@ export async function markSeasonWatched(tmdbId: number, season: number, episodes
   triggerInvalidate();
 }
 
+export function useInsights() {
+  useRegisterInvalidate();
+  const { version } = useLibrary();
+  const [data, setData] = useState<InsightsData | undefined>(undefined);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    apiFetch<InsightsData>('/insights')
+      .then((d) => { setData(d); setError(false); })
+      .catch(() => setError(true));
+  }, [version]);
+
+  return { data, error };
+}
+
 export async function exportLibrary() {
   return apiFetch<{
     items: unknown[];
@@ -248,7 +263,7 @@ export async function exportLibrary() {
   }>('/library/export');
 }
 
-export async function bulkImportEpisodes(entries: { tmdbId: number; season: number; episode: number }[]) {
+export async function bulkImportEpisodes(entries: { tmdbId: number; season: number; episode: number; watchedAt?: string | null }[]) {
   if (!entries.length) return;
   await apiFetch('/episodes/import', { method: 'POST', body: JSON.stringify({ entries }) });
   triggerInvalidate();

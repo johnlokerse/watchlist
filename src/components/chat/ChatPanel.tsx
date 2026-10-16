@@ -170,7 +170,7 @@ export default function ChatPanel({ messages, isStreaming, error, isCreatingSess
                   />
                 </>
               ) : (
-                'Powered by GitHub Copilot - claude-sonnet-4.6'
+                'Powered by GitHub Copilot - gpt-6-luna (high reasoning)'
               )}
             </div>
             {!isEmpty && (

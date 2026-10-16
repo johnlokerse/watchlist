@@ -167,7 +167,7 @@ app.post('/api/episodes/toggle', (req, res) => {
 });
 
 app.post('/api/episodes/import', (req, res) => {
-  const { entries } = req.body as { entries: { tmdbId: number; season: number; episode: number }[] };
+  const { entries } = req.body as { entries: { tmdbId: number; season: number; episode: number; watchedAt?: string | null }[] };
   queries.bulkInsertEpisodes(entries ?? []);
   res.json({ ok: true });
 });
@@ -176,6 +176,11 @@ app.post('/api/episodes/season', (req, res) => {
   const { tmdbId, season, episodes } = req.body;
   queries.markSeasonWatched(tmdbId, season, episodes);
   res.json({ ok: true });
+});
+
+// GET /api/insights — dated watch events for the insights dashboard
+app.get('/api/insights', (_req, res) => {
+  res.json(queries.getInsights());
 });
 
 // ── Watch log (rewatch history) ────────────────────────────────────
