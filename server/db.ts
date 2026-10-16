@@ -78,6 +78,12 @@ if (!watchedItemsCols.some((c) => c.name === 'watchedAt')) {
   db.exec(`ALTER TABLE watched_items ADD COLUMN watchedAt TEXT`);
 }
 
+// Per-episode watch dates (insights). Episodes ticked before this existed stay undated.
+const watchedEpisodesCols = db.prepare(`PRAGMA table_info(watched_episodes)`).all() as { name: string }[];
+if (!watchedEpisodesCols.some((c) => c.name === 'watchedAt')) {
+  db.exec(`ALTER TABLE watched_episodes ADD COLUMN watchedAt TEXT`);
+}
+
 // New-season tracking columns. Added separately so pre-existing databases pick them up.
 const seriesProgressCols = db.prepare(`PRAGMA table_info(series_progress)`).all() as { name: string }[];
 for (const [name, type] of [
@@ -150,7 +156,7 @@ const stmts = {
   // watched_episodes
   getEpisodes: db.prepare(`SELECT * FROM watched_episodes WHERE tmdbId = ? AND season = ?`),
   getEpisode: db.prepare(`SELECT * FROM watched_episodes WHERE tmdbId = ? AND season = ? AND episode = ?`),
-  insertEpisode: db.prepare(`INSERT OR IGNORE INTO watched_episodes (tmdbId, season, episode) VALUES (?, ?, ?)`),
+  insertEpisode: db.prepare(`INSERT OR IGNORE INTO watched_episodes (tmdbId, season, episode, watchedAt) VALUES (?, ?, ?, ?)`),
   deleteEpisode: db.prepare(`DELETE FROM watched_episodes WHERE id = ?`),
   deleteSeasonEpisodes: db.prepare(`DELETE FROM watched_episodes WHERE tmdbId = ? AND season = ?`),
 
@@ -192,6 +198,33 @@ const stmts = {
   // export
   getAllProgress: db.prepare(`SELECT * FROM series_progress`),
   getAllEpisodes: db.prepare(`SELECT * FROM watched_episodes`),
+
+  // insights
+  getInsightLog: db.prepare(`
+    SELECT l.id, l.tmdbId, l.contentType, l.watchedAt, i.title, i.posterPath,
+      ROW_NUMBER() OVER (PARTITION BY l.tmdbId, l.contentType ORDER BY l.watchedAt, l.id) > 1 AS isRewatch
+    FROM watch_log l
+    JOIN watched_items i ON i.tmdbId = l.tmdbId AND i.contentType = l.contentType
+    ORDER BY l.watchedAt
+  `),
+  getInsightEpisodes: db.prepare(`
+    SELECT e.id, e.tmdbId, e.season, e.episode, e.watchedAt, i.title, i.posterPath
+    FROM watched_episodes e
+    JOIN watched_items i ON i.tmdbId = e.tmdbId AND i.contentType = 'series'
+    WHERE e.watchedAt IS NOT NULL
+    ORDER BY e.watchedAt
+  `),
+  countUndatedWatched: db.prepare(`
+    SELECT i.contentType, COUNT(*) AS count
+    FROM watched_items i
+    WHERE i.status = 'watched'
+      AND CASE i.contentType
+        WHEN 'movie' THEN NOT EXISTS (SELECT 1 FROM watch_log l WHERE l.tmdbId = i.tmdbId AND l.contentType = 'movie')
+        -- Series are charted by dated episodes only, so completions alone don't count.
+        ELSE NOT EXISTS (SELECT 1 FROM watched_episodes e WHERE e.tmdbId = i.tmdbId AND e.watchedAt IS NOT NULL)
+      END
+    GROUP BY i.contentType
+  `),
 };
 
 export interface WatchedItemRow {
@@ -669,17 +702,23 @@ export const queries = {
       checkAndUpdateSeriesStatus(tmdbId);
       return { action: 'removed' };
     }
-    stmts.insertEpisode.run(tmdbId, season, episode);
+    stmts.insertEpisode.run(tmdbId, season, episode, new Date().toISOString());
     acknowledgeNewSeason(tmdbId, season);
     checkAndUpdateSeriesStatus(tmdbId);
     return { action: 'added' };
   },
 
   markSeasonWatched(tmdbId: number, season: number, episodes: number[]) {
+    const now = new Date().toISOString();
     const tx = db.transaction(() => {
+      // Keep the original date of episodes that were already watched.
+      const previous = new Map(
+        (stmts.getEpisodes.all(tmdbId, season) as { episode: number; watchedAt: string | null }[])
+          .map((e) => [e.episode, e.watchedAt]),
+      );
       stmts.deleteSeasonEpisodes.run(tmdbId, season);
       for (const ep of episodes) {
-        stmts.insertEpisode.run(tmdbId, season, ep);
+        stmts.insertEpisode.run(tmdbId, season, ep, previous.has(ep) ? previous.get(ep) : now);
       }
     });
     tx();
@@ -748,7 +787,7 @@ export const queries = {
         }
       }
       for (const e of data.episodes as Record<string, unknown>[]) {
-        stmts.insertEpisode.run(e.tmdbId as number, e.season as number, e.episode as number);
+        stmts.insertEpisode.run(e.tmdbId as number, e.season as number, e.episode as number, (e.watchedAt as string) ?? null);
       }
       for (const w of (data.watchLog ?? []) as Record<string, unknown>[]) {
         if (w.tmdbId == null || w.contentType == null || w.watchedAt == null) continue;
@@ -774,13 +813,34 @@ export const queries = {
   },
 
   /** Bulk INSERT OR IGNORE — used by the JSON import flow. */
-  bulkInsertEpisodes(entries: { tmdbId: number; season: number; episode: number }[]) {
+  bulkInsertEpisodes(entries: { tmdbId: number; season: number; episode: number; watchedAt?: string | null }[]) {
     const tx = db.transaction(() => {
       for (const e of entries) {
-        stmts.insertEpisode.run(e.tmdbId, e.season, e.episode);
+        stmts.insertEpisode.run(e.tmdbId, e.season, e.episode, e.watchedAt ?? null);
       }
     });
     tx();
+  },
+
+  /** Dated watch events for the insights dashboard; bucketing happens client-side. */
+  getInsights() {
+    const log = stmts.getInsightLog.all() as {
+      id: number; tmdbId: number; contentType: string; watchedAt: string;
+      title: string; posterPath: string | null; isRewatch: number;
+    }[];
+    const episodes = stmts.getInsightEpisodes.all() as {
+      id: number; tmdbId: number; season: number; episode: number; watchedAt: string;
+      title: string; posterPath: string | null;
+    }[];
+    const undated = { movie: 0, series: 0 };
+    for (const row of stmts.countUndatedWatched.all() as { contentType: string; count: number }[]) {
+      if (row.contentType === 'movie' || row.contentType === 'series') undated[row.contentType] = row.count;
+    }
+    return {
+      log: log.map((r) => ({ ...r, isRewatch: r.isRewatch === 1 })),
+      episodes,
+      undated,
+    };
   },
 
   getSettings(): Record<string, unknown> {
@@ -831,8 +891,11 @@ export const queries = {
       tmdbId, currentSeason, currentEpisode, totalSeasons, totalEpisodes,
     }));
     const episodes = (stmts.getAllEpisodes.all() as {
-      id: number; tmdbId: number; season: number; episode: number;
-    }[]).map(({ tmdbId, season, episode }) => ({ tmdbId, season, episode }));
+      id: number; tmdbId: number; season: number; episode: number; watchedAt: string | null;
+    }[]).map(({ tmdbId, season, episode, watchedAt }) => ({
+      tmdbId, season, episode,
+      ...(watchedAt != null && { watchedAt }),
+    }));
     const watchLog = (stmts.getAllWatchLog.all() as WatchLogRow[]).map(
       ({ tmdbId, contentType, watchedAt, note }) => ({
         tmdbId, contentType, watchedAt,

@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { clearLibrary, addToLibrary, exportLibrary, updateSeriesProgress, bulkImportEpisodes, updateWatchedItem, addWatchLogEntry } from '../db/hooks';
 import type { WatchedStatus, ContentType } from '../db/models';
 import { useSettings } from '../hooks/useSettings';
@@ -114,6 +115,7 @@ interface ImportEpisode {
   tmdbId: number;
   season: number;
   episode: number;
+  watchedAt?: string | null;
 }
 
 interface ImportWatchLog {
@@ -604,6 +606,26 @@ export default function SettingsPage() {
         <p className="section-title mb-2">System preferences</p>
         <h1 className="page-title">Settings</h1>
       </div>
+
+      {/* Mobile entry point for Insights; desktop has it in the sidebar. */}
+      <Link
+        to="/insights"
+        className="database-row group flex items-center gap-3 px-4 py-3 transition-colors md:hidden"
+      >
+        <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3.5 4v16.5H20" />
+            <path d="m7 15 3.5-4.5 3 2.5 5-6.5" />
+          </svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium group-hover:text-accent">Insights</p>
+          <p className="text-xs text-text-secondary mt-0.5">Your watch activity over time</p>
+        </div>
+        <svg className="h-4 w-4 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
 

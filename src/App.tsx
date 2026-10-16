@@ -4,6 +4,7 @@ import AppShell from './components/layout/AppShell';
 import MediaPage from './pages/MediaPage';
 import DiscoverPage from './pages/DiscoverPage';
 import SettingsPage from './pages/SettingsPage';
+import InsightsPage from './pages/InsightsPage';
 import MovieDetailPage from './pages/MovieDetailPage';
 import SeriesDetailPage from './pages/SeriesDetailPage';
 
@@ -35,6 +36,7 @@ export default function App() {
         <Route path="/upcoming" element={<LegacyMediaRedirect view="upcoming" />} />
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/insights" element={<InsightsPage />} />
             <Route path="/movie/:id" element={<MovieDetailPage />} />
             <Route path="/series/:id" element={<SeriesDetailPage />} />
           </Route>

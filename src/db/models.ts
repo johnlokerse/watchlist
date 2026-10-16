@@ -55,6 +55,36 @@ export interface WatchedEpisode {
   tmdbId: number;
   season: number;
   episode: number;
+  watchedAt?: string | null;
+}
+
+/** A movie or series watch-log entry, as returned by /api/insights. */
+export interface InsightLogEvent {
+  id: number;
+  tmdbId: number;
+  contentType: ContentType;
+  watchedAt: string;
+  title: string;
+  posterPath: string | null;
+  isRewatch: boolean;
+}
+
+/** A dated watched episode, as returned by /api/insights. */
+export interface InsightEpisodeEvent {
+  id: number;
+  tmdbId: number;
+  season: number;
+  episode: number;
+  watchedAt: string;
+  title: string;
+  posterPath: string | null;
+}
+
+export interface InsightsData {
+  log: InsightLogEvent[];
+  episodes: InsightEpisodeEvent[];
+  /** Watched titles with no date anywhere, so they cannot be charted. */
+  undated: Record<ContentType, number>;
 }
 
 export type NewSeasonState = 'announced' | 'airing';

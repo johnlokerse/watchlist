@@ -50,6 +50,13 @@ function NavIcon({ icon, 'aria-hidden': ariaHidden }: { icon: string; 'aria-hidd
           <path d="M9 16h6" />
         </svg>
       );
+    case 'chart':
+      return (
+        <svg {...common}>
+          <path d="M3.5 4v16.5H20" />
+          <path d="m7 15 3.5-4.5 3 2.5 5-6.5" />
+        </svg>
+      );
     case 'settings':
       return (
         <svg {...common}>
@@ -149,8 +156,22 @@ export default function AppShell() {
             ))}
           </div>
 
-          {/* Collapse toggle */}
-          <div className="mt-auto">
+          {/* Secondary links + collapse toggle */}
+          <div className="mt-auto space-y-1">
+            <NavLink
+              to="/insights"
+              aria-label={collapsed ? 'Insights' : undefined}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg border text-sm font-medium transition-colors ${collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'} ${
+                  isActive
+                    ? 'border-accent/20 bg-accent/15 text-accent'
+                    : 'border-transparent text-text-secondary hover:bg-surface-raised hover:text-text-primary'
+                }`
+              }
+            >
+              <NavIcon icon="chart" aria-hidden />
+              {!collapsed && <span>Insights</span>}
+            </NavLink>
             <button
               type="button"
               onClick={toggleSidebar}
