@@ -60,6 +60,8 @@ const EXAMPLE_JSON = JSON.stringify(
         posterPath: '/fceheXB5fC4WrLVuWJ6OZv9FXYr.jpg',
         releaseDate: '2016-10-13',
         watchedAt: '2024-01-15T00:00:00.000Z',
+        addedAt: '2024-01-10T12:00:00.000Z',
+        genreIds: [53, 80],
       },
       {
         tmdbId: 1396,
@@ -101,6 +103,8 @@ interface ImportEntry {
   userRating?: number | null;
   notes?: string;
   watchedAt?: string | null;
+  addedAt?: string | null;
+  genreIds?: number[];
 }
 
 interface ImportProgress {
@@ -536,7 +540,9 @@ export default function SettingsPage() {
 
       let added = 0;
       let skipped = 0;
-      for (const entry of entries) {
+      // Older exports lack addedAt and are ordered newest-first; import oldest-first to preserve order.
+      const ordered = entries.some((e) => e.addedAt) ? entries : [...entries].reverse();
+      for (const entry of ordered) {
         if (!entry.tmdbId || !entry.title || !entry.contentType || !entry.status) {
           skipped++;
           continue;
@@ -550,8 +556,9 @@ export default function SettingsPage() {
           releaseDate: entry.releaseDate ?? null,
           userRating: entry.userRating ?? null,
           notes: entry.notes ?? '',
-          genreIds: [],
+          genreIds: Array.isArray(entry.genreIds) ? entry.genreIds : [],
           watchedAt: entry.watchedAt ?? null,
+          addedAt: entry.addedAt ?? undefined,
         });
 
         if (!id) { skipped++; continue; }
