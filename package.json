@@ -1,7 +1,7 @@
 {
   "name": "movie-db-copilot-sdk",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.5.1",
   "type": "module",
   "scripts": {
     "dev": "concurrently -n vite,server -c cyan,magenta \"vite\" \"tsx watch --env-file .env server/index.ts\"",
@@ -23,6 +23,7 @@
     "dexie": "^4.3.0",
     "dexie-react-hooks": "^4.2.0",
     "express": "^5.2.1",
+    "motion": "13.5.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0",

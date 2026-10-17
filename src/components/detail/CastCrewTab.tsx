@@ -14,12 +14,12 @@ export default function CastCrewTab({ cast, crew }: Props) {
   const topCast = cast.slice(0, 12);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Key Crew */}
       {(directors.length > 0 || writers.length > 0 || producers.length > 0 || composers.length > 0) && (
         <div>
-          <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">Crew</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <h3 className="section-title mb-3 px-1">Crew</h3>
+          <div className="grouped grid grid-cols-2 md:grid-cols-4 [&>*+*]:before:hidden">
             {directors.length > 0 && (
               <CrewBlock label="Director" names={directors.map((d) => d.name)} />
             )}
@@ -39,8 +39,8 @@ export default function CastCrewTab({ cast, crew }: Props) {
       {/* Cast */}
       {topCast.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">Top Billed Cast</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <h3 className="section-title mb-3 px-1">Top Billed Cast</h3>
+          <div className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
             {topCast.map((member) => (
               <PersonCard key={member.id} member={member} />
             ))}
@@ -53,9 +53,9 @@ export default function CastCrewTab({ cast, crew }: Props) {
 
 function CrewBlock({ label, names }: { label: string; names: string[] }) {
   return (
-    <div className="app-panel-soft p-3">
-      <p className="text-xs text-text-muted mb-1">{label}</p>
-      <p className="text-sm font-medium">{names.join(', ') || 'Unknown'}</p>
+    <div className="px-4 py-3">
+      <p className="t-label mb-1">{label}</p>
+      <p className="t-callout font-semibold text-text-primary">{names.join(', ') || 'Unknown'}</p>
     </div>
   );
 }
@@ -63,10 +63,10 @@ function CrewBlock({ label, names }: { label: string; names: string[] }) {
 function PersonCard({ member }: { member: TMDBCastMember }) {
   const photo = profileUrl(member.profile_path, 'w185');
   return (
-    <div className="overflow-hidden rounded-lg border border-border-subtle bg-surface-raised">
-      <div className="aspect-[2/3] bg-surface-overlay">
+    <div>
+      <div className="aspect-square overflow-hidden rounded-full bg-surface-overlay ring-1 ring-inset ring-hairline">
         {photo ? (
-          <img src={photo} alt={member.name} loading="lazy" className="w-full h-full object-cover" />
+          <img src={photo} alt={member.name} loading="lazy" className="h-full w-full object-cover object-top" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-text-muted">
             <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -76,9 +76,9 @@ function PersonCard({ member }: { member: TMDBCastMember }) {
           </div>
         )}
       </div>
-      <div className="p-2">
-        <p className="text-xs font-semibold truncate">{member.name}</p>
-        <p className="text-xs text-text-muted truncate">{member.character}</p>
+      <div className="pt-2 text-center">
+        <p className="truncate text-[0.8125rem] font-semibold text-text-primary">{member.name}</p>
+        <p className="t-caption truncate">{member.character}</p>
       </div>
     </div>
   );

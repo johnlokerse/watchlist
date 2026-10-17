@@ -20,8 +20,8 @@ export default function MediaPage({ contentType }: Props) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="relative z-40 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="space-y-5">
+      <div className="relative z-40 flex flex-col gap-3 pr-12 sm:flex-row sm:items-end sm:justify-between md:pr-0">
         <h1 className="page-title">{title}</h1>
         <SegmentedControl
           options={[

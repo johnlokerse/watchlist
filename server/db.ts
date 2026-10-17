@@ -903,11 +903,12 @@ export const queries = {
       }),
     );
     return {
-      items: items.map(({ tmdbId, title, contentType, status, posterPath, releaseDate, userRating, notes, watchedAt }) => ({
-        tmdbId, title, contentType, status, posterPath, releaseDate,
+      items: items.map(({ tmdbId, title, contentType, status, posterPath, releaseDate, userRating, notes, watchedAt, addedAt, genreIds }) => ({
+        tmdbId, title, contentType, status, posterPath, releaseDate, addedAt,
         ...(userRating != null && { userRating }),
         ...(notes && { notes }),
         ...(watchedAt != null && { watchedAt }),
+        ...(genreIds.length > 0 && { genreIds }),
       })),
       progress,
       episodes,

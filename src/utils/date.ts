@@ -1,3 +1,9 @@
+/** Local calendar date as YYYY-MM-DD (toISOString() would give the UTC date). */
+export function toLocalISODate(d: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export function daysUntil(dateStr: string): number {
   const target = new Date(dateStr + 'T00:00:00');
   const now = new Date();

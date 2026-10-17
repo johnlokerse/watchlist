@@ -122,6 +122,8 @@ function mergeDefaults(partial: Partial<AppSettings>): AppSettings {
 
 export function useSettings() {
   const [settings, setSettingsState] = useState<AppSettings>(() => mergeDefaults(cachedTheme));
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const pendingRef = useRef<AppSettings | null>(null);
   const initialized = useRef(false);
 
   // Load settings from server on mount
@@ -143,17 +145,41 @@ export function useSettings() {
       .catch(() => { initialized.current = true; });
   }, []);
 
-  // Persist to server whenever settings change (skip the initial default state)
+  // Persist to server whenever settings change (skip the initial default state).
+  // Debounced so typing a key doesn't send a request per keystroke; exposes the save status.
   useEffect(() => {
     if (!initialized.current) return;
-    fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) });
     writeThemeCache({
       theme: settings.theme,
       dynamicTheme: settings.dynamicTheme,
       themeLight: settings.themeLight,
       themeDark: settings.themeDark,
     });
+    pendingRef.current = settings;
+    const timer = window.setTimeout(() => {
+      pendingRef.current = null;
+      setSaveStatus('saving');
+      fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) })
+        .then((res) => setSaveStatus(res.ok ? 'saved' : 'error'))
+        .catch(() => setSaveStatus('error'));
+    }, 400);
+    return () => window.clearTimeout(timer);
   }, [settings]);
+
+  // Never lose a debounced change: flush it when the component unmounts or the page hides.
+  useEffect(() => {
+    const flush = () => {
+      const pending = pendingRef.current;
+      if (!pending) return;
+      pendingRef.current = null;
+      fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pending), keepalive: true });
+    };
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, []);
 
   // Apply theme + follow system appearance when dynamic mode is on
   useEffect(() => {
@@ -172,5 +198,5 @@ export function useSettings() {
     setSettingsState((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  return { settings, updateSettings };
+  return { settings, updateSettings, saveStatus };
 }

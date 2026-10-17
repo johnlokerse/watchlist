@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useState, type RefObject } from 'react';
+import Sheet from '../ui/Sheet';
 
 interface Props {
   seriesTitle: string;
@@ -9,6 +10,10 @@ interface Props {
   isLoading: boolean;
   isStreaming: boolean;
   error: string | null;
+  /** When the user keeps spoilers hidden, the recap starts behind a reveal gate. */
+  hideSpoilers: boolean;
+  originRef?: RefObject<HTMLElement | null>;
+  onRegenerate: () => void;
   onClose: () => void;
 }
 
@@ -21,89 +26,120 @@ export default function RecapModal({
   isLoading,
   isStreaming,
   error,
+  hideSpoilers,
+  originRef,
+  onRegenerate,
   onClose,
 }: Props) {
-  // Close on Escape key
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
-
+  const [revealed, setRevealed] = useState(!hideSpoilers);
   const pad = (n: number) => String(n).padStart(2, '0');
+  const gated = !revealed && !isLoading && !error;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Modal panel */}
-      <div className="relative bg-surface-raised border border-border-subtle rounded-2xl shadow-2xl max-w-lg w-full z-10 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-border-subtle">
-          <div className="min-w-0 pr-3">
-            <p className="text-xs text-text-muted mb-1">
-              {seriesTitle} &middot; S{pad(seasonNumber)}E{pad(episodeNumber)}
-            </p>
-            <h2 className="text-base font-semibold text-text-primary leading-snug">{episodeTitle}</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="flex-shrink-0 text-text-muted hover:text-text-primary transition rounded-lg p-0.5 -mr-0.5"
-            aria-label="Close"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="px-5 py-4 min-h-[80px]">
-          {isLoading && (
-            <div className="flex flex-col items-center justify-center py-6 gap-3">
-              <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-text-muted">Generating recap...</p>
+    <Sheet onClose={onClose} labelledBy="recap-title" originRef={originRef}>
+      {(dismiss) => (
+        <>
+          <div data-sheet-handle className="flex items-start justify-between gap-3 px-5 pb-3 pt-2 md:pt-5">
+            <div className="min-w-0">
+              <span className="t-micro inline-flex items-center gap-1 rounded-md bg-accent/15 px-1.5 py-1 uppercase text-accent">
+                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z" />
+                </svg>
+                AI Recap
+              </span>
+              <h2 id="recap-title" className="t-headline mt-2 text-text-primary">{episodeTitle}</h2>
+              <p className="t-caption num mt-0.5">
+                {seriesTitle} · S{pad(seasonNumber)}E{pad(episodeNumber)}
+              </p>
             </div>
-          )}
-          {!isLoading && error && (
-            <p className="text-sm text-danger leading-relaxed">{error}</p>
-          )}
-          {!isLoading && (recap || isStreaming) && (
-            <p className="text-sm text-text-primary leading-relaxed">
-              {recap}
-              {isStreaming && (
-                <span className="inline-flex items-center gap-0.5 ml-1">
-                  {[0, 1, 2].map((i) => (
-                    <span
-                      key={i}
-                      className="w-1.5 h-1.5 rounded-full bg-current opacity-70 animate-dot-bounce"
-                      style={{ animationDelay: `${i * 150}ms` }}
-                    />
-                  ))}
-                </span>
-              )}
-            </p>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={dismiss}
+              className="press hit-44 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-fill text-text-secondary hover:bg-fill-strong"
+              aria-label="Close"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6 6 18" />
+              </svg>
+            </button>
+          </div>
 
-        {/* Footer */}
-        <div className="px-5 pb-4 pt-1 border-t border-border-subtle">
-          <p className="text-xs text-text-muted flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-            </svg>
-            Generated by GitHub Copilot
-          </p>
-        </div>
-      </div>
-    </div>
+          <div className="min-h-[96px] overflow-y-auto px-5 pb-2">
+            {isLoading && (
+              <div className="space-y-2 py-2" role="status" aria-label="Generating recap">
+                <div className="skeleton h-3.5 w-full rounded" />
+                <div className="skeleton h-3.5 w-11/12 rounded" />
+                <div className="skeleton h-3.5 w-4/5 rounded" />
+                <p className="t-caption pt-1">Writing a recap…</p>
+              </div>
+            )}
+            {!isLoading && error && (
+              <p className="t-body text-danger" role="alert">{error}</p>
+            )}
+            {!isLoading && (recap || isStreaming) && (
+              <div className="relative">
+                <p
+                  className={`t-body text-text-primary transition-[filter,opacity] duration-300 ${gated ? 'select-none opacity-60 blur-[7px]' : ''}`}
+                  aria-hidden={gated}
+                >
+                  {recap}
+                  {isStreaming && (
+                    <span className="ml-1 inline-flex items-center gap-0.5" aria-hidden="true">
+                      {[0, 1, 2].map((i) => (
+                        <span
+                          key={i}
+                          className="h-1.5 w-1.5 rounded-full bg-current opacity-70 animate-dot-bounce"
+                          style={{ animationDelay: `${i * 150}ms` }}
+                        />
+                      ))}
+                    </span>
+                  )}
+                </p>
+                {gated && (
+                  <div className="absolute inset-0 grid place-items-center">
+                    <button
+                      type="button"
+                      onClick={() => setRevealed(true)}
+                      className="press material-sheet min-h-10 rounded-full px-4 text-[0.875rem] font-semibold text-text-primary"
+                    >
+                      Contains spoilers · Show
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3 px-5 pb-5 pt-3">
+            <div className="flex gap-2 rounded-xl bg-fill p-3">
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v5M12 16h.01" />
+              </svg>
+              <p className="t-caption">
+                <span>Generated by GitHub Copilot</span> from the episode synopsis. AI can make mistakes and the recap may contain spoilers.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onRegenerate}
+                disabled={isLoading || isStreaming}
+                className="press min-h-11 flex-1 rounded-xl bg-fill text-[0.9375rem] font-semibold text-text-primary hover:bg-fill-strong disabled:opacity-40"
+              >
+                Regenerate
+              </button>
+              <button
+                type="button"
+                onClick={dismiss}
+                className="press min-h-11 flex-1 rounded-xl bg-accent text-[0.9375rem] font-semibold text-on-accent hover:bg-accent-hover"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </Sheet>
   );
 }

@@ -1,15 +1,21 @@
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
+import { m } from 'motion/react';
+import { spring } from '../../design/motion';
 
 interface Props {
   options: { value: string; label: string }[];
   value: string;
   onChange: (value: string) => void;
   ariaLabel?: string;
+  /** Stretch to the container width with equal segments. */
+  fill?: boolean;
+  size?: 'sm' | 'md';
 }
 
-export default function SegmentedControl({ options, value, onChange, ariaLabel = 'View' }: Props) {
+export default function SegmentedControl({ options, value, onChange, ariaLabel = 'View', fill = false, size = 'md' }: Props) {
   const buttonsRef = useRef<Array<HTMLButtonElement | null>>([]);
+  const layoutId = `segment-thumb-${useId()}`;
 
   const selectOption = (index: number) => {
     const nextIndex = (index + options.length) % options.length;
@@ -41,28 +47,41 @@ export default function SegmentedControl({ options, value, onChange, ariaLabel =
   };
 
   return (
-    <div className="control-surface inline-flex gap-1 p-1" role="tablist" aria-label={ariaLabel}>
-      {options.map((opt, index) => (
-        <button
-          key={opt.value}
-          ref={(element) => {
-            buttonsRef.current[index] = element;
-          }}
-          type="button"
-          role="tab"
-          aria-selected={value === opt.value}
-          tabIndex={value === opt.value ? 0 : -1}
-          onClick={() => onChange(opt.value)}
-          onKeyDown={(event) => handleKeyDown(event, index)}
-          className={`rounded-md px-4 py-1.5 text-sm font-semibold transition-all ${
-            value === opt.value
-              ? 'bg-accent text-black shadow-sm'
-              : 'text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          {opt.label}
-        </button>
-      ))}
+    <div
+      className={`segmented ${fill ? 'flex w-full' : 'inline-flex'} max-w-full overflow-x-auto scrollbar-none`}
+      role="tablist"
+      aria-label={ariaLabel}
+    >
+      {options.map((opt, index) => {
+        const selected = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            ref={(element) => {
+              buttonsRef.current[index] = element;
+            }}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onChange(opt.value)}
+            onKeyDown={(event) => handleKeyDown(event, index)}
+            className={`segmented-item hit-44 ${fill ? 'flex-1' : ''} ${size === 'sm' ? 'min-h-7 px-3 text-[0.75rem]' : 'min-h-8 px-3.5 text-[0.8125rem]'} ${
+              selected ? 'text-on-accent' : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            {selected && (
+              <m.span
+                layoutId={layoutId}
+                className="segmented-thumb"
+                transition={spring.default}
+                aria-hidden="true"
+              />
+            )}
+            <span className="relative z-[1] whitespace-nowrap">{opt.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -44,8 +44,8 @@ export default function WatchProvidersTab({
   return (
     <div className="space-y-6">
       {myStreamingProviders.length > 0 && (
-        <div className="rounded-lg border border-accent/40 bg-accent/5 p-4">
-          <h3 className="text-sm font-semibold text-accent uppercase tracking-wider mb-3">
+        <div className="rounded-[18px] bg-accent/12 p-4">
+          <h3 className="section-title mb-3 !text-accent">
             On Your Services
           </h3>
           <div className="flex flex-wrap gap-3">
@@ -59,13 +59,13 @@ export default function WatchProvidersTab({
                   serviceId={match?.serviceId}
                   providerName={p.provider_name}
                   sectionLabel="your services"
-                  className="flex items-center gap-2 bg-accent/10 rounded-lg px-3 py-2 border border-accent/30"
+                  className="flex min-h-12 items-center gap-2.5 rounded-xl bg-surface-raised px-3 py-2 shadow-card"
                 >
                   {logo && (
-                    <img src={logo} alt={p.provider_name} className="w-8 h-8 rounded-md" loading="lazy" />
+                    <img src={logo} alt={p.provider_name} className="h-8 w-8 rounded-lg" loading="lazy" />
                   )}
-                  <span className="text-sm font-medium">{p.provider_name}</span>
-                  <span className="text-accent text-xs font-bold">✓</span>
+                  <span className="text-[0.875rem] font-semibold">{p.provider_name}</span>
+                  <svg className="h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg>
                 </ProviderLink>
               );
             })}
@@ -83,7 +83,7 @@ export default function WatchProvidersTab({
         <ProviderGroup title="Buy" providers={providers.buy} userServiceIds={[]} deepLinks={deepLinks} preferredTypes={['buy']} />
       )}
       {!providers.flatrate?.length && !providers.rent?.length && !providers.buy?.length && (
-        <div className="text-center py-8 text-text-muted">
+        <div className="t-callout py-8 text-center text-text-secondary">
           <p>No providers found for {country}.</p>
         </div>
       )}
@@ -92,24 +92,24 @@ export default function WatchProvidersTab({
           href={providers.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block rounded-lg bg-accent/15 px-4 py-2 text-sm font-medium text-accent transition hover:bg-accent/25"
+          className="press inline-flex min-h-9 items-center rounded-full bg-fill px-4 text-[0.875rem] font-semibold text-text-primary hover:bg-fill-strong"
         >
           View on JustWatch ↗
         </a>
       )}
       {deepLinksLoading && (
-        <p className="text-xs text-text-muted">Finding exact provider links…</p>
+        <p className="t-caption">Finding exact provider links…</p>
       )}
       {!deepLinksConfigured && (
-        <p className="text-xs text-text-muted">Add a Streaming Availability API key in Settings to make provider chips open exact watch pages.</p>
+        <p className="t-caption">Add a Streaming Availability API key in Settings to make provider chips open exact watch pages.</p>
       )}
       {deepLinksConfigured && !deepLinksLoading && !deepLinksError && deepLinks.length === 0 && (
-        <p className="text-xs text-text-muted">No exact provider links were found for this title in {country}.</p>
+        <p className="t-caption">No exact provider links were found for this title in {country}.</p>
       )}
       {deepLinksError && (
-        <p className="text-xs text-danger">Exact provider links unavailable: {deepLinksError}</p>
+        <p className="t-caption text-danger">Exact provider links unavailable: {deepLinksError}</p>
       )}
-      <p className="text-xs text-text-muted">Provider data sourced from JustWatch via TMDB.</p>
+      <p className="t-caption">Provider data sourced from JustWatch via TMDB.</p>
     </div>
   );
 }
@@ -129,7 +129,7 @@ function ProviderGroup({
 }) {
   return (
     <div>
-      <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">{title}</h3>
+      <h3 className="section-title mb-3 px-1">{title}</h3>
       <div className="flex flex-wrap gap-3">
         {providers.map((p) => {
           const logo = logoUrl(p.logo_path, 'w92');
@@ -142,16 +142,14 @@ function ProviderGroup({
               serviceId={match?.serviceId}
               providerName={p.provider_name}
               sectionLabel={title}
-              className={`flex items-center gap-2 rounded-lg px-3 py-2 border transition-colors ${
-                isMyService
-                  ? 'bg-accent/10 border-accent/50'
-                  : 'bg-surface-raised border-border-subtle'
+              className={`flex min-h-12 items-center gap-2.5 rounded-xl px-3 py-2 transition-colors ${
+                isMyService ? 'bg-accent/12 ring-1 ring-inset ring-accent/40' : 'bg-surface-raised ring-1 ring-inset ring-hairline'
               }`}
             >
               {logo && (
-                <img src={logo} alt={p.provider_name} className="h-8 w-8 rounded-md" loading="lazy" />
+                <img src={logo} alt={p.provider_name} className="h-8 w-8 rounded-lg" loading="lazy" />
               )}
-              <span className="text-sm">{p.provider_name}</span>
+              <span className="text-[0.875rem] font-medium">{p.provider_name}</span>
             </ProviderLink>
           );
         })}
@@ -203,7 +201,8 @@ function ProviderLink({
   children: React.ReactNode;
 }) {
   if (!href) {
-    return <div className={className}>{children}</div>;
+    // Not tappable: drop the button affordance so it doesn't promise an action.
+    return <div className={`${className} !bg-transparent !shadow-none opacity-80`}>{children}</div>;
   }
 
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -245,7 +244,7 @@ function ProviderLink({
       onClick={handleClick}
       aria-label={`Open ${providerName} from ${sectionLabel}`}
       title={`Open ${providerName}`}
-      className={`${className} hover:border-accent hover:bg-accent/10 focus:outline-none focus:ring-2 focus:ring-accent/50`}
+      className={`${className} press hover:ring-accent/60 focus-visible:outline-2`}
     >
       {children}
     </a>

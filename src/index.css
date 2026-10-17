@@ -1,31 +1,51 @@
 @import "tailwindcss";
 
+/* ── Design tokens ────────────────────────────────────────────────────────────
+   Values here are the Default theme; src/utils/themes.ts overrides the color
+   variables at runtime on :root for every theme. */
 @theme {
-  --color-surface: #0f0f0f;
-  --color-surface-raised: #1a1a1a;
-  --color-surface-overlay: #242424;
-  --color-border-subtle: #2a2a2a;
-  --color-accent: #6366f1;
-  --color-accent-hover: #818cf8;
-  --color-text-primary: #f5f5f5;
-  --color-text-secondary: #a3a3a3;
-  --color-text-muted: #737373;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
+  --color-surface: #071014;
+  --color-surface-raised: #101b20;
+  --color-surface-overlay: #17272d;
+  --color-border-subtle: #26393f;
+  --color-border-strong: #5c696b;
+  --color-accent: #0f9f9a;
+  --color-accent-hover: #14b8ad;
+  --color-text-primary: #f4f0e8;
+  --color-text-secondary: #a9bbb9;
+  --color-text-muted: #7f9090;
+  --color-success: #58c68a;
+  --color-warning: #e7a93c;
+  --color-danger: #d65f4b;
+  --color-on-accent: #071014;
+  --color-on-warning: #071014;
+  --color-on-success: #071014;
+  --color-on-danger: #071014;
+
+  /* Neutral fills derived from the text color, so they adapt to light and dark themes. */
+  --color-fill: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  --color-fill-strong: color-mix(in srgb, var(--color-text-primary) 16%, transparent);
+  --color-hairline: color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Roboto, sans-serif;
+
+  --shadow-chip: 0 1px 2px rgb(0 0 0 / 0.2);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.18), 0 10px 28px -14px rgb(0 0 0 / 0.55);
+  --shadow-sheet: 0 -1px 0 0 var(--color-hairline), 0 24px 64px -12px rgb(0 0 0 / 0.55);
 }
 
-body {
-  @apply bg-surface text-text-primary antialiased;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  letter-spacing: 0;
-  min-width: 320px;
-}
-
+/* ── Base ─────────────────────────────────────────────────────────────────── */
 html {
   background: var(--color-surface);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-surface text-text-primary antialiased;
+  font-family: var(--font-sans);
+  font-optical-sizing: auto;
+  min-width: 320px;
 }
 
 :root {
@@ -35,29 +55,9 @@ html {
   --safe-area-left: env(safe-area-inset-left, 0px);
 }
 
-/* Keep fixed/sticky elements below the iOS translucent status bar while content scrolls underneath it. */
-@media (max-width: 767px) {
-  .mobile-safe-sticky-top {
-    top: var(--safe-area-top);
-  }
-
-  .mobile-safe-sticky-top::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: calc(var(--safe-area-top) * -1);
-    height: var(--safe-area-top);
-    pointer-events: none;
-    background: inherit;
-    backdrop-filter: inherit;
-    -webkit-backdrop-filter: inherit;
-  }
-
-  .mobile-safe-fab {
-    top: calc(13px + var(--safe-area-top));
-    right: calc(0.75rem + var(--safe-area-right));
-  }
+:root[data-scheme='light'] {
+  --shadow-card: 0 1px 2px rgb(40 30 20 / 0.08), 0 10px 28px -14px rgb(40 30 20 / 0.28);
+  --shadow-sheet: 0 -1px 0 0 var(--color-hairline), 0 24px 64px -12px rgb(40 30 20 / 0.28);
 }
 
 button,
@@ -76,80 +76,340 @@ textarea {
 }
 
 :focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 72%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 75%, transparent);
   outline-offset: 2px;
 }
 
-/* Mini design system: compact database panels, precise borders, and 8px geometry. */
-.app-bg {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--color-surface-overlay) 24%, transparent) 0%, transparent 36rem),
-    var(--color-surface);
+/* Keep fixed/sticky elements below the iOS translucent status bar while content scrolls underneath it. */
+@media (max-width: 767px) {
+  .mobile-safe-sticky-top {
+    top: var(--safe-area-top);
+  }
+
+  .mobile-safe-fab {
+    top: calc(10px + var(--safe-area-top));
+    right: calc(0.75rem + var(--safe-area-right));
+  }
 }
 
+/* ── Typography: size-specific tracking and leading (Apple UI typography) ──── */
+@layer components {
+  .page-title,
+  .t-display {
+    font-size: clamp(1.75rem, 1.35rem + 1.2vw, 2.25rem);
+    line-height: 1.05;
+    font-weight: 760;
+    letter-spacing: -0.022em;
+  }
+
+  .t-title {
+    font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.875rem);
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.017em;
+  }
+
+  .t-title-2 {
+    font-size: 1.25rem;
+    line-height: 1.2;
+    font-weight: 680;
+    letter-spacing: -0.014em;
+  }
+
+  .t-headline {
+    font-size: 1.0625rem;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .t-body {
+    font-size: 0.9375rem;
+    line-height: 1.47;
+    letter-spacing: -0.003em;
+  }
+
+  .t-callout {
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  .t-caption {
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    letter-spacing: 0.002em;
+    color: var(--color-text-secondary);
+  }
+
+  .section-title,
+  .t-label {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--color-text-muted);
+  }
+
+  .t-micro {
+    font-size: 0.6875rem;
+    line-height: 1.1;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+  }
+
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ── Surfaces & materials ────────────────────────────────────────────────────
+   In @layer components so Tailwind utilities (e.g. border-danger/30) can override them. */
+@layer components {
+  .app-bg {
+    background:
+      radial-gradient(120% 60% at 50% -10%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 60%),
+      var(--color-surface);
+  }
+
+  .app-panel {
+    background: var(--color-surface-raised);
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px var(--color-hairline), var(--shadow-card);
+  }
+
+  .app-panel-soft {
+    background: color-mix(in srgb, var(--color-surface-raised) 80%, transparent);
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px var(--color-hairline);
+  }
+
+  /* iOS-style grouped list: inset rounded container with hairline separators. */
+  .grouped {
+    background: var(--color-surface-raised);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px var(--color-hairline);
+  }
+
+  .grouped-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    min-height: 3rem;
+    padding: 0.625rem 1rem;
+  }
+
+  .grouped-row + .grouped-row::before,
+  .grouped > * + *::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 1rem;
+    right: 0;
+    height: 1px;
+    background: var(--color-hairline);
+  }
+
+  .grouped > * {
+    position: relative;
+  }
+
+  .control-surface {
+    background: var(--color-fill);
+    border-radius: 11px;
+  }
+
+  .field {
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    background: var(--color-fill);
+    color: var(--color-text-primary);
+    font-size: 1rem; /* 16px avoids iOS focus zoom */
+    outline: none;
+    box-shadow: inset 0 0 0 1px transparent;
+    transition: box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  .field::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .field:focus-visible {
+    box-shadow: inset 0 0 0 1.5px var(--color-accent);
+    outline: none;
+  }
+
+  @media (min-width: 768px) {
+    .field {
+      font-size: 0.9375rem;
+      min-height: 2.25rem;
+    }
+  }
+
+  .database-row {
+    background: var(--color-surface-raised);
+    border-radius: 12px;
+    box-shadow: inset 0 0 0 1px var(--color-hairline);
+    transition: background-color 150ms ease, transform 100ms ease-out;
+  }
+
+  .database-row:active {
+    transform: scale(0.985);
+  }
+
+  @media (hover: hover) {
+    .database-row:hover {
+      background: var(--color-surface-overlay);
+    }
+  }
+
+  /* Translucent chrome: tab bar, sidebar, sticky toolbars. Content scrolls underneath. */
+  .material-chrome {
+    background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+  }
+
+  /* Thicker material for sheets, popovers and toasts. */
+  .material-sheet {
+    background: color-mix(in srgb, var(--color-surface-raised) 94%, transparent);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    backdrop-filter: blur(32px) saturate(180%);
+    box-shadow: inset 0 0 0 1px var(--color-hairline), var(--shadow-sheet);
+  }
+
+  /* Small badges over artwork. */
+  .material-chip {
+    background: rgb(0 0 0 / 0.42);
+    color: #fff;
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    backdrop-filter: blur(12px) saturate(160%);
+  }
+
+  :root[data-scheme='light'] .material-chrome {
+    background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  }
+
+  /* Segmented control */
+  .segmented {
+    gap: 2px;
+    padding: 3px;
+    border-radius: 11px;
+    background: var(--color-fill);
+  }
+
+  .segmented-item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    transition: color 150ms ease;
+  }
+
+  .segmented-thumb {
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    background: var(--color-accent);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.18), 0 0 0 0.5px rgb(0 0 0 / 0.04);
+  }
+
+  .skeleton {
+    background: var(--color-fill);
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+/* ── Interaction utilities (@utility so Tailwind variants like md: work) ───── */
+/* Feedback on pointer-down, not on release. */
+@utility press {
+  transition: transform 100ms ease-out;
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+/* Grow the tap target to at least 44×44pt without changing the visual size. */
+@utility hit-44 {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Scroll edge effects instead of hard dividers. */
+@utility edge-fade-x {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+}
+
+@utility edge-fade-bottom {
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 14px), transparent);
+}
+
+@utility hairline-top {
+  box-shadow: inset 0 1px 0 var(--color-hairline);
+}
+
+@utility hairline-bottom {
+  box-shadow: inset 0 -1px 0 var(--color-hairline);
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ── OLED theme: pure black surfaces, no resting shadows ──────────────────── */
 :root[data-theme='oled-cinema'] .app-bg {
   background: #000000;
 }
 
-.app-panel {
-  background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 88%, transparent);
-  border-radius: 8px;
-  box-shadow: 0 18px 60px rgb(0 0 0 / 0.18);
-}
-
-:root[data-theme='oled-cinema'] .app-panel {
-  background: #000000;
-  border-color: #1c1c22;
-  box-shadow: none;
-}
-
-.app-panel-soft {
-  background: color-mix(in srgb, var(--color-surface-raised) 72%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
-  border-radius: 8px;
-}
-
+:root[data-theme='oled-cinema'] .app-panel,
 :root[data-theme='oled-cinema'] .app-panel-soft,
-:root[data-theme='oled-cinema'] .control-surface,
+:root[data-theme='oled-cinema'] .grouped,
 :root[data-theme='oled-cinema'] .database-row {
   background: #000000;
-  border-color: #1c1c22;
+  box-shadow: inset 0 0 0 1px #1c1c22;
 }
 
-/* Flatten Tailwind bg-surface* utility classes (cards, nav bars, inputs) to pure black */
 :root[data-theme='oled-cinema'] .bg-surface-raised,
 :root[data-theme='oled-cinema'] [class*="bg-surface-raised/"],
 :root[data-theme='oled-cinema'] .bg-surface-overlay,
-:root[data-theme='oled-cinema'] [class*="bg-surface-overlay/"],
-:root[data-theme='oled-cinema'] .bg-surface,
-:root[data-theme='oled-cinema'] [class*="bg-surface/"] {
+:root[data-theme='oled-cinema'] [class*="bg-surface-overlay/"] {
   background-color: #000000 !important;
 }
 
-/* Posters float on black: drop card shadow, brighten hover with accent glow */
 :root[data-theme='oled-cinema'] .group\/card {
   box-shadow: none !important;
 }
 
-:root[data-theme='oled-cinema'] .group\/card:hover {
-  border-color: var(--color-accent) !important;
-  box-shadow: 0 0 0 1px var(--color-accent), 0 0 28px -4px color-mix(in srgb, var(--color-accent) 55%, transparent) !important;
+@media (hover: hover) {
+  :root[data-theme='oled-cinema'] .group\/card:hover {
+    box-shadow: 0 0 0 1px var(--color-accent), 0 0 28px -4px color-mix(in srgb, var(--color-accent) 55%, transparent) !important;
+  }
 }
 
-.page-title {
-  font-size: clamp(1.55rem, 1.2rem + 1vw, 2.15rem);
-  line-height: 1.05;
-  font-weight: 760;
-  letter-spacing: 0;
-}
-
-/* Discover hero banner: seamless edge-melt in dark themes; a polished
-   contained card in light themes (where fading a dark photo into a light
-   page would read as a hazy grey wash). */
-
-/* On mobile, break out to the full device width (PWA edge-to-edge banner),
-   regardless of the page's horizontal padding or safe-area insets. */
+/* ── Discover hero banner ─────────────────────────────────────────────────── */
 @media (max-width: 767.98px) {
   .discover-spotlight {
     width: 100vw;
@@ -158,95 +418,89 @@ textarea {
   }
 }
 
-:root[data-scheme='light'] .discover-spotlight {
-  border-radius: 1rem;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text-primary) 6%, transparent),
-    0 10px 30px -8px color-mix(in srgb, var(--color-text-primary) 18%, transparent);
-}
-
-/* Keep the light-theme card edge-to-edge on mobile too (no rounding/shadow
-   would look odd butting against the screen edge). */
-@media (max-width: 767.98px) {
-  :root[data-scheme='light'] .discover-spotlight {
-    border-radius: 0;
-    box-shadow: none;
-  }
-}
-
 :root[data-scheme='light'] .discover-spotlight-fade {
   display: none;
 }
 
-.section-title {
-  font-size: 0.8rem;
-  line-height: 1.2;
-  font-weight: 720;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-muted);
-}
-
-.control-surface {
-  background: color-mix(in srgb, var(--color-surface-raised) 88%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 88%, transparent);
-  border-radius: 8px;
-}
-
-.database-row {
-  background: color-mix(in srgb, var(--color-surface-raised) 72%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 68%, transparent);
-  border-radius: 8px;
-}
-
-.database-row:hover {
-  background: color-mix(in srgb, var(--color-surface-overlay) 76%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border-subtle));
-}
-
-:root[data-theme='oled-cinema'] .database-row:hover {
-  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface-overlay));
-  border-color: color-mix(in srgb, var(--color-accent) 32%, var(--color-border-subtle));
-}
-
-.rounded-lg,
-.rounded-xl,
-.rounded-2xl {
-  border-radius: 8px !important;
-}
-
-.rounded-md {
-  border-radius: 6px !important;
-}
-
-/* Scrollbar styling */
-.scrollbar-none { scrollbar-width: none; }
-.scrollbar-none::-webkit-scrollbar { display: none; }
-::-webkit-scrollbar { width: 6px; }
+/* ── Scrollbars ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-border-subtle); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--color-fill-strong); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
 
-:root[data-theme='oled-cinema'] ::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--color-accent) 24%, var(--color-border-subtle));
-}
-
-:root[data-theme='oled-cinema'] ::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--color-accent) 36%, var(--color-border-subtle));
-}
-
+/* ── Keyframes ────────────────────────────────────────────────────────────── */
 @keyframes dot-bounce {
   0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-6px); }
+  50% { transform: translateY(-5px); }
 }
-.animate-dot-bounce { animation: dot-bounce 0.7s ease-in-out infinite; }
 
+@keyframes dot-fade {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.animate-dot-bounce { animation: dot-bounce 0.9s ease-in-out infinite; }
+
+/* Theme switches cross-fade instead of jumping in brightness. */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, fill 220ms ease !important;
+}
+
+/* ── Accessibility preferences ────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html {
     scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
   }
+
+  /* Gentler, non-vestibular equivalents: no scale/translate, keep opacity feedback. */
+  .press:active:not(:disabled),
+  .database-row:active {
+    transform: none;
+    opacity: 0.7;
+  }
+
+  .animate-dot-bounce {
+    animation: dot-fade 1.4s ease-in-out infinite;
+  }
+
+  .animate-spin {
+    animation-duration: 2.4s;
+  }
+
+  [class*="hover:-translate-y"],
+  [class*="group-hover/card:scale"] {
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .material-chrome,
+  .material-sheet,
+  .material-chip {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .material-chrome { background: var(--color-surface); }
+  .material-sheet { background: var(--color-surface-raised); }
+  .material-chip { background: rgb(0 0 0 / 0.82); }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --color-hairline: var(--color-border-strong);
+    --color-fill: color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  }
+
+  .material-chrome { background: var(--color-surface); }
+  .material-sheet { background: var(--color-surface-raised); }
+  .field { box-shadow: inset 0 0 0 1px var(--color-border-strong); }
 }

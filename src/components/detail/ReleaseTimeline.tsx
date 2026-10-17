@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatDate } from '../../utils/date';
+import { formatDate, toLocalISODate } from '../../utils/date';
 import type { ReleaseTimelineEvent, ReleaseTimelineEventKind } from '../../utils/releaseTimeline';
 
 interface Props {
@@ -57,17 +57,17 @@ export default function ReleaseTimeline({ events, maxPreview = 6 }: Props) {
 
   if (events.length === 0) return null;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalISODate();
   const visible = expanded ? events : events.slice(0, maxPreview);
   const nextUpcomingIndex = visible.findIndex((event) => event.date >= today);
   const activeIndex = nextUpcomingIndex >= 0 ? nextUpcomingIndex : visible.length - 1;
 
   return (
-    <div className="app-panel-soft p-3 md:p-4">
+    <div className="app-panel p-4 md:p-5">
       <h3 className="section-title mb-3">Release timeline</h3>
 
-      <div className="relative overflow-x-auto pb-1">
-        <div className="absolute left-5 right-5 top-[15px] h-px bg-border-subtle" />
+      <div className="relative -mx-4 overflow-x-auto px-4 pb-1 scrollbar-none md:-mx-5 md:px-5">
+        <div className="absolute left-9 right-9 top-[15px] h-px bg-hairline md:left-10" />
         <div className="relative flex min-w-max gap-4 md:gap-6">
           {visible.map((event, index) => {
             const done = event.date < today;
@@ -76,21 +76,21 @@ export default function ReleaseTimeline({ events, maxPreview = 6 }: Props) {
 
             return (
               <div key={event.id} className="w-28 shrink-0">
-                <div className={`relative mb-2 flex h-8 w-8 items-center justify-center rounded-full border bg-surface ${tone}`}>
+                <div className={`relative mb-2 flex h-8 w-8 items-center justify-center rounded-full ${active ? 'bg-accent text-on-accent' : `bg-surface-overlay ring-1 ring-inset ring-hairline ${tone}`}`}>
                   <EventIcon kind={event.kind} />
                 </div>
-                <p className={`text-sm font-semibold ${active ? 'text-accent' : 'text-text-primary'}`}>{formatDate(event.date)}</p>
+                <p className={`num text-[0.875rem] font-semibold ${active ? 'text-accent' : 'text-text-primary'}`}>{formatDate(event.date)}</p>
                 {event.url ? (
                   <a
                     href={event.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`mt-0.5 block text-sm ${active ? 'text-accent' : 'text-text-secondary'} hover:text-accent transition`}
+                    className={`t-caption mt-0.5 block ${active ? 'text-accent' : ''} transition hover:text-accent`}
                   >
                     {event.title}
                   </a>
                 ) : (
-                  <p className={`mt-0.5 text-sm ${active ? 'text-accent' : 'text-text-secondary'}`}>{event.title}</p>
+                  <p className={`t-caption mt-0.5 ${active ? 'text-accent' : ''}`}>{event.title}</p>
                 )}
               </div>
             );
@@ -100,8 +100,10 @@ export default function ReleaseTimeline({ events, maxPreview = 6 }: Props) {
 
       {events.length > maxPreview && (
         <button
+          type="button"
+          aria-expanded={expanded}
           onClick={() => setExpanded((current) => !current)}
-          className="mt-3 w-full rounded-lg border border-border-subtle bg-surface px-4 py-2 text-sm font-medium text-text-secondary transition hover:bg-surface-overlay hover:text-text-primary"
+          className="press mt-3 min-h-10 w-full rounded-xl bg-fill text-[0.875rem] font-semibold text-accent transition-colors hover:bg-fill-strong"
         >
           {expanded ? 'Show less events' : 'View All Events'}
         </button>

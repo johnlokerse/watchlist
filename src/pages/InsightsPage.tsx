@@ -78,9 +78,9 @@ export default function InsightsPage() {
   return (
     <div className="space-y-6">
       <div className="relative z-40 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="section-title mb-2">Analytics</p>
+        <div className="pr-12 md:pr-0">
           <h1 className="page-title">Insights</h1>
+          <p className="t-callout mt-1 text-text-secondary">What you watched, and when</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <SegmentedControl
@@ -99,20 +99,35 @@ export default function InsightsPage() {
       </div>
 
       {error && !data ? (
-        <div className="app-panel p-8 text-center" role="alert">
-          <p className="text-base font-semibold">Couldn't load insights</p>
-          <p className="mt-1 text-sm text-text-secondary">
+        <div className="py-16 text-center" role="alert">
+          <p className="t-headline">Couldn't load insights</p>
+          <p className="t-callout mt-1 text-text-secondary">
             The server isn't responding. Check that the backend is running, then reload this page.
           </p>
         </div>
       ) : !data ? (
-        <div className="app-panel h-[340px] animate-pulse" />
+        <div className="space-y-3" aria-busy="true" aria-label="Loading insights">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton h-[88px] rounded-[16px]" />)}
+          </div>
+          <div className="skeleton h-[320px] rounded-[16px]" />
+        </div>
       ) : isEmpty ? (
-        <div className="app-panel p-8 text-center">
-          <p className="text-base font-semibold">No watch history yet</p>
-          <p className="mt-1 text-sm text-text-secondary">
+        <div className="py-16 text-center">
+          <p className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-accent/15 text-accent" aria-hidden="true">
+            <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3.5 4v16.5H20" />
+              <path d="m7 15 3.5-4.5 3 2.5 5-6.5" />
+            </svg>
+          </p>
+          <p className="t-headline">No watch history yet</p>
+          <p className="t-callout mt-1 text-text-secondary">
             Mark a movie as watched or tick off an episode and it will show up here.
           </p>
+          <div className="mt-4 flex justify-center gap-2">
+            <Link to="/movies" className="press inline-flex min-h-9 items-center rounded-full bg-accent px-4 text-[0.875rem] font-semibold text-on-accent">Browse Movies</Link>
+            <Link to="/series" className="press inline-flex min-h-9 items-center rounded-full bg-fill px-4 text-[0.875rem] font-semibold text-text-primary">Browse Series</Link>
+          </div>
         </div>
       ) : (
         <>
@@ -128,10 +143,10 @@ export default function InsightsPage() {
             />
           </div>
 
-          <div className="app-panel p-5">
+          <div className="app-panel p-4 md:p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-base font-semibold">Watch activity</h2>
-              <div className="flex items-center gap-4 text-xs text-text-secondary" aria-label="Legend">
+              <h2 className="t-headline">Watch activity</h2>
+              <div className="t-caption flex items-center gap-4" role="group" aria-label="Legend">
                 {SERIES_LINES.map((line) => (
                   <span key={line.key} className="flex items-center gap-1.5">
                     <LegendSwatch color={line.color} shape={line.key === 'movies' ? 'circle' : 'square'} />
@@ -147,7 +162,7 @@ export default function InsightsPage() {
               onSelect={(index) => setSelectedKey(buckets[index].key)}
             />
             {(totals.rewatches > 0 || undatedTotal > 0) && (
-              <p className="mt-3 text-xs text-text-muted" data-testid="insights-footnote">
+              <p className="t-caption mt-3 text-text-muted" data-testid="insights-footnote">
                 {totals.rewatches > 0 && `Includes ${totals.rewatches} rewatch${totals.rewatches === 1 ? '' : 'es'}. `}
                 {undatedTotal > 0 &&
                   `${undatedTotal} watched title${undatedTotal === 1 ? ' has' : 's have'} no watch date and ${undatedTotal === 1 ? 'is' : 'are'} not shown.`}
@@ -157,7 +172,7 @@ export default function InsightsPage() {
 
           {selectedBucket && (
             <section className="space-y-3" aria-label="Selected period" data-testid="period-details">
-              <h2 className="section-title">{formatBucketLabel(selectedBucket.start, granularity)}</h2>
+              <h2 className="section-title px-1" aria-live="polite">{formatBucketLabel(selectedBucket.start, granularity)}</h2>
               {hasActivity(selectedBucket) ? (
                 <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
                   {selectedBucket.movies.map((m, i) => (
@@ -181,7 +196,7 @@ export default function InsightsPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-text-secondary">Nothing watched in this period.</p>
+                <p className="t-callout px-1 text-text-secondary">Nothing watched in this period.</p>
               )}
             </section>
           )}
@@ -193,11 +208,11 @@ export default function InsightsPage() {
 
 function StatTile({ label, value, testId, small }: { label: string; value: number | string; testId: string; small?: boolean }) {
   return (
-    <div className="app-panel-soft p-4" data-testid={testId}>
-      <p className="text-xs text-text-secondary">{label}</p>
+    <div className="app-panel min-w-0 p-4" data-testid={testId}>
+      <p className="t-caption">{label}</p>
       <p
-        className={`mt-1 font-bold text-text-primary ${small ? 'text-base leading-7' : 'text-2xl'}`}
-        style={{ fontVariantNumeric: 'tabular-nums' }}
+        className={`num mt-1 truncate font-bold leading-none tracking-[-0.02em] text-text-primary ${small ? 'pt-1.5 text-[1.125rem]' : 'text-[1.875rem]'}`}
+        title={typeof value === 'string' ? value : undefined}
       >
         {value}
       </p>
@@ -220,17 +235,17 @@ function PeriodRow({
 }) {
   const url = posterUrl(posterPath, 'w92');
   return (
-    <Link to={to} className="database-row group flex items-center gap-3 px-3 py-2 transition-colors">
+    <Link to={to} className="database-row group flex min-h-16 items-center gap-3 px-3 py-2">
       <div className="aspect-[2/3] w-9 flex-shrink-0 overflow-hidden rounded-md bg-surface-overlay">
         {url && <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />}
       </div>
       <div className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-text-primary transition-colors group-hover:text-accent">
+        <span className="block truncate text-[0.9375rem] font-semibold tracking-[-0.01em] text-text-primary">
           {title}
         </span>
-        <span className="block text-xs text-text-muted">{meta}</span>
+        <span className="t-caption block">{meta}</span>
         {detail && (
-          <span className="mt-0.5 block text-xs text-text-secondary" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <span className="t-caption num mt-0.5 block text-text-muted">
             {detail}
           </span>
         )}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLibrary } from './LibraryContext';
+import { toLocalISODate } from '../utils/date';
 import type { WatchedItem, SeriesProgress, WatchedEpisode, WatchLogEntry, InsightsData, ContentType, WatchedStatus, SeasonCheckInput, SeasonCheckResult } from './models';
 
 const API = '/api';
@@ -47,7 +48,7 @@ export function useUpcomingFromLibrary(contentType: ContentType) {
   useEffect(() => {
     if (contentType === 'movie') {
       apiFetch<WatchedItem[]>('/library?contentType=movie').then((all) => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = toLocalISODate();
         setItems(
           all
             .filter((i) => i.releaseDate && i.releaseDate >= today)
@@ -161,7 +162,7 @@ export async function postSeasonChecks(checks: SeasonCheckInput[]): Promise<Seas
   return results;
 }
 
-export async function addToLibrary(item: Omit<WatchedItem, 'id' | 'addedAt' | 'updatedAt'>) {
+export async function addToLibrary(item: Omit<WatchedItem, 'id' | 'addedAt' | 'updatedAt'> & { addedAt?: string | null }) {
   const result = await apiFetch<{ id: number }>('/library', {
     method: 'POST',
     body: JSON.stringify(item),

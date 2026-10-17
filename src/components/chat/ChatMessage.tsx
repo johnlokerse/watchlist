@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 
 interface Props {
   role: 'user' | 'assistant';
@@ -52,15 +52,22 @@ function AddButton({ tmdbId, type, title, onAdd }: {
         onClick={handleClick}
         disabled={state !== 'idle'}
         title={state === 'added' ? 'Added to watchlist' : 'Add to watchlist'}
-        className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold transition-all shrink-0 ${
+        aria-label={state === 'added' ? `${title} is in your watchlist` : `Add ${title} to watchlist`}
+        className={`press hit-44 inline-grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full transition-colors ${
           state === 'added'
-            ? 'bg-green-500 text-white cursor-default'
+            ? 'bg-success text-on-success cursor-default'
             : state === 'loading'
-              ? 'bg-accent/50 text-white cursor-wait'
-              : 'bg-accent hover:bg-accent-hover text-white cursor-pointer'
+              ? 'bg-accent/50 text-on-accent cursor-wait'
+              : 'bg-accent text-on-accent hover:bg-accent-hover cursor-pointer'
         }`}
       >
-        {state === 'added' ? '✓' : state === 'loading' ? '…' : '+'}
+        {state === 'added' ? (
+          <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg>
+        ) : state === 'loading' ? (
+          <span className="h-2 w-2 animate-spin rounded-full border border-current border-t-transparent" aria-hidden="true" />
+        ) : (
+          <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        )}
       </button>
     </span>
   );
@@ -127,20 +134,20 @@ function renderInline(text: string, onAdd?: Props['onAdd']): React.ReactNode[] {
   });
 }
 
-export default function ChatMessage({ role, content, isStreaming, onAdd }: Props) {
+function ChatMessage({ role, content, isStreaming, onAdd }: Props) {
   const isUser = role === 'user';
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+        className={`max-w-[85%] px-3.5 py-2 text-[0.9375rem] leading-[1.45] tracking-[-0.003em] ${
           isUser
-            ? 'bg-accent text-white rounded-br-sm'
-            : 'bg-surface-raised text-text-primary rounded-bl-sm'
+            ? 'rounded-[20px] rounded-br-md bg-accent text-on-accent'
+            : 'rounded-[20px] rounded-bl-md bg-fill text-text-primary'
         }`}
       >
         {content ? renderMarkdown(content, onAdd) : null}
         {isStreaming && (
-          <span className="inline-flex items-center gap-0.5 ml-1">
+          <span className="ml-1 inline-flex items-center gap-0.5" role="status" aria-label="Assistant is typing">
             {[0, 1, 2].map((i) => (
               <span
                 key={i}
@@ -154,3 +161,5 @@ export default function ChatMessage({ role, content, isStreaming, onAdd }: Props
     </div>
   );
 }
+
+export default memo(ChatMessage);

@@ -1,25 +1,12 @@
-import { useState, useEffect } from 'react';
-import { daysUntil } from '../utils/date';
+import { useToday } from './useToday';
 
-export function useCountdown(dateStr: string) {
-  const [days, setDays] = useState(() => daysUntil(dateStr));
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
-  useEffect(() => {
-    setDays(daysUntil(dateStr));
-    // Update at midnight
-    const now = new Date();
-    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    const msUntilMidnight = tomorrow.getTime() - now.getTime();
-
-    const timeout = setTimeout(() => {
-      setDays(daysUntil(dateStr));
-      // Then update every 24h
-      const interval = setInterval(() => setDays(daysUntil(dateStr)), 86400000);
-      return () => clearInterval(interval);
-    }, msUntilMidnight);
-
-    return () => clearTimeout(timeout);
-  }, [dateStr]);
-
-  return days;
+/** Whole days from today (local) until dateStr (YYYY-MM-DD). Negative when in the past. */
+export function useCountdown(dateStr: string): number {
+  const today = useToday();
+  const target = new Date(dateStr + 'T00:00:00').getTime();
+  const start = new Date(today + 'T00:00:00').getTime();
+  // Math.round absorbs the 23h/25h local days produced by DST changes.
+  return Math.round((target - start) / MS_PER_DAY);
 }

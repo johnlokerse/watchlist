@@ -25,6 +25,7 @@ export function useChat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const lastRequestRef = useRef<{ text: string; sid: string; userId: string; assistantId: string } | null>(null);
 
   const createSession = useCallback(async (library: WatchedItem[], modelOverride?: string) => {
     const res = await fetch('/api/chat/session', {
@@ -47,6 +48,7 @@ export function useChat() {
     setMessages((prev) => [...prev, userMsg, assistantMsg]);
     setIsStreaming(true);
     setError(null);
+    lastRequestRef.current = { text, sid, userId: userMsg.id, assistantId };
 
     try {
       const res = await fetch('/api/chat/message', {
@@ -71,21 +73,22 @@ export function useChat() {
 
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
+          let event: { type: string; content?: string; message?: string };
           try {
-            const event = JSON.parse(line.slice(6)) as { type: string; content?: string; message?: string };
-            if (event.type === 'delta' && event.content) {
-              setMessages((prev) =>
-                prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + event.content } : m)),
-              );
-            } else if (event.type === 'done') {
-              setMessages((prev) =>
-                prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false } : m)),
-              );
-            } else if (event.type === 'error') {
-              throw new Error(event.message ?? 'Unknown error');
-            }
+            event = JSON.parse(line.slice(6));
           } catch {
-            // skip malformed lines
+            continue; // skip malformed lines
+          }
+          if (event.type === 'delta' && event.content) {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + event.content } : m)),
+            );
+          } else if (event.type === 'done') {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false } : m)),
+            );
+          } else if (event.type === 'error') {
+            throw new Error(event.message ?? 'Unknown error');
           }
         }
       }
@@ -95,9 +98,21 @@ export function useChat() {
         prev.map((m) => (m.id === assistantId ? { ...m, content: 'Sorry, something went wrong.', isStreaming: false } : m)),
       );
     } finally {
+      // Stream may end without a 'done' event; never leave the bubble in the streaming state.
+      setMessages((prev) =>
+        prev.map((m) => (m.id === assistantId && m.isStreaming ? { ...m, isStreaming: false } : m)),
+      );
       setIsStreaming(false);
     }
   }, []);
+
+  /** Re-sends the last user message in the same session, replacing the failed exchange. */
+  const retryLast = useCallback(() => {
+    const last = lastRequestRef.current;
+    if (!last) return;
+    setMessages((prev) => prev.filter((m) => m.id !== last.userId && m.id !== last.assistantId));
+    void sendMessage(last.text, last.sid);
+  }, [sendMessage]);
 
   const destroySession = useCallback(async () => {
     const sid = sessionIdRef.current;
@@ -116,5 +131,5 @@ export function useChat() {
 
   const clearMessages = useCallback(() => setMessages([]), []);
 
-  return { sessionId, messages, isStreaming, error, createSession, sendMessage, destroySession, clearMessages, setMessages, setSessionId: setActiveSessionId };
+  return { sessionId, messages, isStreaming, error, createSession, sendMessage, retryLast, destroySession, clearMessages, setMessages, setSessionId: setActiveSessionId };
 }

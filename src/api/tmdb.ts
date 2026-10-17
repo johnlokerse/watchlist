@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery, useInfiniteQuery, useQueries } from '@tanstack/react-query';
 import { TMDB_BASE_URL, STALE_TIME_LIST, STALE_TIME_DETAIL } from '../utils/constants';
+import { toLocalISODate } from '../utils/date';
 import type {
   TMDBMovie, TMDBMovieDetail, TMDBSeries, TMDBSeriesDetail,
   TMDBGenre, TMDBPagedResponse, TMDBSeason, TMDBProvider,
@@ -118,7 +119,7 @@ export function useTrendingSeries() {
 }
 
 export function useAnticipatedMovies() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalISODate();
   return useQuery({
     queryKey: ['anticipated', 'movies'],
     queryFn: () =>
@@ -131,7 +132,7 @@ export function useAnticipatedMovies() {
 }
 
 export function useAnticipatedSeries() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalISODate();
   return useQuery({
     queryKey: ['anticipated', 'series'],
     queryFn: () =>
@@ -169,6 +170,10 @@ export function useSeasonDetail(seriesId: number | undefined, season: number) {
     queryFn: () => tmdbFetch<TMDBSeason>(`/tv/${seriesId}/season/${season}`),
     enabled: !!seriesId && season > 0,
     staleTime: STALE_TIME_DETAIL,
+    // Keep the previous season on screen (dimmed) while the next one loads, but never
+    // show another series' episodes.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === seriesId ? previous : undefined,
   });
 }
 
