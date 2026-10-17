@@ -127,4 +127,35 @@ export async function mockSeriesWithNewSeason(
   };
 
   await routeTMDB(page, 'tv/1396*', detail);
+
+  // The detail page opens on the current or new season, so every season needs a
+  // real season payload (setupTMDBMocks only covers season 1). Earlier seasons
+  // reuse the S1 episodes; the new season gets `episodeCount` episodes on `airDate`.
+  const seasonFor = (n: number) => ({
+    ...season1396S1,
+    id: 800000 + n,
+    name: `Season ${n}`,
+    season_number: n,
+    episodes:
+      n === seasonNumber
+        ? Array.from({ length: episodeCount }, (_, i) => ({
+            id: 990000 + i,
+            episode_number: i + 1,
+            name: `Episode ${i + 1}`,
+            overview: '',
+            air_date: airDate,
+            still_path: null,
+            vote_average: 0,
+            runtime: 50,
+          }))
+        : n === placeholderSeason
+          ? []
+          : season1396S1.episodes,
+  });
+  for (const glob of ['**/api.themoviedb.org/3/tv/1396/season/*', '**/api/tmdb/tv/1396/season/*']) {
+    await page.route(glob, (route) => {
+      const n = Number(new URL(route.request().url()).pathname.split('/').pop());
+      return route.fulfill({ json: seasonFor(n) });
+    });
+  }
 }

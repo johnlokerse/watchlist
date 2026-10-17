@@ -3,6 +3,12 @@ import { setupTMDBMocks } from './helpers/mock-tmdb';
 import { seedMovie, clearLibrary } from './helpers/seed';
 
 test.describe('Settings Page', () => {
+  // Settings persist in the shared test DB, so reset the theme state that the
+  // dynamic-theme tests toggle; otherwise the next click turns it back off.
+  test.beforeEach(async ({ request }) => {
+    await request.put('/api/settings', { data: { theme: 'default', dynamicTheme: false } });
+  });
+
   test('shows Settings heading', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/settings');
@@ -23,7 +29,7 @@ test.describe('Settings Page', () => {
       'Solarized Light', 'Paper & Ink', 'Daylight Teal', 'Nord Light', 'Gruvbox Light',
       'Rosé Pine Dawn', 'Gruvbox',
     ]) {
-      await expect(page.getByText(name)).toBeVisible();
+      await expect(page.getByText(name, { exact: true })).toBeVisible();
     }
   });
 
