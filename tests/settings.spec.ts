@@ -117,6 +117,44 @@ test.describe('Settings Page', () => {
     await expect(page.getByText(/Added 1 item/)).toBeVisible();
   });
 
+  test.describe('Imported library order', () => {
+    test.beforeEach(async ({ request }) => {
+      await clearLibrary(request);
+    });
+
+    for (const contentType of ['movie', 'series'] as const) {
+      test(`${contentType} import preserves dates and supports both sort directions`, async ({ page, request }) => {
+        await setupTMDBMocks(page);
+        await page.goto('/settings');
+        // Backups list the newest item first, opposite to insertion order.
+        const items = [
+          { tmdbId: 302946, title: 'Newer item', addedAt: '2025-06-01T12:00:00.000Z' },
+          { tmdbId: 1396, title: 'Older item', addedAt: '2024-01-01T12:00:00.000Z' },
+        ].map((item) => ({ ...item, contentType, status: 'plan_to_watch', releaseDate: '2020-01-01' }));
+        await page.locator('input[type="file"]').setInputFiles({
+          name: 'backup.json',
+          mimeType: 'application/json',
+          buffer: Buffer.from(JSON.stringify({ items })),
+        });
+        await expect(page.getByText(/Added 2 items/)).toBeVisible();
+
+        const response = await request.get(`/api/library?contentType=${contentType}`);
+        const imported = await response.json();
+        expect(imported.map((item: { title: string; addedAt: string }) => ({
+          title: item.title, addedAt: item.addedAt,
+        }))).toEqual(items.map(({ title, addedAt }) => ({ title, addedAt })));
+
+        await page.goto(contentType === 'movie' ? '/movies' : '/series');
+        const titles = page.locator(`a[href^="/${contentType}/"] h3`);
+        await expect(titles).toHaveText(['Newer item', 'Older item']);
+        await page.getByLabel('Sort library').selectOption('added-asc');
+        await expect(titles).toHaveText(['Older item', 'Newer item']);
+        await page.getByLabel('Sort library').selectOption('added-desc');
+        await expect(titles).toHaveText(['Newer item', 'Older item']);
+      });
+    }
+  });
+
   test('import invalid JSON shows error message', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/settings');
