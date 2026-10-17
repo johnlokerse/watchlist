@@ -161,7 +161,7 @@ export async function postSeasonChecks(checks: SeasonCheckInput[]): Promise<Seas
   return results;
 }
 
-export async function addToLibrary(item: Omit<WatchedItem, 'id' | 'addedAt' | 'updatedAt'>) {
+export async function addToLibrary(item: Omit<WatchedItem, 'id' | 'addedAt' | 'updatedAt'> & { addedAt?: string | null }) {
   const result = await apiFetch<{ id: number }>('/library', {
     method: 'POST',
     body: JSON.stringify(item),

@@ -575,11 +575,12 @@ export const queries = {
   addItem(item: {
     tmdbId: number; contentType: string; title: string; posterPath?: string | null;
     releaseDate?: string | null; status: string; userRating?: number | null;
-    notes?: string; genreIds?: number[]; watchedAt?: string | null;
+    notes?: string; genreIds?: number[]; watchedAt?: string | null; addedAt?: string | null;
   }) {
     const existing = stmts.getItemByTmdb.get(item.tmdbId, item.contentType) as WatchedItemRow | undefined;
     if (existing) return existing.id;
     const now = new Date().toISOString();
+    const addedAt = item.addedAt && !Number.isNaN(Date.parse(item.addedAt)) ? item.addedAt : now;
     const result = stmts.insertItem.run({
       tmdbId: item.tmdbId,
       contentType: item.contentType,
@@ -591,7 +592,7 @@ export const queries = {
       notes: item.notes ?? '',
       genreIds: JSON.stringify(item.genreIds ?? []),
       watchedAt: item.watchedAt ?? null,
-      addedAt: now,
+      addedAt,
       updatedAt: now,
     });
     return Number(result.lastInsertRowid);
@@ -903,8 +904,10 @@ export const queries = {
       }),
     );
     return {
-      items: items.map(({ tmdbId, title, contentType, status, posterPath, releaseDate, userRating, notes, watchedAt }) => ({
+      items: items.map(({ tmdbId, title, contentType, status, posterPath, releaseDate, userRating, notes, watchedAt, addedAt, genreIds }) => ({
         tmdbId, title, contentType, status, posterPath, releaseDate,
+        addedAt,
+        ...(genreIds.length > 0 && { genreIds }),
         ...(userRating != null && { userRating }),
         ...(notes && { notes }),
         ...(watchedAt != null && { watchedAt }),
