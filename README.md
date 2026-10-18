@@ -199,7 +199,7 @@ Add to `.vscode/mcp.json` or `opencode.json`:
 
 The watch assistant is built on the [`@github/copilot-sdk`](https://www.npmjs.com/package/@github/copilot-sdk) package. It receives your local library as context, streams answers back into the UI, and can call live TMDB tools when it needs fresh title data.
 
-![Copilot SDK Integration](./images/NobodySequel.gif)
+![Watch Assistant recommending a movie based on the library in the updated Apple-inspired design](./docs/assets/images/apple-design/desktop-recommendations.jpg)
 
 Useful prompts include:
 
