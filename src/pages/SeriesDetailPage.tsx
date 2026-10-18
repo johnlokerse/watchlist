@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSeriesDetail } from '../api/tmdb';
 import { useWatchLinks } from '../api/watchLinks';
@@ -44,7 +44,8 @@ export default function SeriesDetailPage() {
   const direction = useTabDirection(TABS, activeTab);
   const [editedNotesByItem, setEditedNotesByItem] = useState<Record<number, string>>({});
   const [pendingRemovalId, setPendingRemovalId] = useState<number | null>(null);
-  const tabInitRef = useRef<number | null>(null);
+  const [tabSeriesId, setTabSeriesId] = useState(seriesId);
+  const [autoTabSeriesId, setAutoTabSeriesId] = useState<number | null>(null);
   const watchLinks = useWatchLinks({
     contentType: 'series',
     tmdbId: seriesId ?? 0,
@@ -53,21 +54,24 @@ export default function SeriesDetailPage() {
   });
 
   // Reset tab when navigating to a different series
-  useEffect(() => {
+  if (tabSeriesId !== seriesId) {
+    setTabSeriesId(seriesId);
     setActiveTab('overview');
-    tabInitRef.current = null;
-  }, [seriesId]);
+    setAutoTabSeriesId(null);
+  }
 
   // Auto-switch to Episodes for active progress and newly available seasons.
-  useEffect(() => {
-    if (!seriesId || tabInitRef.current === seriesId) return;
-    if (watchedItem === undefined) return;
-    if (watchedItem.status === 'watched' && progress === undefined) return;
-    tabInitRef.current = seriesId;
+  if (
+    seriesId &&
+    autoTabSeriesId !== seriesId &&
+    watchedItem?.tmdbId === seriesId &&
+    !(watchedItem.status === 'watched' && progress === undefined)
+  ) {
+    setAutoTabSeriesId(seriesId);
     if (watchedItem.status === 'watching' || progress?.newSeasonNumber) {
       setActiveTab('episodes');
     }
-  }, [watchedItem, progress, seriesId]);
+  }
 
   const initialEpisodeSeason = useMemo(
     () => getInitialEpisodeSeason(watchedItem?.status, progress, series?.seasons),

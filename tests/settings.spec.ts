@@ -3,6 +3,11 @@ import { setupTMDBMocks } from './helpers/mock-tmdb';
 import { seedMovie, clearLibrary } from './helpers/seed';
 
 test.describe('Settings Page', () => {
+  // Settings persist on the test server between tests; start each test from the static Default theme.
+  test.beforeEach(async ({ request }) => {
+    await request.put('/api/settings', { data: { dynamicTheme: false, theme: 'default' } });
+  });
+
   test('shows Settings heading', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/settings');
@@ -12,27 +17,29 @@ test.describe('Settings Page', () => {
   test('shows Theme section with Default theme option', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/settings');
-    await expect(page.getByText('Default')).toBeVisible();
+    await expect(page.getByRole('radiogroup', { name: 'Theme' }).getByRole('radio', { name: /^Default/ })).toBeVisible();
   });
 
   test('lists all theme options', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/settings');
+    const themes = page.getByRole('radiogroup', { name: 'Theme' });
     for (const name of [
       'Default', 'True OLED', 'Midnight Velvet', 'Dracula', 'Nord', 'Solarized Dark',
       'Solarized Light', 'Paper & Ink', 'Daylight Teal', 'Nord Light', 'Gruvbox Light',
       'Rosé Pine Dawn', 'Gruvbox',
     ]) {
-      await expect(page.getByText(name)).toBeVisible();
+      await expect(themes.getByRole('radio', { name, exact: true })).toBeVisible();
     }
   });
 
   test('clicking a different theme updates active indicator', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/settings');
-    await page.getByRole('button', { name: /Dracula/i }).click();
-    const draculaButton = page.getByRole('button', { name: /Dracula/i });
-    await expect(draculaButton.locator('span').filter({ hasText: '✓' })).toBeVisible();
+    const dracula = page.getByRole('radio', { name: 'Dracula', exact: true });
+    await dracula.click();
+    await expect(dracula).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByRole('radio', { name: 'Default', exact: true })).toHaveAttribute('aria-checked', 'false');
   });
 
   test('dynamic themes toggle shows Light and Dark tabs', async ({ page }) => {
@@ -50,9 +57,9 @@ test.describe('Settings Page', () => {
     await page.getByRole('switch', { name: 'Dynamic themes' }).click();
     await page.getByRole('tab', { name: 'Light' }).click();
     for (const name of ['Solarized Light', 'Paper & Ink', 'Daylight Teal', 'Nord Light', 'Gruvbox Light', 'Rosé Pine Dawn']) {
-      await expect(page.getByRole('button', { name: new RegExp(name, 'i') })).toBeVisible();
+      await expect(page.getByRole('radio', { name, exact: true })).toBeVisible();
     }
-    await expect(page.getByRole('button', { name: /^Dracula/i })).toHaveCount(0);
+    await expect(page.getByRole('radio', { name: 'Dracula', exact: true })).toHaveCount(0);
   });
 
   test('dynamic Dark tab lists dark themes only', async ({ page }) => {
@@ -60,9 +67,9 @@ test.describe('Settings Page', () => {
     await page.goto('/settings');
     await page.getByRole('switch', { name: 'Dynamic themes' }).click();
     await page.getByRole('tab', { name: 'Dark' }).click();
-    await expect(page.getByRole('button', { name: /Midnight Velvet/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Dracula/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Paper & Ink/i })).toHaveCount(0);
+    await expect(page.getByRole('radio', { name: 'Midnight Velvet', exact: true })).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'Dracula', exact: true })).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'Paper & Ink', exact: true })).toHaveCount(0);
   });
 
   test('shows Export to JSON button', async ({ page }) => {
@@ -84,11 +91,11 @@ test.describe('Settings Page', () => {
     await expect(page.locator('pre').filter({ hasText: 'tmdbId' })).toBeVisible();
   });
 
-  test('shows Danger Zone section', async ({ page }) => {
+  test('shows Delete Library action', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/settings');
-    await expect(page.getByText('Danger Zone')).toBeVisible();
-    await expect(page.getByText(/Clear All Library Data/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Delete Library…' })).toBeVisible();
+    await expect(page.getByText('Permanently removes all items, ratings, and episode progress.')).toBeVisible();
   });
 
   test('import valid JSON adds items to library', async ({ page, request }) => {
@@ -167,8 +174,7 @@ test.describe('Settings Page', () => {
       buffer,
     });
 
-    // The error paragraph has class text-danger and starts with "✗"
-    await expect(page.locator('.text-danger').filter({ hasText: '✗' })).toBeVisible();
+    await expect(page.getByRole('alert').filter({ hasText: '⚠︎' })).toBeVisible();
   });
 
   test('import JSON with wrong structure shows error', async ({ page }) => {
@@ -186,26 +192,30 @@ test.describe('Settings Page', () => {
     await expect(page.getByText(/JSON must be an array/i)).toBeVisible();
   });
 
-  test('Clear All Library Data button triggers confirmation dialog', async ({ page, request }) => {
+  test('Delete Library asks for confirmation and clears the library', async ({ page, request }) => {
     await clearLibrary(request);
     await seedMovie(request);
     await setupTMDBMocks(page);
     await page.goto('/settings');
 
-    page.on('dialog', (dialog) => dialog.accept());
-    await page.getByText(/Clear All Library Data/).click();
-    // After accepting and clearing, the button text is restored
-    await expect(page.getByText(/Clear All Library Data/)).toBeVisible();
+    await page.getByRole('button', { name: 'Delete Library…' }).click();
+    const confirm = page.getByRole('alertdialog', { name: 'Confirm delete library' });
+    await expect(confirm).toContainText('1 title');
+    await confirm.getByRole('button', { name: 'Delete', exact: true }).click();
+    await expect(page.getByText('Library cleared.')).toBeVisible();
+    const items = await (await request.get('/api/library')).json() as unknown[];
+    expect(items).toHaveLength(0);
   });
 
-  test('dismissing clear confirmation keeps library intact', async ({ page, request }) => {
+  test('cancelling Delete Library keeps library intact', async ({ page, request }) => {
     await clearLibrary(request);
     await seedMovie(request);
     await setupTMDBMocks(page);
     await page.goto('/settings');
 
-    page.on('dialog', (dialog) => dialog.dismiss());
-    await page.getByText(/Clear All Library Data/).click();
+    await page.getByRole('button', { name: 'Delete Library…' }).click();
+    await page.getByRole('alertdialog', { name: 'Confirm delete library' }).getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByRole('alertdialog', { name: 'Confirm delete library' })).toHaveCount(0);
     await page.goto('/movies');
     await expect(page.getByText('The Accountant')).toBeVisible();
   });
@@ -221,8 +231,7 @@ test.describe('Settings Page', () => {
   test('Show Spoilers toggle starts unchecked and toggles on click', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/settings', { waitUntil: 'networkidle' });
-    // Find the Toggle switch within the Show Spoilers row
-    const toggle = page.locator('.flex.items-center.justify-between').filter({ hasText: 'Show Spoilers' }).getByRole('switch');
+    const toggle = page.getByRole('switch', { name: 'Show Spoilers' });
     // The toggle should reflect the loaded state — check it is not already enabled before interacting
     const currentState = await toggle.getAttribute('aria-checked');
     if (currentState === 'true') {
@@ -237,7 +246,10 @@ test.describe('Settings Page', () => {
   test('Use OpenRouter toggle reveals API key input when enabled', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/settings', { waitUntil: 'networkidle' });
-    const toggle = page.locator('.flex.items-center.justify-between').filter({ hasText: 'Use OpenRouter' }).getByRole('switch');
+    // The Watch Assistant settings are collapsed unless OpenRouter is already enabled
+    const aiModel = page.getByRole('button', { name: /AI model/ });
+    if (await aiModel.getAttribute('aria-expanded') === 'false') await aiModel.click();
+    const toggle = page.getByRole('switch', { name: 'Use OpenRouter' });
     if (await toggle.getAttribute('aria-checked') === 'true') {
       await toggle.click();
       await expect(toggle).toHaveAttribute('aria-checked', 'false');

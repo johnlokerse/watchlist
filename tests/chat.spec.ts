@@ -32,9 +32,6 @@ test.describe('CopilotChat', () => {
     await setupTMDBMocks(page);
     await page.goto('/upcoming');
     await page.getByRole('button', { name: 'Open watch assistant' }).click();
-    // Immediately after open, the panel renders (might show spinner or chat input)
-    // The panel container is visible
-    const panel = page.locator('.fixed.z-50').filter({ hasNot: page.locator('button[aria-label]') });
     // At minimum the close button appeared — panel is open
     await expect(page.getByRole('button', { name: 'Close assistant' })).toBeVisible();
   });

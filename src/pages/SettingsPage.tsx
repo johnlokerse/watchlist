@@ -191,6 +191,11 @@ function groupModels(models: { id: string; name: string }[], term: string) {
 function ModelPicker({ models, values, onChange, disabled, loading }: ModelPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    if (!isOpen) setSearch('');
+  }
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const firstSelectedRef = useRef<HTMLButtonElement>(null);
@@ -219,7 +224,7 @@ function ModelPicker({ models, values, onChange, disabled, loading }: ModelPicke
 
   // Auto-focus search and scroll first selected item into view when opening
   useEffect(() => {
-    if (!isOpen) { setSearch(''); return; }
+    if (!isOpen) return;
     searchRef.current?.focus();
     setTimeout(() => firstSelectedRef.current?.scrollIntoView({ block: 'nearest' }), 0);
   }, [isOpen]);

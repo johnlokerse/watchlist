@@ -110,7 +110,7 @@ test.describe('Insights', () => {
     await seedActivity(request);
     await page.goto('/insights');
 
-    await page.getByRole('img', { name: /Movies and series watched over time/ }).focus();
+    await page.getByRole('slider', { name: /Watch activity over time/ }).focus();
     await page.keyboard.press('ArrowLeft');
     await page.keyboard.press('ArrowLeft');
 

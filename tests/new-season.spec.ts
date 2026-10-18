@@ -132,8 +132,8 @@ test.describe('New season detection', () => {
 
     await page.goto(`/series/${TMDB_ID}`);
 
-    await expect(page.getByRole('button', { name: 'Episodes' })).toHaveClass(/border-accent/);
-    await expect(page.getByRole('button', { name: 'S6', exact: true })).toHaveClass(/bg-accent/);
+    await expect(page.getByRole('tab', { name: 'Episodes' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: 'S6', exact: true })).toHaveAttribute('aria-selected', 'true');
   });
 
   test('an already-watching series ignores a newer airing season', async ({ page, request }) => {
@@ -152,8 +152,8 @@ test.describe('New season detection', () => {
 
     await page.goto(`/series/${TMDB_ID}`);
 
-    await expect(page.getByRole('button', { name: 'S5', exact: true })).toHaveClass(/bg-accent/);
-    await expect(page.getByRole('button', { name: 'S6', exact: true })).not.toHaveClass(/bg-accent/);
+    await expect(page.getByRole('tab', { name: 'S5', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: 'S6', exact: true })).toHaveAttribute('aria-selected', 'false');
     await expect(page.getByText('Season 6 is airing.')).toHaveCount(0);
 
     const res = await request.get(`/api/progress/${TMDB_ID}`);

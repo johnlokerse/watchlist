@@ -77,10 +77,11 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, s
   const watchedEpisodes = useWatchedEpisodes(tmdbId, season);
   const serverSet = new Set(watchedEpisodes?.map((e) => e.episode) ?? []);
   const isWatched = (episode: number) => overrides.get(`${season}-${episode}`) ?? serverSet.has(episode);
-  const watchedSet = new Set((data?.episodes ?? []).map((e) => e.episode_number).filter(isWatched));
+  const episodes = data?.episodes ?? [];
+  const watchedSet = new Set(episodes.map((e) => e.episode_number).filter(isWatched));
 
   const today = toLocalISODate();
-  const watchableEpisodes = data?.episodes.filter((e) => !e.air_date || e.air_date <= today) ?? [];
+  const watchableEpisodes = episodes.filter((e) => !e.air_date || e.air_date <= today);
   const allWatched = watchableEpisodes.length > 0 && watchableEpisodes.every((e) => watchedSet.has(e.episode_number));
   const watchedCount = watchableEpisodes.filter((e) => watchedSet.has(e.episode_number)).length;
 
@@ -288,7 +289,7 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, s
           </div>
 
           <div className="grouped">
-            {data?.episodes.map((ep) => {
+            {episodes.map((ep) => {
               const watched = watchedSet.has(ep.episode_number);
               const isFuture = !!ep.air_date && ep.air_date > today;
               const isLastWatched = ep.episode_number === lastWatchedEpisodeNumber;

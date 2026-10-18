@@ -182,16 +182,18 @@ export function useSettings() {
   }, []);
 
   // Apply theme + follow system appearance when dynamic mode is on
+  const { theme, dynamicTheme, themeLight, themeDark } = settings;
   useEffect(() => {
-    applyFromSettings(settings);
+    const themeSettings = { theme, dynamicTheme, themeLight, themeDark };
+    applyFromSettings(themeSettings);
 
-    if (!settings.dynamicTheme || typeof window.matchMedia !== 'function') return;
+    if (!dynamicTheme || typeof window.matchMedia !== 'function') return;
 
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = () => applyFromSettings(settings);
+    const onChange = () => applyFromSettings(themeSettings);
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
-  }, [settings.theme, settings.dynamicTheme, settings.themeLight, settings.themeDark]);
+  }, [theme, dynamicTheme, themeLight, themeDark]);
 
   const updateSettings = useCallback((updates: Partial<AppSettings>) => {
     initialized.current = true;
