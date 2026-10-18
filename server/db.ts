@@ -580,7 +580,7 @@ export const queries = {
     const existing = stmts.getItemByTmdb.get(item.tmdbId, item.contentType) as WatchedItemRow | undefined;
     if (existing) return existing.id;
     const now = new Date().toISOString();
-    const addedAt = item.addedAt && !Number.isNaN(Date.parse(item.addedAt)) ? item.addedAt : now;
+    const addedAt = item.addedAt ? new Date(item.addedAt) : null;
     const result = stmts.insertItem.run({
       tmdbId: item.tmdbId,
       contentType: item.contentType,
@@ -592,7 +592,7 @@ export const queries = {
       notes: item.notes ?? '',
       genreIds: JSON.stringify(item.genreIds ?? []),
       watchedAt: item.watchedAt ?? null,
-      addedAt,
+      addedAt: addedAt && Number.isFinite(addedAt.getTime()) ? addedAt.toISOString() : now,
       updatedAt: now,
     });
     return Number(result.lastInsertRowid);
@@ -911,6 +911,7 @@ export const queries = {
         ...(userRating != null && { userRating }),
         ...(notes && { notes }),
         ...(watchedAt != null && { watchedAt }),
+        ...(genreIds.length > 0 && { genreIds }),
       })),
       progress,
       episodes,

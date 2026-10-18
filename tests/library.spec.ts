@@ -55,7 +55,7 @@ test.describe('Library Page', () => {
     await setupTMDBMocks(page);
     await page.goto('/library');
 
-    const filterToggle = page.getByRole('button', { name: 'Toggle library filters' });
+    const filterToggle = page.getByRole('button', { name: 'Filters', exact: true });
     await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
 
     await filterToggle.click();
@@ -146,7 +146,7 @@ test.describe('Library Page', () => {
     await expect(page.getByText('The Accountant')).toBeVisible();
     await expect(page.getByText('Interstellar')).toBeVisible();
     // Filter to only Plan to Watch (scope to the filter chip, not the section heading)
-    await page.getByRole('group', { name: 'Filters' }).getByRole('button', { name: 'Plan to Watch' }).click();
+    await page.getByRole('group', { name: 'Status' }).getByRole('button', { name: 'Plan to Watch' }).click();
     await expect(page.getByText('Interstellar')).toBeVisible();
     await expect(page.getByText('The Accountant')).not.toBeVisible();
   });
@@ -234,8 +234,8 @@ test.describe('Library Page', () => {
 
     const scrollBeforeOpen = await page.evaluate(() => window.scrollY);
 
-    // Click the inner <Link> — the list-item div itself has no navigation handler
-    await target.getByRole('link').click();
+    // The list row is itself the link
+    await target.click();
     await expect(page).toHaveURL('/series/3024');
 
     await page.getByRole('button', { name: /Back/i }).click();

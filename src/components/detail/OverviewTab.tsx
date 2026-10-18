@@ -26,20 +26,20 @@ export default function OverviewTab({
   timelineEvents = [],
 }: Props) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {overview && (
-        <p className="text-text-secondary leading-relaxed">{overview}</p>
+        <p className="t-body max-w-[68ch] text-text-secondary">{overview}</p>
       )}
 
       <div className="flex flex-wrap gap-2">
         {genres.map((g) => (
-          <span key={g.id} className="px-3 py-1 bg-surface-raised rounded-full text-xs text-text-secondary border border-border-subtle">
+          <span key={g.id} className="rounded-full bg-fill px-3 py-1 text-[0.8125rem] font-medium text-text-secondary">
             {g.name}
           </span>
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grouped grid grid-cols-2 md:grid-cols-4 [&>*+*]:before:hidden">
         {status && (
           <InfoBlock label="Status" value={status} />
         )}
@@ -56,13 +56,13 @@ export default function OverviewTab({
       )}
 
       {/* External links */}
-      <div className="flex gap-3 pt-2">
+      <div className="flex gap-2">
         {imdbId && (
           <a
             href={`https://www.imdb.com/title/${imdbId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg text-sm font-medium hover:bg-yellow-500/30 transition"
+            className="press inline-flex min-h-9 items-center rounded-full bg-fill px-4 text-[0.875rem] font-semibold text-text-primary hover:bg-fill-strong"
           >
             IMDb ↗
           </a>
@@ -71,7 +71,7 @@ export default function OverviewTab({
           href={`https://www.themoviedb.org/${type === 'movie' ? 'movie' : 'tv'}/${tmdbId}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-4 py-2 bg-accent/15 text-accent rounded-lg text-sm font-medium hover:bg-accent/25 transition"
+          className="press inline-flex min-h-9 items-center rounded-full bg-fill px-4 text-[0.875rem] font-semibold text-text-primary hover:bg-fill-strong"
         >
           TMDB ↗
         </a>
@@ -84,9 +84,9 @@ export default function OverviewTab({
 
 function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="app-panel-soft p-3">
-      <p className="text-xs text-text-muted mb-1">{label}</p>
-      <p className="text-sm font-medium">{value}</p>
+    <div className="px-4 py-3">
+      <p className="t-label mb-1">{label}</p>
+      <p className="t-callout font-semibold text-text-primary">{value}</p>
     </div>
   );
 }

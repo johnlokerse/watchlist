@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLibrary } from './LibraryContext';
+import { toLocalISODate } from '../utils/date';
 import type { WatchedItem, SeriesProgress, WatchedEpisode, WatchLogEntry, InsightsData, ContentType, WatchedStatus, SeasonCheckInput, SeasonCheckResult } from './models';
 
 const API = '/api';
@@ -47,7 +48,7 @@ export function useUpcomingFromLibrary(contentType: ContentType) {
   useEffect(() => {
     if (contentType === 'movie') {
       apiFetch<WatchedItem[]>('/library?contentType=movie').then((all) => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = toLocalISODate();
         setItems(
           all
             .filter((i) => i.releaseDate && i.releaseDate >= today)
@@ -104,13 +105,13 @@ export function useWatchedItem(tmdbId: number, contentType: ContentType) {
   const [item, setItem] = useState<WatchedItem | undefined>(undefined);
 
   useEffect(() => {
-    if (!tmdbId) { setItem(undefined); return; }
+    if (!tmdbId) return;
     apiFetch<WatchedItem>(`/library/${tmdbId}/${contentType}`)
       .then(setItem)
       .catch(() => setItem(undefined));
   }, [tmdbId, contentType, version]);
 
-  return item;
+  return tmdbId ? item : undefined;
 }
 
 export function useSeriesProgress(tmdbId: number) {
@@ -119,13 +120,13 @@ export function useSeriesProgress(tmdbId: number) {
   const [progress, setProgress] = useState<SeriesProgress | undefined>(undefined);
 
   useEffect(() => {
-    if (!tmdbId) { setProgress(undefined); return; }
+    if (!tmdbId) return;
     apiFetch<SeriesProgress | null>(`/progress/${tmdbId}`)
       .then((p) => setProgress(p ?? undefined))
       .catch(() => setProgress(undefined));
   }, [tmdbId, version]);
 
-  return progress;
+  return tmdbId ? progress : undefined;
 }
 
 /**
@@ -222,11 +223,11 @@ export function useWatchedEpisodes(tmdbId: number, season: number) {
   const [episodes, setEpisodes] = useState<WatchedEpisode[] | undefined>(undefined);
 
   useEffect(() => {
-    if (!tmdbId) { setEpisodes(undefined); return; }
+    if (!tmdbId) return;
     apiFetch<WatchedEpisode[]>(`/episodes/${tmdbId}/${season}`).then(setEpisodes);
   }, [tmdbId, season, version]);
 
-  return episodes;
+  return tmdbId ? episodes : undefined;
 }
 
 export async function toggleEpisodeWatched(tmdbId: number, season: number, episode: number) {

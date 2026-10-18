@@ -1,12 +1,13 @@
 import type { CoverSize } from '../../hooks/useSettings';
+import SegmentedControl from './SegmentedControl';
 
 export type ViewMode = 'cards' | 'list';
 
-const COVER_SIZES: [CoverSize, string][] = [
-  ['xs', 'XS'],
-  ['small', 'S'],
-  ['medium', 'M'],
-  ['large', 'L'],
+const COVER_SIZES: { value: CoverSize; label: string }[] = [
+  { value: 'xs', label: 'XS' },
+  { value: 'small', label: 'S' },
+  { value: 'medium', label: 'M' },
+  { value: 'large', label: 'L' },
 ];
 
 interface Props {
@@ -16,58 +17,53 @@ interface Props {
   onCoverSizeChange?: (size: CoverSize) => void;
 }
 
-export default function ViewToggle({ value, onChange, coverSize, onCoverSizeChange }: Props) {
-  const btnClass = (active: boolean) =>
-    `rounded-md p-1.5 transition-all ${
-      active ? 'bg-accent text-white shadow-sm' : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
-    }`;
-
+function IconButton({ active, label, onClick, children }: { active: boolean; label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <div className="control-surface inline-flex items-center gap-1 p-1" role="group" aria-label="View mode">
-      <button
-        aria-pressed={value === 'cards'}
-        onClick={() => onChange('cards')}
-        className={btnClass(value === 'cards')}
-        title="Card view"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
-          <rect x="14" y="14" width="7" height="7" rx="1" />
-        </svg>
-      </button>
-      <button
-        aria-pressed={value === 'list'}
-        onClick={() => onChange('list')}
-        className={btnClass(value === 'list')}
-        title="List view"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
-      </button>
+    <button
+      type="button"
+      aria-pressed={active}
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={`press hit-44 grid h-8 w-9 place-items-center rounded-lg transition-colors ${
+        active ? 'bg-accent text-on-accent shadow-chip' : 'text-text-secondary hover:text-text-primary'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+export default function ViewToggle({ value, onChange, coverSize, onCoverSizeChange }: Props) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="segmented inline-flex" role="group" aria-label="View mode">
+        <IconButton active={value === 'cards'} label="Card view" onClick={() => onChange('cards')}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+            <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+            <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+            <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+          </svg>
+        </IconButton>
+        <IconButton active={value === 'list'} label="List view" onClick={() => onChange('list')}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M8 6h13M8 12h13M8 18h13" />
+            <circle cx="3.5" cy="6" r="1" fill="currentColor" />
+            <circle cx="3.5" cy="12" r="1" fill="currentColor" />
+            <circle cx="3.5" cy="18" r="1" fill="currentColor" />
+          </svg>
+        </IconButton>
+      </div>
 
       {value === 'cards' && coverSize && onCoverSizeChange && (
-        <>
-          <div className="mx-0.5 h-4 w-px bg-border-subtle" />
-          {COVER_SIZES.map(([size, label]) => (
-            <button
-              key={size}
-              aria-pressed={coverSize === size}
-              onClick={() => onCoverSizeChange(size)}
-              className={`rounded-md px-2 py-1 text-xs font-semibold transition-all ${
-                coverSize === size
-                  ? 'bg-accent text-white shadow-sm'
-                  : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </>
+        <SegmentedControl
+          options={COVER_SIZES}
+          value={coverSize}
+          onChange={(size) => onCoverSizeChange(size as CoverSize)}
+          ariaLabel="Cover size"
+          size="sm"
+        />
       )}
     </div>
   );

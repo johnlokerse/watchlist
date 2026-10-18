@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Watchlist nieuw design</title>
+<style>
+  /* ── Tokens (plan §6): Midnight Velvet (default dark) en Paper & Ink (default light) ── */
+  :root, :root[data-theme="midnight-velvet"] {
+    --surface: #0c0a12; --raised: #16121f; --overlay: #1f1a2b;
+    --border: #342c45; --border-strong: #6b6085;
+    --accent: #d4a84b; --on-accent: #1a1205;
+    --text: #f5f0e8; --text-2: #b8b0c5;
+    --muted: #8f87a4; --muted-old: #7a728c;
+    --success: #6bcb8a; --on-success: #0b1a10;
+    --warning: #e0a84b; --on-warning: #1a1205;
+    --danger: #e06b7a;
+    --page: #07060b;
+    --chrome: color-mix(in srgb, var(--surface) 72%, transparent);
+    --sheet: color-mix(in srgb, var(--raised) 88%, transparent);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / .3), 0 8px 24px -12px rgb(0 0 0 / .6);
+    --shadow-sheet: 0 -12px 48px rgb(0 0 0 / .5);
+    --hairline: rgb(255 255 255 / .08);
+    color-scheme: dark;
+  }
+  :root[data-theme="paper-ink"] {
+    --surface: #f6f1e8; --raised: #fffdf8; --overlay: #ebe4d8;
+    --border: #d4cbbd; --border-strong: #9a8f80;
+    --accent: #c45c4a; --on-accent: #000000;
+    --text: #1a1a1a; --text-2: #4a4540;
+    --muted: #6e675e; --muted-old: #7a736a;
+    --success: #4f8f6a; --on-success: #120806;
+    --warning: #c4892b; --on-warning: #120806;
+    --danger: #c45c4a;
+    --page: #e4ddd1;
+    --shadow-card: 0 1px 2px rgb(60 40 20 / .08), 0 8px 24px -12px rgb(60 40 20 / .25);
+    --shadow-sheet: 0 -12px 48px rgb(60 40 20 / .2);
+    --hairline: rgb(0 0 0 / .08);
+    color-scheme: light;
+  }
+  html.theme-anim, html.theme-anim * { transition: background-color .2s ease, color .2s ease, border-color .2s ease !important; }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { background: var(--page); }
+  body {
+    margin: 0; background: var(--page); color: var(--text);
+    font: 100%/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", sans-serif;
+    font-optical-sizing: auto; -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  :focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 75%, transparent); outline-offset: 2px; border-radius: 6px; }
+
+  /* Type scale (plan §6, 1b) */
+  .t-display { font-size: 2.15rem; line-height: 1.05; letter-spacing: -0.022em; font-weight: 760; }
+  .t-title { font-size: 1.5rem; line-height: 1.15; letter-spacing: -0.015em; font-weight: 700; }
+  .t-headline { font-size: 1.0625rem; line-height: 1.3; letter-spacing: -0.01em; font-weight: 600; }
+  .t-body { font-size: .9375rem; line-height: 1.45; }
+  .t-caption { font-size: .8125rem; line-height: 1.35; letter-spacing: .005em; font-weight: 500; color: var(--muted); }
+  .t-label { font-size: .75rem; line-height: 1.2; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+  .t-micro { font-size: .6875rem; line-height: 1.1; letter-spacing: .01em; font-weight: 600; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* Press feedback (plan §6, 1f): op pointer-down, 100ms */
+  .press { transition: transform 100ms ease-out; }
+  .press:active { transform: scale(.97); }
+  .press-row:active { background: color-mix(in srgb, var(--text) 6%, transparent); }
+
+  /* ── Page chrome ── */
+  .wrap { max-width: 1260px; margin: 0 auto; padding: 32px 16px 64px; }
+  .intro { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: end; justify-content: space-between; margin-bottom: 28px; }
+  .intro h1 { margin: 0 0 6px; }
+  .intro p { margin: 0; max-width: 60ch; color: var(--text-2); }
+  .theme-pick { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--raised); border: 1px solid var(--border); position: relative; }
+  .theme-pick button { position: relative; z-index: 1; padding: 8px 14px; border-radius: 8px; font-size: .875rem; font-weight: 600; color: var(--text-2); min-height: 36px; }
+  .theme-pick button[aria-pressed="true"] { color: var(--on-accent); }
+
+  .phones { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px 24px; justify-items: center; }
+  .phone-col { width: 100%; max-width: 375px; }
+  .phone-cap { margin: 14px 4px 0; }
+  .phone-cap h2 { margin: 0 0 8px; font-size: 1rem; letter-spacing: -0.01em; }
+  .phone-cap ol { margin: 0; padding-left: 1.2em; color: var(--text-2); font-size: .875rem; }
+  .phone-cap li { margin: 4px 0; }
+  .phone-cap li b { color: var(--text); font-weight: 600; }
+
+  .phone {
+    position: relative; width: 100%; height: 760px; border-radius: 48px; overflow: hidden;
+    background: var(--surface); box-shadow: 0 0 0 10px #000, 0 0 0 11px #2a2a2e, 0 30px 80px rgb(0 0 0 / .45);
+    isolation: isolate;
+  }
+  .screen { position: absolute; inset: 0; overflow-y: auto; scrollbar-width: none; padding: 54px 16px 110px; }
+  .screen::-webkit-scrollbar { display: none; }
+  .statusbar {
+    position: absolute; inset: 0 0 auto; height: 50px; z-index: 30; display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 30px 0; font-size: .9375rem; font-weight: 600;
+    background: var(--chrome); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
+    -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent);
+  }
+  .island { position: absolute; left: 50%; top: 11px; width: 110px; height: 32px; border-radius: 20px; background: #000; transform: translateX(-50%); z-index: 31; }
+
+  /* Materials (plan §6, 1d) */
+  .material-chrome { background: var(--chrome); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); }
+  .material-chip { background: color-mix(in srgb, #000 45%, transparent); backdrop-filter: blur(12px) saturate(160%); -webkit-backdrop-filter: blur(12px) saturate(160%); color: #fff; }
+
+  /* Tab bar: translucent, content scrolls underneath, no hard border, but a soft edge */
+  .tabbar {
+    position: absolute; inset: auto 0 0; z-index: 20; height: 84px; padding: 8px 6px 26px;
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    box-shadow: inset 0 1px 0 var(--hairline);
+  }
+  .tab { display: grid; justify-items: center; gap: 3px; color: var(--muted); padding-top: 4px; border-radius: 12px; }
+  .tab svg { width: 24px; height: 24px; }
+  .tab[aria-current="page"] { color: var(--accent); }
+  .tab span { font-size: .6875rem; font-weight: 600; letter-spacing: .01em; }
+
+  /* Segmented control with sliding thumb */
+  .seg { position: relative; display: inline-flex; padding: 3px; border-radius: 11px; background: color-mix(in srgb, var(--text) 8%, transparent); }
+  .seg button { position: relative; z-index: 1; min-height: 32px; padding: 0 14px; border-radius: 8px; font-size: .8125rem; font-weight: 600; color: var(--text-2); transition: color 150ms; }
+  .seg button[aria-selected="true"] { color: var(--on-accent); }
+  .seg button::before { content: ""; position: absolute; inset: -6px -2px; } /* 44pt hit area */
+  .thumb { position: absolute; top: 3px; bottom: 3px; left: 0; border-radius: 8px; background: var(--accent); box-shadow: 0 1px 3px rgb(0 0 0 / .25); will-change: transform, width; }
+
+  /* Library */
+  .lib-head { display: flex; align-items: end; justify-content: space-between; gap: 8px; margin: 10px 0 14px; }
+  .filterbar {
+    position: sticky; top: -4px; z-index: 10; margin: 0 -16px 14px; padding: 10px 16px; display: flex; gap: 8px;
+    -webkit-mask-image: linear-gradient(#000 85%, transparent); mask-image: linear-gradient(#000 85%, transparent);
+  }
+  .search { flex: 1; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 12px; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--muted); font-size: 1rem; }
+  .search svg { width: 18px; height: 18px; flex: none; }
+  .icon-btn { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .badge-count { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: var(--on-accent); font-size: .6875rem; font-weight: 700; display: grid; place-items: center; }
+  .section-h { display: flex; justify-content: space-between; align-items: baseline; margin: 18px 2px 10px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .poster { position: relative; display: block; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-card); }
+  .poster .art { position: absolute; inset: 0; }
+  .poster .ptitle { position: absolute; inset: auto 8px 8px; color: #fff; font-size: .75rem; font-weight: 700; line-height: 1.15; letter-spacing: -0.005em; text-shadow: 0 1px 8px rgb(0 0 0 / .5); }
+  .poster .chip { position: absolute; top: 6px; right: 6px; padding: 3px 6px; border-radius: 6px; }
+  .poster-cap { margin-top: 6px; }
+  .poster-cap .t-caption { font-size: .75rem; }
+  .fade-swap { animation: fadeIn 200ms ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } }
+
+  .up-row { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 14px; background: var(--raised); margin-bottom: 8px; box-shadow: inset 0 0 0 1px var(--hairline); }
+  .up-row .poster { width: 52px; flex: none; border-radius: 8px; }
+  .up-row .poster .ptitle { display: none; }
+  .countdown { margin-left: auto; padding: 4px 8px; border-radius: 7px; font-size: .75rem; font-weight: 700; display: inline-flex; gap: 4px; align-items: center; white-space: nowrap; }
+
+  /* Series detail */
+  .hero { position: relative; margin: -54px -16px 0; height: 300px; }
+  .hero .art { position: absolute; inset: 0; }
+  .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 30%, var(--surface) 96%); }
+  .back { position: absolute; top: 58px; left: 16px; z-index: 2; height: 34px; padding: 0 12px 0 8px; border-radius: 17px; display: inline-flex; align-items: center; gap: 2px; font-size: .9375rem; font-weight: 600; }
+  .back svg { width: 18px; height: 18px; }
+  .hero-body { position: relative; z-index: 1; margin-top: -96px; display: flex; gap: 14px; align-items: end; }
+  .hero-body .poster { width: 92px; flex: none; }
+  .row-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 16px 0 12px; }
+  .btn { min-height: 36px; padding: 0 14px; border-radius: 10px; font-size: .875rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-secondary { background: color-mix(in srgb, var(--text) 8%, transparent); }
+  .btn-primary { background: var(--accent); color: var(--on-accent); }
+  .btn svg { width: 14px; height: 14px; }
+
+  .stars { position: relative; display: inline-flex; touch-action: none; user-select: none; cursor: pointer; padding: 6px 0; }
+  .star { position: relative; width: 28px; height: 28px; }
+  .star svg { position: absolute; inset: 0; width: 28px; height: 28px; }
+  .star .bg { color: color-mix(in srgb, var(--text) 18%, transparent); }
+  .star .fill { position: absolute; inset: 0; overflow: hidden; width: 0; color: var(--warning); }
+  .rating-val { min-width: 2.2em; font-weight: 700; font-size: .875rem; }
+
+  .progress-card { padding: 12px 14px; border-radius: 14px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--hairline); }
+  .bar { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--text) 10%, transparent); overflow: hidden; margin-top: 8px; }
+  .bar i { display: block; height: 100%; width: 0; border-radius: 3px; background: var(--accent); transition: width 300ms cubic-bezier(.2,.8,.2,1); }
+
+  .tabs { position: relative; display: flex; gap: 18px; margin: 18px 0 12px; overflow-x: auto; scrollbar-width: none; box-shadow: inset 0 -1px 0 var(--hairline); -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+  .tabs button { min-height: 44px; font-size: .875rem; font-weight: 600; color: var(--muted); white-space: nowrap; transition: color 150ms; }
+  .tabs button[aria-selected="true"] { color: var(--text); }
+  .underline { position: absolute; bottom: 0; left: 0; height: 2px; border-radius: 1px; background: var(--accent); }
+
+  .seasons { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 10px; scroll-snap-type: x proximity; }
+  .ep-head { display: flex; justify-content: space-between; align-items: center; margin: 4px 2px 6px; }
+  .link { color: var(--accent); font-weight: 600; font-size: .875rem; min-height: 44px; padding: 0 4px; }
+  .ep { display: flex; gap: 12px; align-items: center; padding: 10px 8px; border-radius: 12px; transition: background 150ms, transform 100ms ease-out; }
+  .ep:active { transform: scale(.98); }
+  .check { position: relative; width: 26px; height: 26px; flex: none; border-radius: 13px; box-shadow: inset 0 0 0 2px var(--border-strong); transition: background 150ms, box-shadow 150ms, transform 250ms cubic-bezier(.3,1.6,.5,1); }
+  .check svg { position: absolute; inset: 5px; width: 16px; height: 16px; color: var(--on-accent); }
+  .check path { stroke-dasharray: 20; stroke-dashoffset: 20; transition: stroke-dashoffset 150ms ease-out 60ms; }
+  .ep.on .check { background: var(--accent); box-shadow: none; transform: scale(1.06); }
+  .ep.on .check path { stroke-dashoffset: 0; }
+  .ep-meta { flex: 1; min-width: 0; }
+  .ep-meta .t-headline { font-size: .9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .recap-btn { min-height: 32px; padding: 0 10px; border-radius: 9px; font-size: .8125rem; font-weight: 600; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); display: inline-flex; gap: 5px; align-items: center; position: relative; }
+  .recap-btn::before { content: ""; position: absolute; inset: -6px -4px; }
+  .recap-btn svg { width: 14px; height: 14px; }
+  .panel-overview p { margin: 0 0 10px; color: var(--text-2); }
+
+  /* Toast with Undo */
+  .toast { position: absolute; left: 12px; right: 12px; bottom: 96px; z-index: 25; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--sheet); backdrop-filter: blur(32px) saturate(180%); -webkit-backdrop-filter: blur(32px) saturate(180%); box-shadow: 0 10px 30px rgb(0 0 0 / .35), inset 0 0 0 1px var(--hairline); transform: translateY(160px); font-size: .875rem; }
+  .toast .link { margin-left: auto; min-height: 32px; }
+
+  /* Bottom sheet */
+  .scrim { position: absolute; inset: 0; z-index: 40; background: rgb(0 0 0 / .45); opacity: 0; pointer-events: none; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: -60px; z-index: 41; padding: 8px 20px 96px; border-radius: 22px 22px 0 0; background: var(--sheet); backdrop-filter: blur(32px) saturate(180%); -webkit-backdrop-filter: blur(32px) saturate(180%); box-shadow: var(--shadow-sheet), inset 0 1px 0 var(--hairline); transform: translateY(120%); visibility: hidden; }
+  .grab-zone { touch-action: none; cursor: grab; padding: 4px 0 10px; margin: 0 -20px; }
+  .grab-zone:active { cursor: grabbing; }
+  .grabber { width: 38px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text) 25%, transparent); margin: 0 auto 14px; }
+  .sheet-head { padding: 0 20px; display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+  .close { width: 32px; height: 32px; border-radius: 16px; display: grid; place-items: center; background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text-2); position: relative; flex: none; }
+  .close::before { content: ""; position: absolute; inset: -6px; }
+  .close svg { width: 14px; height: 14px; }
+  .ai-tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+  .spoiler { position: relative; margin: 14px 0 12px; }
+  .spoiler p { margin: 0; color: var(--text-2); transition: filter 300ms ease, opacity 300ms ease; }
+  .spoiler.hidden p { filter: blur(7px); opacity: .6; user-select: none; }
+  .spoiler .reveal { position: absolute; inset: 0; display: grid; place-items: center; transition: opacity 200ms; }
+  .spoiler:not(.hidden) .reveal { opacity: 0; pointer-events: none; }
+  .disclaimer { display: flex; gap: 8px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--text) 6%, transparent); font-size: .8125rem; color: var(--text-2); }
+  .disclaimer svg { width: 16px; height: 16px; flex: none; margin-top: 1px; color: var(--muted); }
+  .sheet-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .sheet-actions .btn { flex: 1; justify-content: center; min-height: 44px; }
+
+  /* Settings: grouped inset lists */
+  .group-label { margin: 22px 16px 8px; }
+  .group { border-radius: 14px; background: var(--raised); overflow: hidden; box-shadow: inset 0 0 0 1px var(--hairline); }
+  .cell { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 10px 16px; position: relative; width: 100%; text-align: left; }
+  .cell + .cell::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--hairline); }
+  .cell .grow { flex: 1; min-width: 0; }
+  .cell .val { color: var(--muted); font-size: .9375rem; display: inline-flex; align-items: center; gap: 4px; }
+  .cell .val svg { width: 14px; height: 14px; }
+  .saved { color: var(--success); font-size: .75rem; font-weight: 600; display: inline-flex; gap: 4px; align-items: center; }
+  .switch { position: relative; width: 51px; height: 31px; border-radius: 16px; flex: none; background: color-mix(in srgb, var(--text) 16%, transparent); transition: background 200ms; }
+  .switch[aria-checked="true"] { background: var(--success); }
+  .switch::before { content: ""; position: absolute; inset: -7px -4px; }
+  .switch .knob { position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 14px; background: #fff; box-shadow: 0 2px 6px rgb(0 0 0 / .3); transition: width 100ms ease-out; }
+  .switch.pressed .knob { width: 33px; }
+  .danger-text { color: var(--danger); font-weight: 600; }
+  .confirm { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 250ms cubic-bezier(.2,.8,.2,1); }
+  .confirm.open { grid-template-rows: 1fr; }
+  .confirm > div { overflow: hidden; }
+  .confirm-inner { padding: 0 16px 14px; }
+  .confirm-inner p { margin: 0 0 10px; font-size: .875rem; color: var(--text-2); }
+  .confirm-inner .btns { display: flex; gap: 8px; }
+  .confirm-inner .btn { flex: 1; justify-content: center; min-height: 44px; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  :root[data-theme="paper-ink"] .btn-danger { color: #000; }
+
+  /* ── Before / after ── */
+  .compare { margin-top: 56px; }
+  .compare > h2 { margin: 0 0 6px; }
+  .compare > p { margin: 0 0 20px; color: var(--text-2); max-width: 70ch; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .card { padding: 18px; border-radius: 16px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--hairline); min-width: 0; }
+  .card h3 { margin: 0 0 4px; font-size: 1rem; letter-spacing: -0.01em; }
+  .card > p { margin: 0 0 14px; font-size: .875rem; color: var(--text-2); }
+  .ba { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .ba .lbl { grid-column: 1 / -1; font-size: .75rem; color: var(--muted); font-weight: 600; }
+  .ba .arrow { color: var(--muted); }
+  .sw { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 10px; font-size: .8125rem; font-weight: 600; min-width: 0; }
+  .sw .r { font-variant-numeric: tabular-nums; font-size: .75rem; opacity: .95; white-space: nowrap; }
+  .typo-ba { display: grid; gap: 4px; margin-bottom: 14px; }
+  .typo-ba .old { font-size: 2.15rem; line-height: 1.05; letter-spacing: 0; font-weight: 760; opacity: .55; }
+  .scale div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 5px 0; box-shadow: inset 0 -1px 0 var(--hairline); }
+  .scale code { font: 500 .6875rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); white-space: nowrap; }
+  .motion-row { margin-bottom: 10px; }
+  .motion-row .t-caption { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .track { position: relative; height: 26px; border-radius: 13px; background: color-mix(in srgb, var(--text) 7%, transparent); }
+  .dot { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 10px; background: var(--accent); }
+  .dot.old { background: var(--muted); }
+  .mat-demo { position: relative; height: 150px; border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+  .mat-demo .strip { position: absolute; inset: 0; display: flex; gap: 6px; padding: 10px; }
+  .mat-demo .strip i { flex: 1; border-radius: 8px; }
+  .mat-demo .bar-demo { position: absolute; inset: auto 0 0; height: 52px; display: flex; align-items: center; justify-content: space-around; font-size: .6875rem; font-weight: 600; }
+  .mat-old { background: color-mix(in srgb, var(--surface) 95%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--border); }
+  .note { margin-top: 40px; font-size: .8125rem; color: var(--muted); }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .material-chrome, .statusbar, .sheet, .toast { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  }
+  @media (prefers-contrast: more) {
+    .group, .card, .up-row, .progress-card { box-shadow: inset 0 0 0 1px var(--border-strong); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .press:active, .ep:active { transform: none; }
+    .fade-swap { animation: fadeOnly 150ms ease; }
+    @keyframes fadeOnly { from { opacity: 0; } }
+  }
+  @media (max-width: 420px) {
+    .wrap { padding-top: 20px; }
+    .phone { box-shadow: 0 0 0 6px #000, 0 20px 50px rgb(0 0 0 / .4); border-radius: 40px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="intro">
+    <div>
+      <h1 class="t-display">Watchlist, nieuw design</h1>
+      <p>Een interactieve schets van het Apple-design-overhaulplan. Je kunt tikken, slepen en wisselen: de segmented control, de tabs, de sterren, de afleveringen, "Mark all", AI-recap (sleep de sheet omlaag), de switches en "Delete library…".</p>
+    </div>
+    <div class="theme-pick" role="group" aria-label="Thema">
+      <span class="thumb" id="themeThumb"></span>
+      <button type="button" data-theme-btn="midnight-velvet" aria-pressed="true">Midnight Velvet</button>
+      <button type="button" data-theme-btn="paper-ink" aria-pressed="false">Paper &amp; Ink</button>
+    </div>
+  </header>
+
+  <section class="phones">
+
+    <!-- ───────────── 1. Movies · Library ───────────── -->
+    <div class="phone-col">
+      <div class="phone" id="phoneLib">
+        <div class="island"></div>
+        <div class="statusbar"><span class="num">9:41</span><span>●●● ▮</span></div>
+        <div class="screen">
+          <div class="lib-head">
+            <h1 class="t-display" style="margin:0">Movies</h1>
+            <div class="seg" role="tablist" aria-label="Movies view" data-seg id="libSeg">
+              <span class="thumb"></span>
+              <button type="button" role="tab" aria-selected="true" data-view="library">Library</button>
+              <button type="button" role="tab" aria-selected="false" data-view="upcoming">Upcoming</button>
+            </div>
+          </div>
+
+          <div class="filterbar material-chrome">
+            <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search your library</div>
+            <button type="button" class="icon-btn press" aria-label="Filters, 2 active">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5L4 5Z"/></svg>
+              <span class="badge-count num">2</span>
+            </button>
+          </div>
+
+          <div id="libView"></div>
+        </div>
+        <nav class="tabbar material-chrome" aria-label="Main">
+          <button class="tab press" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M3.5 9h17M8 5l2.5 4M14 5l2.5 4"/><path d="m10 12 4 2.5-4 2.5v-5Z"/></svg><span>Movies</span></button>
+          <button class="tab press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m9 2.5 3 3 3-3M8 21h8"/></svg><span>Series</span></button>
+          <button class="tab press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="16" r="3"/><circle cx="18" cy="16" r="3"/><path d="M9 16h6M8.5 6h7l2 8h-11l2-8Z"/></svg><span>Discover</span></button>
+          <button class="tab press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4v16.5H20"/><path d="m7 15 3.5-4.5 3 2.5 5-6.5"/></svg><span>Insights</span></button>
+          <button class="tab press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg><span>Settings</span></button>
+        </nav>
+      </div>
+      <div class="phone-cap">
+        <h2>Movies · Library / Upcoming</h2>
+        <ol>
+          <li><b>Display-titel</b> met tracking −0.022em in het systeemfont.</li>
+          <li><b>Segmented control</b>: de thumb schuift mee met een spring (damping 1.0, response 0.3) en is te onderbreken. Wissel snel heen en weer.</li>
+          <li><b>Filterbalk en tabbar</b> zijn translucent (72%, blur 24, saturate 180%). De content scrollt eronder door. Er zijn geen harde borders meer, alleen een zachte rand.</li>
+          <li><b>Funnel-icoon</b> met een badge voor het aantal filters. De tabbar heeft nu ook <b>Insights</b>.</li>
+          <li><b>Badges</b> gebruiken on-accent, on-warning en on-success (≥ 4.5:1) met <code>tabular-nums</code>.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- ───────────── 2. Series detail + AI-recap sheet ───────────── -->
+    <div class="phone-col">
+      <div class="phone" id="phoneSeries">
+        <div class="island"></div>
+        <div class="statusbar"><span class="num">9:41</span><span>●●● ▮</span></div>
+        <div class="screen" id="seriesScreen">
+          <div class="hero"><div class="art" data-art="Breaking Bad"></div></div>
+          <button type="button" class="back material-chip press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Series</button>
+          <div class="hero-body">
+            <div class="poster"><div class="art" data-art="Breaking Bad"></div></div>
+            <div>
+              <h1 class="t-title" style="margin:0 0 4px">Breaking Bad</h1>
+              <div class="t-caption num">2008 · Drama, Crime · 5 seasons</div>
+              <div class="t-caption" style="margin-top:2px;font-style:italic">All Hail the King</div>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <button type="button" class="btn btn-secondary press">Watching <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div class="stars" id="stars" role="slider" tabindex="0" aria-label="Rating" aria-valuemin="0.5" aria-valuemax="5" aria-valuenow="4" aria-valuetext="4 stars"></div>
+              <span class="rating-val num" id="ratingVal">4</span>
+            </div>
+          </div>
+
+          <div class="progress-card">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span class="t-headline" style="font-size:.9375rem">Up next · S1 E<span id="nextEp" class="num">3</span></span>
+              <span class="t-caption num" id="progressTxt">2 of 7</span>
+            </div>
+            <div class="bar"><i id="progressBar"></i></div>
+          </div>
+
+          <div class="tabs" role="tablist" id="seriesTabs">
+            <span class="underline"></span>
+            <button role="tab" aria-selected="false" data-panel="overview">Overview</button>
+            <button role="tab" aria-selected="true" data-panel="episodes">Episodes</button>
+            <button role="tab" aria-selected="false" data-panel="overview">Cast &amp; Crew</button>
+            <button role="tab" aria-selected="false" data-panel="overview">Where to Watch</button>
+          </div>
+
+          <div id="panelEpisodes">
+            <div class="seasons">
+              <div class="seg" data-seg>
+                <span class="thumb"></span>
+                <button type="button" role="tab" aria-selected="true">S1</button>
+                <button type="button" role="tab" aria-selected="false">S2</button>
+                <button type="button" role="tab" aria-selected="false">S3</button>
+                <button type="button" role="tab" aria-selected="false">S4</button>
+                <button type="button" role="tab" aria-selected="false">S5</button>
+              </div>
+            </div>
+            <div class="ep-head">
+              <span class="t-label">Season 1 · 7 episodes</span>
+              <button type="button" class="link press" id="markAll">Mark all watched</button>
+            </div>
+            <div id="epList"></div>
+          </div>
+          <div id="panelOverview" class="panel-overview" hidden>
+            <p>A high school chemistry teacher diagnosed with terminal cancer turns to manufacturing and selling methamphetamine to secure his family's future.</p>
+            <p class="t-caption">Tabs crossfaden met een kleine verschuiving in de richting van de tab-index, zodat het ruimtelijk consistent blijft.</p>
+          </div>
+        </div>
+
+        <div class="toast" id="toast" role="status" aria-live="polite">
+          <span id="toastTxt">7 episodes marked as watched</span>
+          <button type="button" class="link press" id="undo">Undo</button>
+        </div>
+
+        <div class="scrim" id="scrim"></div>
+        <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+          <div class="grab-zone" id="grab">
+            <div class="grabber"></div>
+            <div class="sheet-head">
+              <div>
+                <span class="ai-tag t-micro"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/></svg>AI-RECAP</span>
+                <h2 class="t-headline" id="sheetTitle" style="margin:8px 0 2px">S1 E2 · Cat's in the Bag</h2>
+                <div class="t-caption">Breaking Bad · what happened so far</div>
+              </div>
+              <button type="button" class="close press" id="closeSheet" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            </div>
+          </div>
+          <div class="spoiler hidden" id="spoiler">
+            <p class="t-body">Walt and Jesse must deal with the aftermath of their first cook in the desert. Tension rises as they disagree on what to do next, and Walt struggles to keep his double life hidden from Skyler and Hank.</p>
+            <div class="reveal"><button type="button" class="btn btn-secondary press" id="reveal">Contains spoilers · Show</button></div>
+          </div>
+          <div class="disclaimer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+            <span>AI-written from the episode synopsis. It may contain errors or spoilers.</span>
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn btn-secondary press">Regenerate</button>
+            <button type="button" class="btn btn-primary press" id="doneSheet">Done</button>
+          </div>
+        </div>
+
+        <nav class="tabbar material-chrome" aria-label="Main">
+          <button class="tab press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M3.5 9h17M8 5l2.5 4M14 5l2.5 4"/><path d="m10 12 4 2.5-4 2.5v-5Z"/></svg><span>Movies</span></button>
+          <button class="tab press" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m9 2.5 3 3 3-3M8 21h8"/></svg><span>Series</span></button>
+          <button class="tab press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="16" r="3"/><circle cx="18" cy="16" r="3"/><path d="M9 16h6M8.5 6h7l2 8h-11l2-8Z"/></svg><span>Discover</span></button>
+          <button class="tab press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4v16.5H20"/><path d="m7 15 3.5-4.5 3 2.5 5-6.5"/></svg><span>Insights</span></button>
+          <button class="tab press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg><span>Settings</span></button>
+        </nav>
+      </div>
+      <div class="phone-cap">
+        <h2>Series detail · Breaking Bad</h2>
+        <ol>
+          <li><b>5 sterren met halve stappen</b>. Sleep over de sterren om te raten. De opslag blijft 1–10.</li>
+          <li><b>Tabs</b>: de underline glijdt mee met een spring.</li>
+          <li><b>Afleveringen</b> werken optimistisch: de check tekent zichzelf en de rij geeft press-feedback.</li>
+          <li><b>Mark all watched</b> gebeurt direct, met een toast met <b>Undo</b> (5 s) in plaats van een bevestigingsdialoog.</li>
+          <li><b>AI-recap</b> opent als bottom sheet. Sleep die omlaag: de sheet volgt 1:1, rubber-bandt naar boven, projecteert je flick en sluit langs hetzelfde pad. Er zit een spoiler-gate en een disclaimer in.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- ───────────── 3. Settings ───────────── -->
+    <div class="phone-col">
+      <div class="phone">
+        <div class="island"></div>
+        <div class="statusbar"><span class="num">9:41</span><span>●●● ▮</span></div>
+        <div class="screen">
+          <h1 class="t-display" style="margin:10px 0 4px">Settings</h1>
+
+          <div class="t-label group-label">Appearance</div>
+          <div class="group">
+            <button type="button" class="cell press-row" id="themeCell"><span class="grow t-body">Theme</span><span class="val"><span id="themeName">Midnight Velvet</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg></span></button>
+            <div class="cell"><span class="grow t-body">Follow system appearance</span><button type="button" class="switch" role="switch" aria-checked="true" aria-label="Follow system appearance"><span class="knob"></span></button></div>
+          </div>
+
+          <div class="t-label group-label">API keys</div>
+          <div class="group">
+            <div class="cell"><div class="grow"><div class="t-body">TMDB read token</div><div class="t-caption num">•••• •••• 4f2a</div></div><span class="saved"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>Saved</span></div>
+          </div>
+
+          <div class="t-label group-label">Preferences</div>
+          <div class="group">
+            <div class="cell"><div class="grow"><div class="t-body" id="lblSpoil">Show spoilers</div><div class="t-caption">Reveal episode titles and descriptions</div></div><button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lblSpoil"><span class="knob"></span></button></div>
+            <div class="cell"><div class="grow"><div class="t-body" id="lblRecap">Episode recap</div><div class="t-caption">AI-recap on the last watched episode</div></div><button type="button" class="switch" role="switch" aria-checked="true" aria-labelledby="lblRecap"><span class="knob"></span></button></div>
+          </div>
+
+          <div class="t-label group-label">Library data</div>
+          <div class="group">
+            <button type="button" class="cell press-row"><span class="grow t-body" style="color:var(--accent);font-weight:600">Export library</span><span class="val num">42 titles</span></button>
+            <button type="button" class="cell press-row"><span class="grow t-body" style="color:var(--accent);font-weight:600">Import…</span></button>
+            <button type="button" class="cell press-row"><span class="grow t-body">Watch Assistant</span><span class="val">Advanced<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg></span></button>
+          </div>
+
+          <div class="group" style="margin-top:22px">
+            <button type="button" class="cell press-row" id="delBtn" aria-expanded="false"><span class="grow t-body danger-text">Delete library…</span></button>
+            <div class="confirm" id="confirm">
+              <div><div class="confirm-inner">
+                <p id="confirmTxt">Delete 42 titles and all episode progress? This can't be undone.</p>
+                <div class="btns">
+                  <button type="button" class="btn btn-secondary press" id="cancelDel">Cancel</button>
+                  <button type="button" class="btn btn-danger press" id="doDel">Delete</button>
+                </div>
+              </div></div>
+            </div>
+          </div>
+          <p class="t-caption" style="margin:10px 16px 0">The destructive action is at the bottom, separate and confirmed inline. There's no native <code>confirm()</code>.</p>
+        </div>
+        <nav class="tabbar material-chrome" aria-label="Main">
+          <button class="tab press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M3.5 9h17M8 5l2.5 4M14 5l2.5 4"/><path d="m10 12 4 2.5-4 2.5v-5Z"/></svg><span>Movies</span></button>
+          <button class="tab press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m9 2.5 3 3 3-3M8 21h8"/></svg><span>Series</span></button>
+          <button class="tab press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="16" r="3"/><circle cx="18" cy="16" r="3"/><path d="M9 16h6M8.5 6h7l2 8h-11l2-8Z"/></svg><span>Discover</span></button>
+          <button class="tab press"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4v16.5H20"/><path d="m7 15 3.5-4.5 3 2.5 5-6.5"/></svg><span>Insights</span></button>
+          <button class="tab press" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg><span>Settings</span></button>
+        </nav>
+      </div>
+      <div class="phone-cap">
+        <h2>Settings</h2>
+        <ol>
+          <li><b>Gegroepeerde inset-lijsten</b> zoals in iOS Instellingen. Volgorde: Appearance, API keys, Preferences, Data.</li>
+          <li><b>Switches</b> hebben een label. De knop wordt breder als je drukt en springt om met een spring. De hele rij is het tikvlak.</li>
+          <li><b>Inline status</b> ("Saved") in plaats van stille opslag.</li>
+          <li><b>Delete library…</b> klapt een inline bevestiging uit die het aantal titels noemt.</li>
+          <li>Tik op <b>Theme</b> om tussen de thema's te wisselen, met een cross-fade van 200 ms.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── Before / after foundations ───────────── -->
+  <section class="compare">
+    <h2 class="t-title">Wat er onder de motorkap verandert</h2>
+    <p>De basis uit fase 1 van het plan, met huidig en nieuw naast elkaar. De contrastwaarden zijn exact berekend voor het thema dat je bovenaan kiest.</p>
+    <div class="cards">
+
+      <div class="card">
+        <h3>Kleur en contrast</h3>
+        <p>Nieuwe tokens <code>on-accent</code>, <code>on-warning</code> en een sterkere <code>muted</code>.</p>
+        <div id="contrastRows"></div>
+      </div>
+
+      <div class="card">
+        <h3>Typografie</h3>
+        <p>Systeemfont, tracking per tekstgrootte en alles in rem.</p>
+        <div class="typo-ba">
+          <span class="t-micro" style="color:var(--muted)">NU · tracking 0</span>
+          <span class="old">Movies</span>
+          <span class="t-micro" style="color:var(--muted);margin-top:6px">NIEUW · −0.022em, optical sizing</span>
+          <span class="t-display">Movies</span>
+        </div>
+        <div class="scale">
+          <div><span class="t-title">Title</span><code>1.5rem · −0.015em</code></div>
+          <div><span class="t-headline">Headline</span><code>1.0625rem · −0.01em</code></div>
+          <div><span class="t-body">Body text</span><code>0.9375rem · 0</code></div>
+          <div><span class="t-caption">Caption</span><code>0.8125rem · +0.005em</code></div>
+          <div><span class="t-label">Section label</span><code>0.75rem · +0.08em</code></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Beweging</h3>
+        <p>Springs in plaats van instant of <code>transition-all</code>. Druk tijdens het afspelen nog eens op de knop: de springs worden onderbroken en draaien vanaf hun huidige positie om.</p>
+        <div id="motionRows"></div>
+        <button type="button" class="btn btn-primary press" id="playMotion" style="margin-top:6px">▶ Speel af</button>
+      </div>
+
+      <div class="card">
+        <h3>Materials</h3>
+        <p>Een chrome-laag waar je echt doorheen kijkt.</p>
+        <div class="mat-demo"><div class="strip" data-strip></div><div class="bar-demo mat-old"><span>Movies</span><span>Series</span><span>Discover</span><span>Settings</span></div></div>
+        <div class="t-caption" style="margin:-4px 0 12px">Nu: 95% dekkend met een harde rand, dus de blur is onzichtbaar.</div>
+        <div class="mat-demo"><div class="strip" data-strip></div><div class="bar-demo material-chrome" style="box-shadow:inset 0 1px 0 var(--hairline)"><span>Movies</span><span>Series</span><span>Discover</span><span>Insights</span><span>Settings</span></div></div>
+        <div class="t-caption" style="margin-top:-4px">Nieuw: 72%, blur 24 en saturate 180%, met een haarlijn in plaats van een border.</div>
+      </div>
+    </div>
+
+    <p class="note">Dit is een concept en geen pixel-perfect ontwerp. Posters zijn kleurplaceholders, en de titels en afleveringen komen uit de TMDB-testfixtures. De mockup respecteert reduced motion, reduced transparency en verhoogd contrast van je systeem. Bron: docs/apple-design-overhaul-plan.md.</p>
+  </section>
+</div>
+
+<script>
+(() => {
+  const RM = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ── Interruptible spring (damping ratio + response, zoals Apple) ──
+  function spring(initial, onUpdate) {
+    let x = initial, v = 0, target = initial, cfg = { damping: 1, response: 0.3 }, raf = 0, last = 0, done = null;
+    function step(t) {
+      const dt = Math.min(0.064, (t - last) / 1000); last = t;
+      const k = (2 * Math.PI / cfg.response) ** 2, c = 4 * Math.PI * cfg.damping / cfg.response;
+      const n = Math.max(1, Math.ceil(dt / 0.004)), h = dt / n;
+      for (let i = 0; i < n; i++) { const a = -k * (x - target) - c * v; v += a * h; x += v * h; }
+      if (Math.abs(x - target) < 0.05 && Math.abs(v) < 1) {
+        x = target; v = 0; raf = 0; onUpdate(x); const d = done; done = null; d && d(); return;
+      }
+      onUpdate(x); raf = requestAnimationFrame(step);
+    }
+    return {
+      to(t, o = {}) {
+        target = t; cfg = { damping: o.damping ?? 1, response: o.response ?? 0.3 };
+        if (o.velocity !== undefined) v = o.velocity;
+        done = o.onDone || null;
+        if (RM.matches) { cancelAnimationFrame(raf); raf = 0; x = t; v = 0; onUpdate(x); const d = done; done = null; d && d(); return; }
+        if (!raf) { last = performance.now(); raf = requestAnimationFrame(step); }
+      },
+      set(val) { cancelAnimationFrame(raf); raf = 0; x = val; v = 0; onUpdate(x); },
+      get value() { return x; },
+    };
+  }
+  const project = (v, d = 0.998) => (v / 1000) * d / (1 - d);
+  const rubberband = (o, dim, c = 0.55) => (o * dim * c) / (dim + c * Math.abs(o));
+
+  // ── Poster art placeholders ──
+  const hue = s => [...s].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 7);
+  const art = s => { const h = hue(s); return `radial-gradient(120% 80% at 30% 15%, hsl(${h} 55% 45% / .9), transparent 60%), linear-gradient(160deg, hsl(${h} 45% 30%), hsl(${(h + 40) % 360} 50% 10%))`; };
+  const paintArt = root => root.querySelectorAll('[data-art]').forEach(el => el.style.background = art(el.dataset.art));
+
+  // ── Segmented controls & tabs with spring thumb ──
+  function slider(container, thumb, buttons, onSelect, opts = {}) {
+    const sx = spring(0, x => thumb.style.transform = `translateX(${x}px)`);
+    const sw = spring(0, w => thumb.style.width = `${w}px`);
+    const place = (btn, animate) => {
+      const left = btn.offsetLeft, width = btn.offsetWidth;
+      if (animate) { sx.to(left, opts.spring); sw.to(width, opts.spring); } else { sx.set(left); sw.set(width); }
+    };
+    buttons.forEach((b, i) => b.addEventListener('click', () => {
+      buttons.forEach(x => x.setAttribute(opts.attr || 'aria-selected', String(x === b)));
+      place(b, true); onSelect && onSelect(b, i);
+    }));
+    const init = () => place(buttons.find(b => b.getAttribute(opts.attr || 'aria-selected') === 'true') || buttons[0], false);
+    requestAnimationFrame(init);
+    addEventListener('resize', init);
+    return { refresh: init };
+  }
+
+  // ── Theme ──
+  const themeBtns = [...document.querySelectorAll('[data-theme-btn]')];
+  const names = { 'midnight-velvet': 'Midnight Velvet', 'paper-ink': 'Paper & Ink' };
+  function setTheme(id, animate = true) {
+    if (animate && !RM.matches) { document.documentElement.classList.add('theme-anim'); setTimeout(() => document.documentElement.classList.remove('theme-anim'), 260); }
+    document.documentElement.dataset.theme = id;
+    themeBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeBtn === id)));
+    document.getElementById('themeName').textContent = names[id];
+    renderContrast(id);
+    themeSlider && themeSlider.refresh();
+  }
+  let themeSlider = null;
+  themeSlider = slider(document.querySelector('.theme-pick'), document.getElementById('themeThumb'), themeBtns, b => setTheme(b.dataset.themeBtn), { attr: 'aria-pressed' });
+  document.getElementById('themeCell').addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'paper-ink' ? 'midnight-velvet' : 'paper-ink';
+    themeBtns.find(b => b.dataset.themeBtn === next).click();
+  });
+
+  // ── Library / Upcoming ──
+  const library = {
+    watching: [['Interstellar', '★ 4.5'], ['Inception', '★ 4'], ['The Dark Knight', '★ 5']],
+    plan: [['Fight Club', null], ['Pulp Fiction', null], ['The Accountant', null], ['Amsterdamned II', null], ['Avatar 3', null], ['The Amateur', null]],
+  };
+  const upcoming = [
+    ['The Accountant 2', 'Apr 23', 'Today', 'success'],
+    ['Amsterdamned II', 'Nov 30', '5 days', 'warning'],
+    ['Mission: Impossible 8', 'May 23', '12 days', 'accent'],
+    ['Avatar 3', 'Dec 19', '2 months', 'accent'],
+    ['Black Panther 3', 'Feb 13', '4 months', 'accent'],
+  ];
+  const poster = ([t, chip]) => `<a class="poster press" href="#" onclick="return false"><div class="art" data-art="${t}"></div>${chip ? `<span class="chip material-chip t-micro num">${chip}</span>` : ''}<span class="ptitle">${t}</span></a>`;
+  const libHTML = () => `
+    <div class="section-h"><span class="t-label">Watching · 3</span><span class="t-caption num">9 shown</span></div>
+    <div class="grid">${library.watching.map(poster).join('')}</div>
+    <div class="section-h"><span class="t-label">Plan to watch · 6</span></div>
+    <div class="grid">${library.plan.map(poster).join('')}</div>`;
+  const upHTML = () => `
+    <div class="section-h"><span class="t-label">Releasing soon · 5</span></div>
+    ${upcoming.map(([t, d, c, k]) => `<a href="#" onclick="return false" class="up-row press">
+      <div class="poster"><div class="art" data-art="${t}"></div></div>
+      <div style="min-width:0"><div class="t-headline" style="font-size:.9375rem">${t}</div><div class="t-caption num">${d} · Movie</div></div>
+      <span class="countdown num" style="background:var(--${k});color:var(--on-${k})">${k === 'success' ? '●' : ''}${c}</span></a>`).join('')}`;
+  const libView = document.getElementById('libView');
+  const showLib = v => { libView.innerHTML = v === 'upcoming' ? upHTML() : libHTML(); libView.classList.remove('fade-swap'); void libView.offsetWidth; libView.classList.add('fade-swap'); paintArt(libView); };
+  showLib('library');
+  const libSeg = document.getElementById('libSeg');
+  slider(libSeg, libSeg.querySelector('.thumb'), [...libSeg.querySelectorAll('button')], b => showLib(b.dataset.view));
+
+  // Other segmented controls (seasons)
+  document.querySelectorAll('[data-seg]').forEach(s => { if (s !== libSeg) slider(s, s.querySelector('.thumb'), [...s.querySelectorAll('button')]); });
+
+  // ── Series tabs ──
+  const tabs = document.getElementById('seriesTabs');
+  const pEp = document.getElementById('panelEpisodes'), pOv = document.getElementById('panelOverview');
+  slider(tabs, tabs.querySelector('.underline'), [...tabs.querySelectorAll('button')], b => {
+    const ep = b.dataset.panel === 'episodes';
+    pEp.hidden = !ep; pOv.hidden = ep;
+    const shown = ep ? pEp : pOv; shown.classList.remove('fade-swap'); void shown.offsetWidth; shown.classList.add('fade-swap');
+  });
+
+  // ── 5 stars, half steps, drag to rate (stored 1–10) ──
+  const STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.2l-5.9 3.2 1.3-6.5L2.5 9.4l6.6-.8z"/></svg>';
+  const starsEl = document.getElementById('stars'), ratingVal = document.getElementById('ratingVal');
+  starsEl.innerHTML = Array.from({ length: 5 }, () => `<span class="star"><span class="bg">${STAR}</span><span class="fill">${STAR}</span></span>`).join('');
+  const starEls = [...starsEl.children];
+  let rating = 8; // 1–10 = half stars
+  const renderStars = (r) => {
+    starEls.forEach((s, i) => { const f = Math.max(0, Math.min(2, r - i * 2)); s.querySelector('.fill').style.width = `${f * 50}%`; });
+    const txt = (r / 2).toString(); ratingVal.textContent = txt;
+    starsEl.setAttribute('aria-valuenow', txt); starsEl.setAttribute('aria-valuetext', `${txt} stars`);
+  };
+  const pop = (i) => {
+    const el = starEls[i]; if (!el) return;
+    const s = spring(0.85, v => el.style.transform = `scale(${v})`); s.to(1, { damping: 0.6, response: 0.3 });
+  };
+  const fromPointer = e => { const r = starsEl.getBoundingClientRect(); return Math.max(1, Math.min(10, Math.ceil(((e.clientX - r.left) / r.width) * 10))); };
+  let dragging = false, lastR = rating;
+  starsEl.addEventListener('pointerdown', e => { dragging = true; starsEl.setPointerCapture(e.pointerId); lastR = fromPointer(e); renderStars(lastR); });
+  starsEl.addEventListener('pointermove', e => { if (!dragging) return; const r = fromPointer(e); if (r !== lastR) { lastR = r; renderStars(r); } });
+  starsEl.addEventListener('pointerup', () => { if (!dragging) return; dragging = false; rating = lastR; renderStars(rating); pop(Math.ceil(rating / 2) - 1); });
+  starsEl.addEventListener('keydown', e => {
+    const m = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+    if (e.key === 'Home') rating = 1; else if (e.key === 'End') rating = 10; else if (m) rating = Math.max(1, Math.min(10, rating + m)); else return;
+    e.preventDefault(); renderStars(rating); pop(Math.ceil(rating / 2) - 1);
+  });
+  renderStars(rating);
+
+  // ── Episodes ──
+  const eps = [[1, 'Pilot', 'Jan 20, 2008', 58], [2, "Cat's in the Bag", 'Jan 27, 2008', 48], [3, "…And the Bag's in the River", 'Feb 10, 2008', 48], [4, 'Cancer Man', 'Feb 17, 2008', 48], [5, 'Gray Matter', 'Feb 24, 2008', 48], [6, "Crazy Handful of Nothin'", 'Mar 2, 2008', 48], [7, 'A No-Rough-Stuff-Type Deal', 'Mar 9, 2008', 48]];
+  let watched = new Set([1, 2]);
+  const epList = document.getElementById('epList');
+  const CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8.5 3.2 3L13 4.5"/></svg>';
+  const SPARK = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/></svg>';
+  function renderEps() {
+    const lastW = watched.size ? Math.max(...watched) : 0;
+    epList.innerHTML = eps.map(([n, t, d, m]) => `
+      <div class="ep press-row ${watched.has(n) ? 'on' : ''}" data-n="${n}" role="checkbox" aria-checked="${watched.has(n)}" tabindex="0">
+        <span class="check">${CHECK}</span>
+        <div class="ep-meta"><div class="t-headline">${n}. ${t}</div><div class="t-caption num">${m} min · ${d}</div></div>
+        ${n === lastW ? `<button type="button" class="recap-btn press" data-recap>${SPARK}AI-recap</button>` : ''}
+      </div>`).join('');
+    const pct = watched.size / eps.length * 100;
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressTxt').textContent = `${watched.size} of ${eps.length}`;
+    const next = eps.find(([n]) => !watched.has(n));
+    document.getElementById('nextEp').parentElement.innerHTML = next ? `Up next · S1 E<span id="nextEp" class="num">${next[0]}</span>` : 'Up next · S2 E<span id="nextEp" class="num">1</span>';
+    document.getElementById('markAll').textContent = watched.size === eps.length ? 'Unmark all' : 'Mark all watched';
+  }
+  epList.addEventListener('click', e => {
+    if (e.target.closest('[data-recap]')) { e.stopPropagation(); openSheet(); return; }
+    const row = e.target.closest('.ep'); if (!row) return;
+    const n = +row.dataset.n;
+    watched.has(n) ? watched.delete(n) : watched.add(n);
+    // optimistic: toggle in place so the check animation plays, then refresh row extras
+    row.classList.toggle('on'); row.setAttribute('aria-checked', String(watched.has(n)));
+    setTimeout(renderEps, 260);
+  });
+  epList.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && e.target.classList.contains('ep')) { e.preventDefault(); e.target.click(); } });
+  renderEps();
+
+  // ── Toast with Undo ──
+  const toast = document.getElementById('toast'), toastTxt = document.getElementById('toastTxt');
+  const ty = spring(160, y => toast.style.transform = `translateY(${y}px)`);
+  let toastTimer = 0, undoSnapshot = null;
+  const showToast = (text) => { toastTxt.textContent = text; ty.to(0, { damping: 1, response: 0.35 }); clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 5000); };
+  const hideToast = () => { ty.to(160, { damping: 1, response: 0.3 }); undoSnapshot = null; };
+  document.getElementById('markAll').addEventListener('click', () => {
+    undoSnapshot = new Set(watched);
+    const all = watched.size === eps.length;
+    watched = all ? new Set() : new Set(eps.map(([n]) => n));
+    renderEps();
+    showToast(all ? `${eps.length} episodes unmarked` : `${eps.length - undoSnapshot.size} episodes marked as watched`);
+  });
+  document.getElementById('undo').addEventListener('click', () => { if (undoSnapshot) { watched = undoSnapshot; renderEps(); } clearTimeout(toastTimer); hideToast(); });
+
+  // ── Bottom sheet: 1:1 drag, rubber-band, projection, velocity handoff ──
+  const sheet = document.getElementById('sheet'), scrim = document.getElementById('scrim'), grab = document.getElementById('grab');
+  let H = 420, isOpen = false;
+  const sy = spring(9999, y => {
+    sheet.style.transform = `translateY(${y}px)`;
+    scrim.style.opacity = String(Math.max(0, Math.min(1, 1 - y / H)));
+  });
+  function openSheet() {
+    sheet.style.visibility = 'visible'; H = sheet.offsetHeight - 60;
+    if (!isOpen) sy.set(H + 20);
+    isOpen = true; scrim.style.pointerEvents = 'auto';
+    sy.to(0, { damping: 1, response: 0.35 });
+    setTimeout(() => document.getElementById('closeSheet').focus({ preventScroll: true }), 50);
+  }
+  function closeSheet(velocity = 0) {
+    isOpen = false; scrim.style.pointerEvents = 'none';
+    sy.to(H + 20, { damping: Math.abs(velocity) > 300 ? 0.8 : 1, response: 0.3, velocity, onDone: () => { if (!isOpen) { sheet.style.visibility = 'hidden'; document.getElementById('spoiler').classList.add('hidden'); } } });
+  }
+  let drag = null;
+  grab.addEventListener('pointerdown', e => {
+    if (e.target.closest('button')) return;
+    grab.setPointerCapture(e.pointerId);
+    drag = { startY: e.clientY, startPos: sy.value, samples: [{ t: performance.now(), y: sy.value }] };
+    sy.set(sy.value); // grab mid-flight: start from presentation value
+  });
+  grab.addEventListener('pointermove', e => {
+    if (!drag) return;
+    let y = drag.startPos + (e.clientY - drag.startY);
+    if (y < 0) y = -rubberband(-y, H);
+    sy.set(y);
+    const now = performance.now(); drag.samples.push({ t: now, y }); while (drag.samples.length > 2 && now - drag.samples[0].t > 100) drag.samples.shift();
+  });
+  const endDrag = () => {
+    if (!drag) return;
+    const s = drag.samples, a = s[0], b = s[s.length - 1];
+    const v = b.t > a.t ? (b.y - a.y) / (b.t - a.t) * 1000 : 0;
+    drag = null;
+    const projected = sy.value + project(v);
+    if (projected > H * 0.5) closeSheet(v);
+    else sy.to(0, { damping: Math.abs(v) > 300 ? 0.8 : 1, response: 0.3, velocity: v });
+  };
+  grab.addEventListener('pointerup', endDrag);
+  grab.addEventListener('pointercancel', endDrag);
+  scrim.addEventListener('click', () => closeSheet());
+  document.getElementById('closeSheet').addEventListener('click', () => closeSheet());
+  document.getElementById('doneSheet').addEventListener('click', () => closeSheet());
+  document.getElementById('reveal').addEventListener('click', () => document.getElementById('spoiler').classList.remove('hidden'));
+  addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen) closeSheet(); });
+
+  // ── Switches ──
+  document.querySelectorAll('.switch').forEach(sw => {
+    const knob = sw.querySelector('.knob');
+    let pressed = false;
+    const xFor = () => sw.getAttribute('aria-checked') === 'true' ? (pressed ? 14 : 20) : 0;
+    const s = spring(xFor(), x => knob.style.transform = `translateX(${x}px)`);
+    sw.addEventListener('pointerdown', () => { pressed = true; sw.classList.add('pressed'); s.to(xFor(), { response: 0.2 }); });
+    const release = () => { if (!pressed) return; pressed = false; sw.classList.remove('pressed'); s.to(xFor(), { response: 0.3 }); };
+    sw.addEventListener('pointerup', release); sw.addEventListener('pointerleave', release);
+    sw.addEventListener('click', () => { sw.setAttribute('aria-checked', String(sw.getAttribute('aria-checked') !== 'true')); s.to(xFor(), { damping: 1, response: 0.3 }); });
+  });
+
+  // ── Delete library inline confirm ──
+  const confirmEl = document.getElementById('confirm'), delBtn = document.getElementById('delBtn');
+  delBtn.addEventListener('click', () => { const o = !confirmEl.classList.contains('open'); confirmEl.classList.toggle('open', o); delBtn.setAttribute('aria-expanded', String(o)); if (o) setTimeout(() => document.getElementById('cancelDel').focus({ preventScroll: true }), 120); });
+  document.getElementById('cancelDel').addEventListener('click', () => { confirmEl.classList.remove('open'); delBtn.setAttribute('aria-expanded', 'false'); });
+  document.getElementById('doDel').addEventListener('click', () => { document.getElementById('confirmTxt').textContent = 'Demo: nothing was deleted. In the app a status message appears here.'; });
+
+  // ── Contrast card (exact WCAG ratios) ──
+  const ratios = {
+    'midnight-velvet': { btn: [2.21, 8.39], muted: [4.05, 5.41], badge: [2.13, 8.72] },
+    'paper-ink': { btn: [4.22, 4.98], muted: [4.60, 5.49], badge: [3.02, 6.55] },
+  };
+  function renderContrast(id) {
+    const r = ratios[id], ok = n => n >= 4.5 ? '✓' : '✕';
+    const row = (lbl, oldStyle, oldTxt, newStyle, newTxt, [a, b]) => `
+      <div class="ba"><span class="lbl">${lbl}</span>
+        <span class="sw" style="${oldStyle}">${oldTxt}<span class="r">${a.toFixed(2)} ${ok(a)}</span></span>
+        <span class="arrow">→</span>
+        <span class="sw" style="${newStyle}">${newTxt}<span class="r">${b.toFixed(2)} ${ok(b)}</span></span></div>`;
+    document.getElementById('contrastRows').innerHTML =
+      row('Knop op accent', 'background:var(--accent);color:#fff', 'Add', 'background:var(--accent);color:var(--on-accent)', 'Add', r.btn) +
+      row('Muted tekst op kaart', 'background:var(--surface);color:var(--muted-old)', '58 min', 'background:var(--surface);color:var(--muted)', '58 min', r.muted) +
+      row('Countdown-badge', 'background:var(--warning);color:#fff', '5 days', 'background:var(--warning);color:var(--on-warning)', '5 days', r.badge);
+  }
+
+  // ── Motion card ──
+  const motionDefs = [
+    ['Nu: instant', null],
+    ['spring.default · damping 1.0 · 0.3s', { damping: 1, response: 0.3 }],
+    ['spring.move · damping 1.0 · 0.4s', { damping: 1, response: 0.4 }],
+    ['spring.sheet · damping 0.8 · 0.3s (na flick)', { damping: 0.8, response: 0.3 }],
+  ];
+  const motionRows = document.getElementById('motionRows');
+  motionRows.innerHTML = motionDefs.map(([l, c]) => `<div class="motion-row"><div class="t-caption"><span>${l}</span></div><div class="track"><span class="dot ${c ? '' : 'old'}"></span></div></div>`).join('');
+  const dots = [...motionRows.querySelectorAll('.dot')];
+  const dotSprings = dots.map(d => spring(0, x => d.style.transform = `translateX(${x}px)`));
+  let motionOut = false;
+  document.getElementById('playMotion').addEventListener('click', () => {
+    motionOut = !motionOut;
+    const max = dots[0].parentElement.clientWidth - 26;
+    dotSprings.forEach((s, i) => { const c = motionDefs[i][1]; c ? s.to(motionOut ? max : 0, c) : s.set(motionOut ? max : 0); });
+  });
+
+  // ── Material demo strips ──
+  document.querySelectorAll('[data-strip]').forEach(s => { s.innerHTML = ['Interstellar', 'Inception', 'Fight Club', 'Avatar 3', 'Breaking Bad'].map(t => `<i style="background:${art(t)}"></i>`).join(''); });
+
+  // ── Init ──
+  paintArt(document);
+  const initial = matchMedia('(prefers-color-scheme: light)').matches ? 'paper-ink' : 'midnight-velvet';
+  setTheme(initial, false);
+})();
+</script>
+</body>
+</html>

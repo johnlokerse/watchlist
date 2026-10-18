@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, MouseEvent } from 'react';
+import { AnimatePresence, m } from 'motion/react';
 import type { Bucket, Granularity } from '../../utils/insights';
 import { formatBucketLabel, formatBucketTick, formatEpisodeCount } from '../../utils/insights';
 
@@ -37,6 +38,7 @@ export default function ActivityChart({ buckets, granularity, selectedIndex, onS
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [tooltipSide, setTooltipSide] = useState<'right' | 'left'>('right');
 
   useEffect(() => {
     const el = containerRef.current;
@@ -71,7 +73,9 @@ export default function ActivityChart({ buckets, granularity, selectedIndex, onS
 
   const indexFromPointer = (event: MouseEvent<SVGRectElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    const ratio = (event.clientX - rect.left) / rect.width;
+    // The hit rect extends 8 units beyond the plot on each side; map pointer x against the plot itself.
+    const scale = rect.width / (plotW + 16);
+    const ratio = (event.clientX - rect.left - 8 * scale) / (plotW * scale);
     return Math.min(buckets.length - 1, Math.max(0, Math.round(ratio * (buckets.length - 1))));
   };
 
@@ -90,15 +94,31 @@ export default function ActivityChart({ buckets, granularity, selectedIndex, onS
   const activeIndex = hoverIndex ?? selectedIndex;
   const active = activeIndex != null ? buckets[activeIndex] : null;
   const showMarkers = buckets.length <= 45;
+  const dataKey = `${granularity}-${buckets.length}-${buckets[0]?.key ?? ''}`;
+
+  // Tooltip follows the pointer 1:1; it only switches sides past a hysteresis band so it
+  // doesn't jump back and forth around the middle of the chart.
+  if (hoverIndex != null) {
+    const x = geometry.xAt(hoverIndex);
+    if (tooltipSide === 'right' && x > width * 0.62) setTooltipSide('left');
+    else if (tooltipSide === 'left' && x < width * 0.38) setTooltipSide('right');
+  }
+  const valueText = active
+    ? `${formatBucketLabel(active.start, granularity)}: ${active.movies.length} movie${active.movies.length === 1 ? '' : 's'}, ${formatEpisodeCount(active.episodes)}`
+    : 'No period selected';
 
   return (
-    <div ref={containerRef} className="relative w-full select-none" data-testid="activity-chart">
+    <div ref={containerRef} className="relative w-full select-none" style={{ touchAction: 'pan-y' }} data-testid="activity-chart">
       <svg
         width={width}
         height={HEIGHT}
         viewBox={`0 0 ${width} ${HEIGHT}`}
-        role="img"
-        aria-label="Movies and series watched over time. Use the arrow keys to move between periods."
+        role="slider"
+        aria-label="Watch activity over time. Use the arrow keys to move between periods."
+        aria-valuemin={0}
+        aria-valuemax={Math.max(0, buckets.length - 1)}
+        aria-valuenow={activeIndex ?? 0}
+        aria-valuetext={valueText}
         tabIndex={0}
         onKeyDown={handleKeyDown}
         className="block overflow-visible rounded-md"
@@ -110,9 +130,8 @@ export default function ActivityChart({ buckets, granularity, selectedIndex, onS
               x2={PAD.left + plotW}
               y1={geometry.yAt(tick)}
               y2={geometry.yAt(tick)}
-              stroke="var(--color-border-subtle)"
+              stroke={tick === 0 ? 'var(--color-fill-strong)' : 'var(--color-hairline)'}
               strokeWidth={1}
-              strokeDasharray={tick === 0 ? undefined : '2 4'}
             />
             <text
               x={PAD.left - 8}
@@ -120,8 +139,7 @@ export default function ActivityChart({ buckets, granularity, selectedIndex, onS
               dy="0.32em"
               textAnchor="end"
               fill="var(--color-text-muted)"
-              fontSize={11}
-              style={{ fontVariantNumeric: 'tabular-nums' }}
+              style={{ fontVariantNumeric: 'tabular-nums', fontSize: '0.75rem' }}
             >
               {tick}
             </text>
@@ -136,7 +154,7 @@ export default function ActivityChart({ buckets, granularity, selectedIndex, onS
               y={HEIGHT - 8}
               textAnchor={i === 0 && buckets.length > 1 ? 'start' : 'middle'}
               fill="var(--color-text-muted)"
-              fontSize={11}
+              style={{ fontSize: '0.75rem' }}
             >
               {formatBucketTick(b.start, granularity)}
             </text>
@@ -154,13 +172,14 @@ export default function ActivityChart({ buckets, granularity, selectedIndex, onS
           />
         )}
 
+        <m.g key={dataKey} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25, ease: 'easeOut' }}>
         {SERIES_LINES.map((line) => (
           <g key={line.key}>
             <path
               d={linePath(geometry.lines[line.key])}
               fill="none"
               stroke={line.color}
-              strokeWidth={2}
+              strokeWidth={2.25}
               strokeLinejoin="round"
               strokeLinecap="round"
               data-testid={`line-${line.key}`}
@@ -188,6 +207,7 @@ export default function ActivityChart({ buckets, granularity, selectedIndex, onS
             })}
           </g>
         ))}
+        </m.g>
 
         <rect
           x={PAD.left - 8}
@@ -196,6 +216,11 @@ export default function ActivityChart({ buckets, granularity, selectedIndex, onS
           height={HEIGHT}
           fill="transparent"
           className="cursor-pointer"
+          onPointerDown={(e) => {
+            // Keep receiving moves for touch drags so the crosshair follows the finger.
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setHoverIndex(indexFromPointer(e));
+          }}
           onPointerMove={(e) => setHoverIndex(indexFromPointer(e))}
           onPointerLeave={() => setHoverIndex(null)}
           onClick={(e) => onSelect(indexFromPointer(e))}
@@ -203,35 +228,42 @@ export default function ActivityChart({ buckets, granularity, selectedIndex, onS
         />
       </svg>
 
-      {active && hoverIndex != null && (
-        <div
-          role="tooltip"
-          className="app-panel pointer-events-none absolute z-10 p-3 text-xs"
-          style={{
-            width: TOOLTIP_WIDTH,
-            top: PAD.top,
-            left: Math.min(
-              Math.max(0, geometry.xAt(hoverIndex) + (geometry.xAt(hoverIndex) > width / 2 ? -TOOLTIP_WIDTH - 12 : 12)),
-              width - TOOLTIP_WIDTH,
-            ),
-          }}
-        >
-          <p className="mb-2 font-semibold text-text-primary">{formatBucketLabel(active.start, granularity)}</p>
-          <TooltipGroup
-            label="Movies"
-            color={SERIES_LINES[0].color}
-            shape="circle"
-            items={active.movies.map((m) => ({ title: m.title, meta: m.isRewatch ? 'Rewatch' : '' }))}
-          />
-          <TooltipGroup
-            label="Episodes"
-            color={SERIES_LINES[1].color}
-            shape="square"
-            count={active.episodes}
-            items={active.series.map((s) => ({ title: s.title, meta: formatEpisodeCount(s.episodes.length) }))}
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {active && hoverIndex != null && (
+          <m.div
+            key="tooltip"
+            role="tooltip"
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="material-sheet shadow-sheet pointer-events-none absolute z-10 rounded-[14px] p-3 text-[0.8125rem]"
+            style={{
+              width: TOOLTIP_WIDTH,
+              top: PAD.top,
+              left: Math.min(
+                Math.max(0, geometry.xAt(hoverIndex) + (tooltipSide === 'left' ? -TOOLTIP_WIDTH - 14 : 14)),
+                width - TOOLTIP_WIDTH,
+              ),
+            }}
+          >
+            <p className="mb-2 font-semibold text-text-primary">{formatBucketLabel(active.start, granularity)}</p>
+            <TooltipGroup
+              label="Movies"
+              color={SERIES_LINES[0].color}
+              shape="circle"
+              items={active.movies.map((mv) => ({ title: mv.title, meta: mv.isRewatch ? 'Rewatch' : '' }))}
+            />
+            <TooltipGroup
+              label="Episodes"
+              color={SERIES_LINES[1].color}
+              shape="square"
+              count={active.episodes}
+              items={active.series.map((sr) => ({ title: sr.title, meta: formatEpisodeCount(sr.episodes.length) }))}
+            />
+          </m.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

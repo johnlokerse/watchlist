@@ -52,8 +52,8 @@ export default function RecommendedSection({ tmdbId, type }: Props) {
 
   if (query.isLoading) {
     return (
-      <div className="space-y-3">
-        <p className="section-title text-sm">You might also like..</p>
+      <div className="space-y-3" aria-busy="true">
+        <h3 className="section-title px-1">You might also like</h3>
         <ScrollRow coverSize={coverSize}>
           {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </ScrollRow>
@@ -64,8 +64,8 @@ export default function RecommendedSection({ tmdbId, type }: Props) {
   if (items.length === 0) return null;
 
   return (
-    <div className="space-y-3 pt-4">
-      <p className="section-title text-sm">You might also like..</p>
+    <div className="space-y-3 pt-2">
+      <h3 className="section-title px-1">You might also like</h3>
       <ScrollRow coverSize={coverSize}>
         {items.slice(0, 12).map((item) => (
           <Card

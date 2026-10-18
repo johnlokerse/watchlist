@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTrendingMovies, useTrendingSeries, useAnticipatedMovies, useAnticipatedSeries } from '../api/tmdb';
 import { useWatchedItems } from '../db/hooks';
 import { useSettings } from '../hooks/useSettings';
@@ -13,6 +13,7 @@ import SearchBar from '../components/ui/SearchBar';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { formatDate } from '../utils/date';
 import { posterUrl, backdropUrl } from '../utils/image';
+import { statusLabel } from '../utils/status';
 
 type ContentFilter = 'all' | 'movies' | 'series';
 
@@ -74,46 +75,48 @@ function itemHref(item: DiscoveryItem) {
   return item.type === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
 }
 
-function DiscoverySpotlight({ item, totalMatches }: { item?: DiscoveryItem; totalMatches: number }) {
+function DiscoverySpotlight({ item, totalMatches, isLoading }: { item?: DiscoveryItem; totalMatches: number; isLoading: boolean }) {
+  if (isLoading) {
+    return <div aria-busy="true" aria-label="Loading featured title" className="discover-spotlight skeleton min-h-[340px] md:rounded-[22px]" />;
+  }
+
   if (!item) {
     return (
-      <div className="flex min-h-[300px] items-center justify-center p-4 text-center text-sm text-text-muted">
+      <div className="t-callout flex min-h-[200px] items-center justify-center rounded-[22px] bg-fill p-4 text-center text-text-secondary">
         No matching titles in the current feeds.
       </div>
     );
   }
 
   const backdrop = backdropUrl(item.backdropPath, 'w780') ?? posterUrl(item.posterPath, 'w780');
+  const label = item.status ? statusLabel(item.status) : null;
 
   return (
     <Link
       to={itemHref(item)}
-      className="discover-spotlight group relative flex min-h-[300px] flex-col justify-end overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+      className="discover-spotlight group relative flex min-h-[340px] flex-col justify-end overflow-hidden outline-none transition-transform duration-100 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-accent md:rounded-[22px] md:shadow-card"
     >
       {backdrop ? (
         <img
           src={backdrop}
           alt={item.title}
-          className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
         />
       ) : (
         <div className="absolute inset-0 bg-surface-overlay" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-black/10" />
-      {/* Side fades so the banner melts seamlessly into the page background (dark themes only) */}
-      <div className="discover-spotlight-fade pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[var(--color-surface)] to-transparent" />
-      <div className="discover-spotlight-fade pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[var(--color-surface)] to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/0" />
       <div className="relative p-5 sm:p-8">
-        <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
-          <span className="uppercase tracking-[0.18em] text-accent">Focus</span>
-          <span className="text-warning">★ {item.voteAverage.toFixed(1)}</span>
-          {item.status && <span className="uppercase tracking-wide text-text-secondary">In Library</span>}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="t-micro rounded-md bg-accent px-1.5 py-1 uppercase text-on-accent">Featured</span>
+          <span className="material-chip t-micro num rounded-md px-1.5 py-1"><span className="text-warning">★</span> {item.voteAverage.toFixed(1)}</span>
+          {label && <span className="material-chip t-micro rounded-md px-1.5 py-1">{label}</span>}
         </div>
-        <h2 className="mt-2 line-clamp-2 text-3xl font-bold leading-tight text-white drop-shadow">{item.title}</h2>
-        <p className="mt-1.5 text-sm font-medium text-white/70">
-          {item.type === 'movie' ? 'Movie' : 'Series'} · {item.releaseDate ? formatDate(item.releaseDate) : 'TBA'} · {totalMatches} matches
+        <h2 className="t-display mt-3 line-clamp-2 text-white">{item.title}</h2>
+        <p className="num mt-1.5 text-[0.875rem] font-medium text-white/75">
+          {item.type === 'movie' ? 'Movie' : 'Series'} · {item.releaseDate ? formatDate(item.releaseDate) : 'TBA'} · {totalMatches} {totalMatches === 1 ? 'title' : 'titles'}
         </p>
-        <p className="mt-2 line-clamp-2 max-w-2xl text-sm leading-6 text-white/60">{item.overview || 'No overview available yet.'}</p>
+        <p className="mt-2 line-clamp-2 max-w-2xl text-[0.875rem] leading-6 text-white/70">{item.overview || 'No overview available yet.'}</p>
       </div>
     </Link>
   );
@@ -124,6 +127,8 @@ function DiscoverySection({
   title,
   meta,
   isLoading,
+  isError,
+  onRetry,
   items,
   coverSize,
 }: {
@@ -131,26 +136,41 @@ function DiscoverySection({
   title: 'Shows' | 'Movies';
   meta: string;
   isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
   items: DiscoveryItem[];
   coverSize: CoverSize;
 }) {
   return (
     <section>
-      <div className="mb-3 flex items-baseline justify-between gap-3 border-b border-border-subtle/60 pb-2">
-        <h2 className="flex items-baseline gap-2 text-lg font-bold tracking-tight text-text-primary">
-          <span>{title}</span>
-          <span className="section-title font-semibold">{eyebrow}</span>
-        </h2>
-        <span className="text-xs font-medium text-text-muted">{meta}</span>
+      <div className="mb-3 flex items-end justify-between gap-3 px-0.5">
+        <div>
+          <p className="t-label">{eyebrow}</p>
+          <h2 className="t-title-2 mt-0.5 text-text-primary">{title}</h2>
+        </div>
+        <span className="t-caption num text-text-muted">{meta}</span>
       </div>
       {isLoading ? (
         <ScrollRow coverSize={coverSize}>
           {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </ScrollRow>
       ) : items.length === 0 ? (
-        <div className="py-6 text-center text-sm text-text-muted">
-          No matches in this feed.
-        </div>
+        isError ? (
+          <div className="flex flex-col items-center gap-3 rounded-[18px] bg-fill py-8 text-center" role="alert">
+            <p className="t-callout text-text-secondary">{"Couldn't load this feed."}</p>
+            <button
+              type="button"
+              onClick={() => onRetry()}
+              className="press min-h-9 rounded-full bg-accent px-5 text-[0.875rem] font-semibold text-on-accent"
+            >
+              Try again
+            </button>
+          </div>
+        ) : (
+          <div className="t-callout rounded-[18px] bg-fill py-8 text-center text-text-secondary">
+            No matches in this feed.
+          </div>
+        )
       ) : (
         <ScrollRow coverSize={coverSize}>
           {items.slice(0, 12).map((item) => (
@@ -172,8 +192,19 @@ function DiscoverySection({
 }
 
 export default function DiscoverPage() {
-  const [query, setQuery] = useState('');
-  const [contentFilter, setContentFilter] = useState<ContentFilter>('all');
+  // Query and filter live in the URL so returning from a title restores them.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get('q') ?? '';
+  const filterParam = searchParams.get('type');
+  const contentFilter: ContentFilter = filterParam === 'movies' || filterParam === 'series' ? filterParam : 'all';
+  const updateParam = (key: 'q' | 'type', value: string, empty: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === empty) next.delete(key);
+    else next.set(key, value);
+    setSearchParams(next, { replace: true });
+  };
+  const setQuery = (value: string) => updateParam('q', value, '');
+  const setContentFilter = (value: ContentFilter) => updateParam('type', value, 'all');
   const movies = useTrendingMovies();
   const series = useTrendingSeries();
   const anticipatedMovies = useAnticipatedMovies();
@@ -227,25 +258,32 @@ export default function DiscoverPage() {
   const showSeries = contentFilter === 'all' || contentFilter === 'series';
   const tmdbFeedError = movies.isError || series.isError || anticipatedMovies.isError || anticipatedSeries.isError;
   const showMissingTokenBanner = tmdbFeedError && settings.tmdbApiToken.trim().length === 0;
-  const visibleItems = [
+  const allVisible = [
     ...(showSeries ? trendingShows : []),
     ...(showMovies ? trendingMovies : []),
     ...(showSeries ? upcomingShows : []),
     ...(showMovies ? upcomingMovies : []),
   ];
+  // De-duplicate titles that appear in more than one feed.
+  const visibleItems = allVisible.filter(
+    (item, index) => allVisible.findIndex((other) => other.type === item.type && other.id === item.id) === index,
+  );
   const spotlight = visibleItems.find((item) => !item.status) ?? visibleItems[0];
+  const spotlightLoading =
+    (showSeries && (series.isLoading || anticipatedSeries.isLoading)) ||
+    (showMovies && (movies.isLoading || anticipatedMovies.isLoading));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-9">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="section-title mb-2">Recommendations and release radar</p>
-          <h1 className="page-title">Discover</h1>
+          <h1 className="page-title pr-12 md:pr-0">Discover</h1>
+          <p className="t-callout mt-1 text-text-secondary">What's trending and what's coming soon</p>
         </div>
       </div>
 
       {showMissingTokenBanner && (
-        <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-text-secondary">
+        <div className="rounded-[18px] bg-warning/12 p-4 text-[0.875rem] text-text-secondary" role="alert">
           <p className="font-medium text-text-primary">TMDB API token required</p>
           <p className="mt-1">Add your TMDB API token in Settings to load Discover feeds, searches, and title details.</p>
           <Link to="/settings" className="mt-2 inline-flex text-sm font-semibold text-accent hover:underline">
@@ -259,7 +297,7 @@ export default function DiscoverPage() {
           <SearchBar
             value={query}
             onChange={setQuery}
-            placeholder="Search trending and anticipated..."
+            placeholder="Filter trending and anticipated…"
           />
         </div>
         <SegmentedControl
@@ -274,14 +312,20 @@ export default function DiscoverPage() {
         />
       </div>
 
-      <DiscoverySpotlight item={spotlight} totalMatches={visibleItems.length} />
+      <DiscoverySpotlight
+        item={spotlight}
+        totalMatches={visibleItems.length}
+        isLoading={spotlightLoading}
+      />
 
       {showSeries && (
         <DiscoverySection
           eyebrow="Trending"
           title="Shows"
-          meta="Top 12"
+          meta={`${Math.min(12, trendingShows.length)} titles`}
           isLoading={series.isLoading}
+          isError={series.isError}
+          onRetry={series.refetch}
           items={trendingShows}
           coverSize={settings.coverSize}
         />
@@ -291,8 +335,10 @@ export default function DiscoverPage() {
         <DiscoverySection
           eyebrow="Trending"
           title="Movies"
-          meta="Top 12"
+          meta={`${Math.min(12, trendingMovies.length)} titles`}
           isLoading={movies.isLoading}
+          isError={movies.isError}
+          onRetry={movies.refetch}
           items={trendingMovies}
           coverSize={settings.coverSize}
         />
@@ -304,6 +350,8 @@ export default function DiscoverPage() {
           title="Shows"
           meta="Coming soon"
           isLoading={anticipatedSeries.isLoading}
+          isError={anticipatedSeries.isError}
+          onRetry={anticipatedSeries.refetch}
           items={upcomingShows}
           coverSize={settings.coverSize}
         />
@@ -315,6 +363,8 @@ export default function DiscoverPage() {
           title="Movies"
           meta="Coming soon"
           isLoading={anticipatedMovies.isLoading}
+          isError={anticipatedMovies.isError}
+          onRetry={anticipatedMovies.refetch}
           items={upcomingMovies}
           coverSize={settings.coverSize}
         />

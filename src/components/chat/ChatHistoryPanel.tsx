@@ -40,12 +40,12 @@ export default function ChatHistoryPanel({ sessions, activeSessionId, isLoading,
   const groups = groupByDate(sessions);
 
   return (
-    <div className="flex flex-col h-full w-64 shrink-0 border-r border-border-subtle overflow-hidden">
+    <div className="flex h-full w-64 shrink-0 flex-col overflow-hidden shadow-[inset_-1px_0_0_var(--color-hairline)]">
       {/* New chat */}
       <div className="shrink-0 px-3 pt-3 pb-2">
         <button
           onClick={onNewChat}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-overlay hover:bg-surface-raised border border-border-subtle text-text-secondary hover:text-text-primary text-sm transition-colors"
+          className="press flex min-h-9 w-full items-center gap-2 rounded-[10px] bg-fill px-3 text-[0.875rem] font-semibold text-text-primary transition-colors hover:bg-fill-strong"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
             <path d="M12 5v14M5 12h14" />
@@ -66,7 +66,7 @@ export default function ChatHistoryPanel({ sessions, activeSessionId, isLoading,
 
         {Array.from(groups.entries()).map(([label, group]) => (
           <div key={label} className="mb-3">
-            <p className="text-xs text-text-muted font-medium px-2 py-1">{label}</p>
+            <p className="t-label px-2 pb-1 pt-2">{label}</p>
             {group.map((s) => {
               const isActive = s.sessionId === activeSessionId;
               return (
@@ -74,10 +74,11 @@ export default function ChatHistoryPanel({ sessions, activeSessionId, isLoading,
                   key={s.sessionId}
                   onClick={() => onSelect(s.sessionId)}
                   title={s.summary ?? undefined}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors truncate ${
+                  aria-current={isActive ? 'true' : undefined}
+                  className={`min-h-9 w-full truncate rounded-[10px] px-3 text-left text-[0.8125rem] transition-colors ${
                     isActive
-                      ? 'bg-accent/15 text-accent font-medium'
-                      : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
+                      ? 'bg-accent/15 font-semibold text-accent'
+                      : 'text-text-secondary hover:bg-fill hover:text-text-primary'
                   }`}
                 >
                   {sessionTitle(s)}

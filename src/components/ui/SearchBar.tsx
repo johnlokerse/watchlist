@@ -7,28 +7,31 @@ interface Props {
 export default function SearchBar({ value, onChange, placeholder = 'Search...' }: Props) {
   return (
     <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
-        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="10.5" cy="10.5" r="6" />
-          <path d="m15 15 5 5" />
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
+        <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m15.5 15.5 4.5 4.5" />
         </svg>
       </span>
       <input
-        type="text"
+        type="search"
+        enterKeyHint="search"
+        autoComplete="off"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="control-surface w-full py-2.5 pl-9 pr-10 text-sm text-text-primary placeholder:text-text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/35"
+        className="field min-h-10 rounded-xl pl-10 pr-10 [&::-webkit-search-cancel-button]:hidden"
         aria-label={placeholder}
       />
       {value && (
         <button
+          type="button"
           onClick={() => onChange('')}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted transition hover:bg-surface-overlay hover:text-text-primary"
+          className="press hit-44 absolute right-2.5 top-1/2 grid h-5 w-5 -translate-y-1/2 place-items-center rounded-full bg-text-muted text-surface transition-opacity hover:opacity-80"
           aria-label="Clear search"
         >
-          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 6 6 18M6 6l12 12" />
+          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M17 7 7 17M7 7l10 10" />
           </svg>
         </button>
       )}

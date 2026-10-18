@@ -1,8 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
+import { m } from 'motion/react';
 import { useSeasonDetail } from '../../api/tmdb';
 import { useWatchedEpisodes, toggleEpisodeWatched, markSeasonWatched } from '../../db/hooks';
-import { formatDate } from '../../utils/date';
+import { formatDate, toLocalISODate } from '../../utils/date';
 import { useSettings } from '../../hooks/useSettings';
+import { useToast } from '../../hooks/useToast';
+import { appleSpring } from '../../design/motion';
+import SegmentedControl from '../ui/SegmentedControl';
 import RecapModal from './RecapModal';
 
 interface Props {
@@ -24,9 +28,41 @@ interface RecapState {
   episodeNumber: number;
 }
 
+const checkPop = appleSpring(0.3, 0.6);
+
+function EpisodeCheck({ checked }: { checked: boolean }) {
+  return (
+    <m.span
+      className={`grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full transition-colors duration-150 ${
+        checked ? 'bg-accent text-on-accent' : 'text-transparent shadow-[inset_0_0_0_2px_var(--color-border-strong)]'
+      }`}
+      initial={false}
+      animate={{ scale: checked ? [0.86, 1] : 1 }}
+      transition={checkPop}
+      aria-hidden="true"
+    >
+      <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <m.path
+          d="m3 8.5 3.2 3L13 4.5"
+          initial={false}
+          animate={{ pathLength: checked ? 1 : 0 }}
+          transition={{ duration: 0.18, ease: 'easeOut', delay: checked ? 0.05 : 0 }}
+        />
+      </svg>
+    </m.span>
+  );
+}
+
 export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, seriesTitle, imdbId, onEpisodeWatched }: Props) {
   const { settings } = useSettings();
-  const [season, setSeason] = useState(initialSeason);
+  const toast = useToast();
+  const recapTriggerRef = useRef<HTMLButtonElement | null>(null);
+  // Follow initialSeason when it changes, without a sync effect.
+  const [seasonState, setSeasonState] = useState({ base: initialSeason, season: initialSeason });
+  const season = seasonState.base === initialSeason ? seasonState.season : initialSeason;
+  const setSeason = (next: number) => setSeasonState({ base: initialSeason, season: next });
+  // Optimistic episode state: applied immediately, reconciled when the server answers.
+  const [overrides, setOverrides] = useState<Map<string, boolean>>(new Map());
   const [recapState, setRecapState] = useState<RecapState>({
     isOpen: false,
     isLoading: false,
@@ -37,26 +73,57 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, s
     episodeNumber: 0,
   });
 
-  useEffect(() => {
-    setSeason(initialSeason ?? 1);
-  }, [initialSeason]);
-
-  const { data, isLoading } = useSeasonDetail(tmdbId, season);
+  const { data, isLoading, isPlaceholderData } = useSeasonDetail(tmdbId, season);
   const watchedEpisodes = useWatchedEpisodes(tmdbId, season);
-  const watchedSet = new Set(watchedEpisodes?.map((e) => e.episode) ?? []);
+  const serverSet = new Set(watchedEpisodes?.map((e) => e.episode) ?? []);
+  const isWatched = (episode: number) => overrides.get(`${season}-${episode}`) ?? serverSet.has(episode);
+  const episodes = data?.episodes ?? [];
+  const watchedSet = new Set(episodes.map((e) => e.episode_number).filter(isWatched));
 
-  const today = new Date().toISOString().slice(0, 10);
-  const watchableEpisodes = data?.episodes.filter((e) => !e.air_date || e.air_date <= today) ?? [];
+  const today = toLocalISODate();
+  const watchableEpisodes = episodes.filter((e) => !e.air_date || e.air_date <= today);
   const allWatched = watchableEpisodes.length > 0 && watchableEpisodes.every((e) => watchedSet.has(e.episode_number));
+  const watchedCount = watchableEpisodes.filter((e) => watchedSet.has(e.episode_number)).length;
 
   // The last watched episode in the current season view
   const lastWatchedEpisodeNumber =
     watchedSet.size > 0 ? Math.max(...Array.from(watchedSet)) : null;
 
+  const setOverride = (key: string, value: boolean | null) =>
+    setOverrides((prev) => {
+      const next = new Map(prev);
+      if (value === null) next.delete(key);
+      else next.set(key, value);
+      return next;
+    });
+
+  const handleToggleEpisode = async (episode: number) => {
+    const key = `${season}-${episode}`;
+    const wasWatched = isWatched(episode);
+    setOverride(key, !wasWatched);
+    if (!wasWatched) onEpisodeWatched?.(season, episode + 1);
+    else onEpisodeWatched?.(season, episode);
+    try {
+      await toggleEpisodeWatched(tmdbId, season, episode);
+      // Give the refetch a moment before dropping the optimistic value.
+      window.setTimeout(() => setOverride(key, null), 1500);
+    } catch {
+      setOverride(key, null);
+      toast.show({ message: "Couldn't update that episode. Try again.", tone: 'error' });
+    }
+  };
+
   const handleToggleAll = () => {
     if (!data) return;
+    const previous = Array.from(watchedSet);
+    const previousNext = previous.length > 0 ? Math.max(...previous) + 1 : watchableEpisodes[0]?.episode_number ?? 1;
+    setOverrides(new Map());
     if (allWatched) {
       markSeasonWatched(tmdbId, season, []);
+      // Roll series progress back, mirroring the single-episode unmark.
+      if (onEpisodeWatched && watchableEpisodes.length > 0) {
+        onEpisodeWatched(season, watchableEpisodes[0].episode_number);
+      }
     } else {
       markSeasonWatched(tmdbId, season, watchableEpisodes.map((e) => e.episode_number));
       if (onEpisodeWatched && watchableEpisodes.length > 0) {
@@ -64,6 +131,19 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, s
         onEpisodeWatched(season, lastEp.episode_number + 1);
       }
     }
+    const changed = allWatched ? previous.length : watchableEpisodes.length - previous.length;
+    toast.show({
+      message: allWatched
+        ? `Unmarked ${changed} episode${changed === 1 ? '' : 's'}`
+        : `Marked ${changed} episode${changed === 1 ? '' : 's'} as watched`,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          markSeasonWatched(tmdbId, season, previous);
+          onEpisodeWatched?.(season, previousNext);
+        },
+      },
+    });
   };
 
   const handleRecapClick = async (episodeNumber: number, episodeTitle: string) => {
@@ -118,7 +198,13 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, s
 
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
-          const event = JSON.parse(line.slice(6)) as { type: string; content?: string; message?: string };
+          let event: { type: string; content?: string; message?: string };
+          try {
+            event = JSON.parse(line.slice(6)) as { type: string; content?: string; message?: string };
+          } catch {
+            // Skip malformed SSE payloads instead of aborting the whole stream.
+            continue;
+          }
 
           if (event.type === 'delta' && event.content) {
             setRecapState((prev) => ({
@@ -136,6 +222,9 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, s
           }
         }
       }
+
+      // The stream can end without a 'done' event; never leave the recap spinning.
+      setRecapState((prev) => ({ ...prev, isStreaming: false }));
     } catch {
       setRecapState((prev) => ({
         ...prev,
@@ -152,136 +241,131 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, s
 
   return (
     <div className="space-y-4">
-      {/* Season selector */}
-      <div className="flex gap-2 flex-wrap">
-        {Array.from({ length: totalSeasons }, (_, i) => i + 1).map((s) => (
-          <button
-            key={s}
-            onClick={() => setSeason(s)}
-            className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
-              season === s
-                ? 'bg-accent text-white'
-                : 'bg-surface-raised text-text-secondary hover:text-text-primary border border-border-subtle'
-            }`}
-          >
-            S{s}
-          </button>
-        ))}
-      </div>
+      {totalSeasons > 1 && (
+        <SegmentedControl
+          options={Array.from({ length: totalSeasons }, (_, i) => ({ value: String(i + 1), label: `S${i + 1}` }))}
+          value={String(season)}
+          onChange={(value) => setSeason(Number(value))}
+          ariaLabel="Season"
+        />
+      )}
 
-      {isLoading ? (
-        <div className="flex justify-center py-10">
-          <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      {isLoading && !data ? (
+        <div className="grouped" aria-busy="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="grouped-row gap-3">
+              <div className="skeleton h-[26px] w-[26px] rounded-full" />
+              <div className="flex-1 space-y-1.5">
+                <div className="skeleton h-3.5 w-1/2 rounded" />
+                <div className="skeleton h-3 w-1/4 rounded" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
-        <div className="space-y-1">
-          {/* Mark all button */}
-          <div className="flex items-center justify-between pb-2 border-b border-border-subtle mb-3">
-            <span className="text-sm text-text-secondary">
-              {watchedSet.size}/{watchableEpisodes.length} watched
-            </span>
+        <div className={`space-y-3 transition-opacity duration-200 ${isPlaceholderData ? 'opacity-50' : ''}`}>
+          <div className="flex items-center justify-between gap-3 px-1">
+            <div className="min-w-0 flex-1">
+              <p className="t-callout num font-semibold text-text-primary">
+                {watchedCount}/{watchableEpisodes.length} watched
+              </p>
+              <div className="mt-1.5 h-1.5 max-w-56 overflow-hidden rounded-full bg-fill">
+                <m.div
+                  className="h-full rounded-full bg-accent"
+                  initial={false}
+                  animate={{ width: `${watchableEpisodes.length ? (watchedCount / watchableEpisodes.length) * 100 : 0}%` }}
+                  transition={appleSpring(0.4)}
+                />
+              </div>
+            </div>
             <button
+              type="button"
               onClick={handleToggleAll}
-              className="text-xs text-accent hover:underline"
+              disabled={watchableEpisodes.length === 0}
+              className="press hit-44 min-h-8 shrink-0 rounded-full px-3 text-[0.875rem] font-semibold text-accent hover:bg-accent/10 disabled:opacity-40"
             >
               {allWatched ? 'Unmark all' : 'Mark all watched'}
             </button>
           </div>
 
-          {data?.episodes.map((ep) => {
-            const watched = watchedSet.has(ep.episode_number);
-            const isFuture = !!ep.air_date && ep.air_date > today;
-            const isLastWatched = ep.episode_number === lastWatchedEpisodeNumber;
-            return (
-              <div
-                key={ep.episode_number}
-                data-episode={ep.episode_number}
-                onClick={() => {
-                  if (!isFuture) {
-                    toggleEpisodeWatched(tmdbId, season, ep.episode_number);
-                    if (!watched) onEpisodeWatched?.(season, ep.episode_number + 1);
-                    else onEpisodeWatched?.(season, ep.episode_number);
-                  }
-                }}
-                className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition ${
-                  isFuture
-                    ? 'text-text-muted cursor-default'
-                    : watched
-                    ? 'bg-accent/10 text-text-primary cursor-pointer hover:bg-accent/15'
-                    : 'hover:bg-surface-raised text-text-secondary hover:text-text-primary cursor-pointer'
-                } ${isLastWatched ? 'ring-1 ring-accent/40' : ''}`}
-              >
-                {/* Checkbox / Coming badge */}
-                {isFuture ? (
-                  <span className="text-[10px] font-bold tracking-widest text-accent border border-accent/50 px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">
-                    COMING
-                  </span>
-                ) : (
-                  <div
-                    className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition mt-0.5 ${
-                      watched ? 'bg-accent border-accent' : 'border-border-subtle'
-                    }`}
-                  >
-                    {watched && (
-                      <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 8">
-                        <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </div>
-                )}
-
-                {/* Episode number */}
-                <span className="text-xs text-text-muted w-6 flex-shrink-0 mt-0.5">
-                  {ep.episode_number}
-                </span>
-
-                {/* Title + optional overview */}
-                <div className="flex-1 min-w-0">
-                  <span className={`text-sm block ${settings.showSpoilers && ep.overview ? '' : 'truncate'}`}>{ep.name}</span>
-                  {settings.showSpoilers && ep.overview && (
-                    <p className="text-xs text-text-secondary leading-relaxed line-clamp-2 mt-0.5">
-                      {ep.overview}
-                    </p>
+          <div className="grouped">
+            {episodes.map((ep) => {
+              const watched = watchedSet.has(ep.episode_number);
+              const isFuture = !!ep.air_date && ep.air_date > today;
+              const isLastWatched = ep.episode_number === lastWatchedEpisodeNumber;
+              return (
+                <div
+                  key={ep.episode_number}
+                  data-episode={ep.episode_number}
+                  onClick={(event) => {
+                    if (isFuture || (event.target as HTMLElement).closest('[data-recap]')) return;
+                    void handleToggleEpisode(ep.episode_number);
+                  }}
+                  className={`grouped-row items-start gap-3 py-3 transition-[background-color,transform] duration-100 ${
+                    isFuture
+                      ? 'cursor-default'
+                      : 'cursor-pointer active:scale-[0.99] active:bg-fill [@media(hover:hover)]:hover:bg-fill'
+                  }`}
+                >
+                  {isFuture ? (
+                    <span className="t-micro mt-0.5 shrink-0 rounded-md bg-accent/15 px-1.5 py-1 uppercase text-accent">
+                      Soon
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={watched}
+                      aria-label={`Episode ${ep.episode_number}: ${ep.name}`}
+                      className="hit-44 shrink-0 rounded-full"
+                      onClick={(event) => {
+                        // Pointer clicks bubble to the row; keyboard activation (detail 0) toggles here.
+                        if (event.detail !== 0) return;
+                        event.stopPropagation();
+                        void handleToggleEpisode(ep.episode_number);
+                      }}
+                    >
+                      <EpisodeCheck checked={watched} />
+                    </button>
                   )}
-                </div>
 
-                {/* Right column: date + runtime on top, recap button below */}
-                <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
-                  <div className="flex items-center gap-2">
-                    {ep.air_date && (
-                      <span className="text-xs text-text-muted hidden sm:block">
-                        {formatDate(ep.air_date)}
-                      </span>
-                    )}
-                    {ep.runtime && (
-                      <span className="text-xs text-text-muted">
-                        {ep.runtime}m
-                      </span>
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-[0.9375rem] font-semibold tracking-[-0.01em] ${isFuture ? 'text-text-muted' : 'text-text-primary'} ${settings.showSpoilers && ep.overview ? '' : 'truncate'}`}>
+                      <span className="num mr-1.5 text-text-muted">{ep.episode_number}</span>
+                      {ep.name}
+                    </p>
+                    <p className="t-caption num mt-0.5">
+                      {[ep.air_date ? formatDate(ep.air_date) : null, ep.runtime ? `${ep.runtime} min` : null].filter(Boolean).join(' · ')}
+                    </p>
+                    {settings.showSpoilers && ep.overview && (
+                      <p className="t-caption mt-1 line-clamp-2 text-text-secondary">{ep.overview}</p>
                     )}
                   </div>
 
                   {isLastWatched && imdbId && settings.episodeRecapEnabled && (
                     <button
+                      type="button"
+                      data-recap
                       onClick={(e) => {
                         e.stopPropagation();
+                        recapTriggerRef.current = e.currentTarget;
                         handleRecapClick(ep.episode_number, ep.name);
                       }}
-                      className="flex items-center gap-1 px-2.5 py-1 border border-accent/50 text-accent text-xs font-medium rounded-md hover:bg-accent/10 transition"
+                      className="press hit-44 inline-flex min-h-8 shrink-0 items-center gap-1 self-center rounded-full bg-accent/15 px-3 text-[0.8125rem] font-semibold text-accent hover:bg-accent/25"
                     >
-                      <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/>
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
                       </svg>
-                      Recap
+                      AI Recap
                     </button>
                   )}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Recap modal */}
       {recapState.isOpen && (
         <RecapModal
           seriesTitle={seriesTitle}
@@ -292,6 +376,9 @@ export default function EpisodesTab({ tmdbId, totalSeasons, initialSeason = 1, s
           isLoading={recapState.isLoading}
           isStreaming={recapState.isStreaming}
           error={recapState.error}
+          hideSpoilers={!settings.showSpoilers}
+          originRef={recapTriggerRef}
+          onRegenerate={() => handleRecapClick(recapState.episodeNumber, recapState.episodeTitle)}
           onClose={handleCloseRecap}
         />
       )}

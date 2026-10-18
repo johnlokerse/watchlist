@@ -30,16 +30,16 @@ test.describe('Movie Detail Page', () => {
   test('shows Overview, Cast & Crew, and Where to Watch tabs', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
-    await expect(page.getByRole('button', { name: 'Overview' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cast & Crew' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Where to Watch' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Overview' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Cast & Crew' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Where to Watch' })).toBeVisible();
   });
 
   test('Overview tab is active by default', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
     // Overview content (movie synopsis) should be visible
-    await expect(page.getByRole('button', { name: 'Overview' })).toHaveClass(/border-accent/);
+    await expect(page.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
   });
 
   test('shows release timeline on overview', async ({ page }) => {
@@ -57,27 +57,27 @@ test.describe('Movie Detail Page', () => {
     await expect(page.getByText(/★/).first()).toBeVisible();
   });
 
-  test('shows "+ Add to Library" when not in library', async ({ page }) => {
+  test('shows "Add to Library" when not in library', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
-    await expect(page.getByRole('button', { name: '+ Add to Library' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add to Library' })).toBeVisible();
   });
 
   test('Add to Library button adds movie and shows status selector', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
-    await page.getByRole('button', { name: '+ Add to Library' }).click();
-    await page.getByRole('button', { name: 'Watched' }).click();
+    await page.getByRole('button', { name: 'Add to Library' }).click();
+    await page.getByRole('menuitem', { name: 'Watched' }).click();
     await expect(page.getByRole('combobox')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'More actions' })).toBeVisible();
   });
 
-  test('shows status selector and Remove button for seeded movie', async ({ page, request }) => {
+  test('shows status selector and More actions button for seeded movie', async ({ page, request }) => {
     await seedMovie(request, { status: 'watched' });
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
     await expect(page.getByRole('combobox')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'More actions' })).toBeVisible();
   });
 
   test('status selector has Watched and Plan to Watch options', async ({ page, request }) => {
@@ -94,7 +94,7 @@ test.describe('Movie Detail Page', () => {
     await seedMovie(request, { status: 'watched' });
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
-    await expect(page.getByText('Your Rating:')).toBeVisible();
+    await expect(page.getByText('Your Rating')).toBeVisible();
   });
 
   test('shows Notes input for library item', async ({ page, request }) => {
@@ -105,27 +105,28 @@ test.describe('Movie Detail Page', () => {
     await expect(page.getByRole('button', { name: 'Save' })).toBeVisible();
   });
 
-  test('Remove button removes movie from library', async ({ page, request }) => {
+  test('Remove from Library removes movie from library', async ({ page, request }) => {
     await seedMovie(request, { status: 'watched' });
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
-    await page.getByRole('button', { name: 'Remove' }).click();
-    await expect(page.getByRole('button', { name: '+ Add to Library' })).toBeVisible();
+    await page.getByRole('button', { name: 'More actions' }).click();
+    await page.getByRole('menuitem', { name: 'Remove from Library' }).click();
+    await expect(page.getByRole('button', { name: 'Add to Library' })).toBeVisible();
   });
 
   test('Cast & Crew tab shows cast content', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
-    await page.getByRole('button', { name: 'Cast & Crew' }).click();
+    await page.getByRole('tab', { name: 'Cast & Crew' }).click();
     // The fixture includes cast entries; at minimum cast section should render
-    await expect(page.getByRole('button', { name: 'Cast & Crew' })).toHaveClass(/border-accent/);
+    await expect(page.getByRole('tab', { name: 'Cast & Crew' })).toHaveAttribute('aria-selected', 'true');
   });
 
   test('Where to Watch tab is accessible', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
-    await page.getByRole('button', { name: 'Where to Watch' }).click();
-    await expect(page.getByRole('button', { name: 'Where to Watch' })).toHaveClass(/border-accent/);
+    await page.getByRole('tab', { name: 'Where to Watch' }).click();
+    await expect(page.getByRole('tab', { name: 'Where to Watch' })).toHaveAttribute('aria-selected', 'true');
   });
 
   test('Where to Watch fetches deep links only after opening the tab', async ({ page, request }) => {
@@ -174,7 +175,7 @@ test.describe('Movie Detail Page', () => {
     await page.goto('/movie/302946');
     expect(watchLinkRequests).toBe(0);
 
-    await page.getByRole('button', { name: 'Where to Watch' }).click();
+    await page.getByRole('tab', { name: 'Where to Watch' }).click();
     await expect.poll(() => watchLinkRequests).toBe(1);
 
     await expect(page.getByRole('link', { name: 'Open Netflix from Stream' })).toHaveAttribute(
@@ -205,12 +206,13 @@ test.describe('Movie Detail Page', () => {
     await seedMovie(request, { status: 'watched' });
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
-    // Click the 7-star button in the Rating group
-    await page.getByRole('group', { name: 'Rating' }).getByRole('button', { name: '7 stars' }).click();
+    // A rating of 7 (out of 10) is shown as 3.5 stars
+    await page.getByRole('radiogroup', { name: 'Rating' }).getByRole('radio', { name: '3.5 stars' }).click();
     // Verify the rating was persisted via the REST API
-    const res = await request.get('/api/library/302946/movie');
-    const item = await res.json() as { userRating: number };
-    expect(item.userRating).toBe(7);
+    await expect.poll(async () => {
+      const item = await (await request.get('/api/library/302946/movie')).json() as { userRating: number };
+      return item.userRating;
+    }).toBe(7);
   });
 
   test('saving notes persists via API', async ({ page, request }) => {
@@ -254,6 +256,7 @@ test.describe('Movie Detail Page', () => {
     await setupTMDBMocks(page);
     await page.goto('/movie/302946');
     await page.getByRole('combobox').selectOption('watched');
+    await page.getByRole('button', { name: 'Watch history' }).click();
     await expect(page.getByText(/Watched on/)).toBeVisible();
     await expect(page.getByLabel('Watched on date')).toBeVisible();
     // The server auto-stamps watchedAt on the transition to watched.
@@ -267,6 +270,7 @@ test.describe('Movie Detail Page', () => {
     await page.goto('/movie/302946');
     await page.getByRole('combobox').selectOption('watched');
     // Auto-stamp creates the first watch_log entry.
+    await page.getByRole('button', { name: 'Watch history' }).click();
     await expect(page.getByText(/Watched 1×/)).toBeVisible();
     await page.getByRole('button', { name: 'Log rewatch' }).click();
     await page.getByRole('button', { name: 'Save rewatch' }).click();

@@ -1,6 +1,6 @@
-import { useRef, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { clearLibrary, addToLibrary, exportLibrary, updateSeriesProgress, bulkImportEpisodes, updateWatchedItem, addWatchLogEntry } from '../db/hooks';
+import { useId, useRef, useState, useEffect, type ReactNode } from 'react';
+import { AnimatePresence, m } from 'motion/react';
+import { clearLibrary, addToLibrary, exportLibrary, updateSeriesProgress, bulkImportEpisodes, updateWatchedItem, addWatchLogEntry, useWatchedItems } from '../db/hooks';
 import type { WatchedStatus, ContentType } from '../db/models';
 import { useSettings } from '../hooks/useSettings';
 import {
@@ -13,6 +13,12 @@ import {
 } from '../utils/themes';
 import { useAvailableProviders } from '../api/tmdb';
 import { logoUrl } from '../utils/image';
+import { toLocalISODate } from '../utils/date';
+import Toggle from '../components/ui/Toggle';
+import SegmentedControl from '../components/ui/SegmentedControl';
+import Select from '../components/ui/Select';
+import { buttonClasses } from '../components/ui/buttonStyles';
+import { spring } from '../design/motion';
 
 // Ordered curated list of provider IDs to display in Settings.
 // IDs are stable TMDB provider IDs. Order determines display order.
@@ -133,81 +139,12 @@ interface AppVersionResponse {
   version?: string;
 }
 
+interface ActionStatus {
+  kind: 'success' | 'error';
+  text: string;
+}
+
 // ── Icons ─────────────────────────────────────────────────────────────────────
-
-function PaletteIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
-      <circle cx="7.5" cy="10.5" r="1" fill="currentColor" stroke="none" />
-      <circle cx="10" cy="7" r="1" fill="currentColor" stroke="none" />
-      <circle cx="14" cy="6.5" r="1" fill="currentColor" stroke="none" />
-      <circle cx="17" cy="9.5" r="1" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function SlidersIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-      <line x1="4" y1="21" x2="4" y2="14" />
-      <line x1="4" y1="10" x2="4" y2="3" />
-      <line x1="12" y1="21" x2="12" y2="12" />
-      <line x1="12" y1="8" x2="12" y2="3" />
-      <line x1="20" y1="21" x2="20" y2="16" />
-      <line x1="20" y1="12" x2="20" y2="3" />
-      <line x1="1" y1="14" x2="7" y2="14" />
-      <line x1="9" y1="8" x2="15" y2="8" />
-      <line x1="17" y1="16" x2="23" y2="16" />
-    </svg>
-  );
-}
-
-function LayersIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-      <path d="M12 2L2 7l10 5 10-5-10-5z" />
-      <path d="M2 17l10 5 10-5" />
-      <path d="M2 12l10 5 10-5" />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-  );
-}
-
-function MonitorIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-      <rect x="2" y="3" width="20" height="14" rx="2" />
-      <line x1="8" y1="21" x2="16" y2="21" />
-      <line x1="12" y1="17" x2="12" y2="21" />
-    </svg>
-  );
-}
-
-function KeyIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-      <circle cx="7.5" cy="14.5" r="3.5" />
-      <path d="M10 12l8-8 3 3-2 2 2 2-2 2-2-2-4.5 4.5" />
-    </svg>
-  );
-}
-
-function SparklesIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-      <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z" />
-    </svg>
-  );
-}
 
 function ChevronDownIcon({ open }: { open: boolean }) {
   return (
@@ -254,6 +191,11 @@ function groupModels(models: { id: string; name: string }[], term: string) {
 function ModelPicker({ models, values, onChange, disabled, loading }: ModelPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    if (!isOpen) setSearch('');
+  }
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const firstSelectedRef = useRef<HTMLButtonElement>(null);
@@ -282,7 +224,7 @@ function ModelPicker({ models, values, onChange, disabled, loading }: ModelPicke
 
   // Auto-focus search and scroll first selected item into view when opening
   useEffect(() => {
-    if (!isOpen) { setSearch(''); return; }
+    if (!isOpen) return;
     searchRef.current?.focus();
     setTimeout(() => firstSelectedRef.current?.scrollIntoView({ block: 'nearest' }), 0);
   }, [isOpen]);
@@ -306,7 +248,9 @@ function ModelPicker({ models, values, onChange, disabled, loading }: ModelPicke
         onClick={() => !disabled && setIsOpen((o) => !o)}
         onKeyDown={(e) => e.key === 'Escape' && setIsOpen(false)}
         disabled={disabled}
-        className="w-full flex items-center justify-between gap-2 bg-surface border border-border-subtle rounded-lg px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-accent/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:border-accent/40"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className="field flex items-center justify-between gap-2 text-left disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className={values.length > 0 ? 'text-text-primary' : 'text-text-muted'}>
           {triggerLabel}
@@ -322,16 +266,16 @@ function ModelPicker({ models, values, onChange, disabled, loading }: ModelPicke
             return (
               <span
                 key={id}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-xs font-medium"
+                className="inline-flex items-center gap-1 rounded-full bg-accent/15 py-0.5 pl-2.5 pr-1 text-[0.8125rem] font-medium text-accent"
               >
                 {name}
                 <button
                   type="button"
                   onClick={() => handleRemoveChip(id)}
-                  className="hover:text-danger transition-colors leading-none"
+                  className="hit-44 grid h-5 w-5 place-items-center rounded-full hover:bg-accent/20"
                   aria-label={`Remove ${name}`}
                 >
-                  ×
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
                 </button>
               </span>
             );
@@ -341,11 +285,13 @@ function ModelPicker({ models, values, onChange, disabled, loading }: ModelPicke
 
       {/* Dropdown panel */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-full bg-surface-raised border border-border-subtle rounded-xl shadow-lg flex flex-col overflow-hidden"
-          style={{ maxHeight: '300px' }}>
+        <div className="material-sheet shadow-sheet absolute z-50 mt-1 flex w-full origin-top flex-col overflow-hidden rounded-[14px]"
+          role="listbox"
+          aria-multiselectable="true"
+          style={{ maxHeight: '320px' }}>
 
           {/* Search input */}
-          <div className="p-2 border-b border-border-subtle shrink-0">
+          <div className="hairline-bottom shrink-0 p-2">
             <input
               ref={searchRef}
               type="text"
@@ -353,7 +299,8 @@ function ModelPicker({ models, values, onChange, disabled, loading }: ModelPicke
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Escape' && setIsOpen(false)}
               placeholder="Filter models…"
-              className="w-full bg-surface border border-border-subtle rounded-lg px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+              aria-label="Filter models"
+              className="field"
             />
           </div>
 
@@ -364,7 +311,7 @@ function ModelPicker({ models, values, onChange, disabled, loading }: ModelPicke
             ) : (
               Array.from(groups.entries()).map(([provider, providerModels]) => (
                 <div key={provider}>
-                  <p className="px-3 pt-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted select-none">
+                  <p className="t-label select-none px-3 pb-1 pt-2.5">
                     {provider}
                   </p>
                   {providerModels.map((m, idx) => {
@@ -376,10 +323,12 @@ function ModelPicker({ models, values, onChange, disabled, loading }: ModelPicke
                         ref={isFirstSelected ? firstSelectedRef : undefined}
                         type="button"
                         onClick={() => handleToggle(m.id)}
-                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left transition-colors ${
+                        role="option"
+                        aria-selected={isSelected}
+                        className={`flex min-h-10 w-full items-center justify-between gap-2 px-3 text-left text-[0.875rem] transition-colors ${
                           isSelected
-                            ? 'bg-accent/10 text-text-primary'
-                            : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
+                            ? 'bg-accent/12 text-text-primary'
+                            : 'text-text-secondary hover:bg-fill hover:text-text-primary'
                         }`}
                       >
                         <span className="truncate">{m.name || m.id}</span>
@@ -397,34 +346,58 @@ function ModelPicker({ models, values, onChange, disabled, loading }: ModelPicke
   );
 }
 
-// ── Toggle switch ─────────────────────────────────────────────────────────────
+// ── Building blocks ──────────────────────────────────────────────────────────
 
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label?: string }) {
+function Group({ title, footer, children }: { title?: string; footer?: ReactNode; children: ReactNode }) {
   return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={onChange}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-surface-raised ${
-        checked ? 'bg-accent' : 'bg-surface-overlay'
-      }`}
-    >
-      <span
-        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-          checked ? 'translate-x-6' : 'translate-x-1'
-        }`}
-      />
-    </button>
+    <section className="space-y-2">
+      {title && <h2 className="t-label px-4">{title}</h2>}
+      <div className="grouped">{children}</div>
+      {footer && <div className="t-caption px-4">{footer}</div>}
+    </section>
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+function Row({ title, description, htmlFor, titleId, children }: { title: string; description?: ReactNode; htmlFor?: string; titleId?: string; children?: ReactNode }) {
+  const Title = htmlFor ? 'label' : 'p';
+  return (
+    <div className="grouped-row flex-wrap justify-between gap-x-4 gap-y-2 py-3">
+      <div className="min-w-0 flex-1 basis-56">
+        <Title id={titleId} htmlFor={htmlFor} className="t-body block text-text-primary">{title}</Title>
+        {description && <p className="t-caption mt-0.5">{description}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function StatusLine({ status }: { status: ActionStatus | null }) {
+  if (!status) return null;
+  return (
+    <p
+      role={status.kind === 'error' ? 'alert' : 'status'}
+      className={`t-caption mt-1 flex items-center gap-1 font-medium ${status.kind === 'error' ? 'text-danger' : 'text-success'}`}
+    >
+      {status.kind === 'error' ? '⚠︎' : '✓'} {status.text}
+    </p>
+  );
+}
+
+function looksLikeTmdbCredential(value: string) {
+  const v = value.trim();
+  return /^[a-f0-9]{32}$/i.test(v) || (v.startsWith('eyJ') && v.split('.').length === 3);
+}
 
 export default function SettingsPage() {
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, saveStatus } = useSettings();
+  const libraryCount = useWatchedItems()?.length ?? 0;
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [aiOpen, setAiOpen] = useState(settings.openrouterEnabled);
+  const [tmdbFormatWarning, setTmdbFormatWarning] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState<ActionStatus | null>(null);
+  const [clearStatus, setClearStatus] = useState<ActionStatus | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ added: number; skipped: number } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -457,29 +430,42 @@ export default function SettingsPage() {
     return () => { active = false; };
   }, []);
 
+  // The models request does not use the key value, only whether one is present.
+  const hasOpenrouterKey = settings.openrouterApiKey.length >= 10;
+
   useEffect(() => {
-    if (!settings.openrouterEnabled || settings.openrouterApiKey.length < 10) {
+    if (!settings.openrouterEnabled || !hasOpenrouterKey) {
       setOrModels([]);
+      setOrModelsLoading(false);
       setOrModelsError(null);
       return;
     }
+    const controller = new AbortController();
     setOrModelsLoading(true);
     setOrModelsError(null);
-    fetch('/api/chat/models')
-      .then((r) => {
-        if (!r.ok) throw new Error(`Failed to fetch models (${r.status})`);
-        return r.json();
-      })
-      .then((data: { id: string; name: string }[]) => {
-        setOrModels(data);
-        setOrModelsLoading(false);
-      })
-      .catch((err) => {
-        setOrModelsError(err instanceof Error ? err.message : String(err));
-        setOrModels([]);
-        setOrModelsLoading(false);
-      });
-  }, [settings.openrouterEnabled, settings.openrouterApiKey]);
+    // Debounce so a burst of key changes does not fire a request per change.
+    const timer = setTimeout(() => {
+      fetch('/api/chat/models', { signal: controller.signal })
+        .then((r) => {
+          if (!r.ok) throw new Error(`Failed to fetch models (${r.status})`);
+          return r.json();
+        })
+        .then((data: { id: string; name: string }[]) => {
+          setOrModels(data);
+          setOrModelsLoading(false);
+        })
+        .catch((err) => {
+          if (controller.signal.aborted) return;
+          setOrModelsError(err instanceof Error ? err.message : String(err));
+          setOrModels([]);
+          setOrModelsLoading(false);
+        });
+    }, 400);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [settings.openrouterEnabled, hasOpenrouterKey]);
 
   const toggleProvider = (id: number) => {
     const current = settings.streamingServices;
@@ -490,22 +476,40 @@ export default function SettingsPage() {
 
   const handleExport = async () => {
     setExporting(true);
-    const data = await exportLibrary();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `movie-db-export-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setExporting(false);
+    setExportStatus(null);
+    try {
+      const data = await exportLibrary();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      try {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `movie-db-export-${toLocalISODate()}.json`;
+        a.click();
+      } finally {
+        // Revoking synchronously can cancel the download in Safari/Firefox.
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      setExportStatus({ kind: 'success', text: `Exported ${data.items.length} titles` });
+    } catch (err) {
+      setExportStatus({ kind: 'error', text: err instanceof Error ? err.message : 'Export failed.' });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleClear = async () => {
-    if (!confirm('This will remove all movies, series, and episode progress from your library. Are you sure?')) return;
+    setConfirmingDelete(false);
     setClearing(true);
-    await clearLibrary();
-    setClearing(false);
+    setClearStatus(null);
+    try {
+      await clearLibrary();
+      setClearStatus({ kind: 'success', text: 'Library cleared.' });
+    } catch (err) {
+      setClearStatus({ kind: 'error', text: err instanceof Error ? err.message : 'Failed to clear library.' });
+    } finally {
+      setClearing(false);
+    }
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -607,532 +611,432 @@ export default function SettingsPage() {
     }
   };
 
+
+  const saveLabel = saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'All changes saved' : saveStatus === 'error' ? "Couldn't save. Check that the server is running." : 'Keys are stored on your Watchlist server, not in the browser.';
+  const switchId = useId();
+
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="section-title mb-2">System preferences</p>
+    <div className="mx-auto max-w-[720px] space-y-8">
+      <div className="pr-12 md:pr-0">
         <h1 className="page-title">Settings</h1>
       </div>
 
-      {/* Mobile entry point for Insights; desktop has it in the sidebar. */}
-      <Link
-        to="/insights"
-        className="database-row group flex items-center gap-3 px-4 py-3 transition-colors md:hidden"
-      >
-        <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3.5 4v16.5H20" />
-            <path d="m7 15 3.5-4.5 3 2.5 5-6.5" />
-          </svg>
+      {/* ── Setup needed ── */}
+      {!tmdbTokenConfigured && (
+        <div className="flex gap-3 rounded-[18px] bg-warning/12 p-4" role="alert">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-warning text-on-warning" aria-hidden="true">!</span>
+          <div>
+            <p className="t-headline text-text-primary">Setup needed</p>
+            <p className="t-callout mt-0.5 text-text-secondary">Add a TMDB API key below to search, load artwork and show streaming providers.</p>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium group-hover:text-accent">Insights</p>
-          <p className="text-xs text-text-secondary mt-0.5">Your watch activity over time</p>
-        </div>
-        <svg className="h-4 w-4 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M9 18l6-6-6-6" />
-        </svg>
-      </Link>
+      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-
-        {/* ── Left column ── */}
-        <div className="space-y-4">
-
-          {/* ── Appearance ── */}
-          <div className="app-panel p-5">
-            <div className="flex items-center gap-2.5 mb-5">
-              <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
-                <PaletteIcon />
-              </div>
-              <h2 className="text-base font-semibold">Appearance</h2>
-            </div>
-
-            <div className="flex items-center justify-between gap-4 py-3">
-              <div>
-                <p className="text-sm font-medium">Dynamic themes</p>
-                <p className="text-xs text-text-secondary mt-0.5">
-                  Follow system light/dark appearance
-                </p>
-              </div>
-              <Toggle
-                label="Dynamic themes"
-                checked={settings.dynamicTheme}
-                onChange={() => {
-                  const next = !settings.dynamicTheme;
-                  if (next) {
-                    const current = getTheme(settings.theme);
-                    updateSettings({
-                      dynamicTheme: true,
-                      ...(current.scheme === 'light'
-                        ? { themeLight: current.id }
-                        : { themeDark: current.id }),
-                    });
-                    setSchemeTab(current.scheme);
+      {/* ── Appearance ── */}
+      <Group title="Appearance">
+        <Row title="Dynamic themes" description="Follow system light/dark appearance" titleId={`${switchId}-dynamic`}>
+          <Toggle
+            label="Dynamic themes"
+            checked={settings.dynamicTheme}
+            onChange={() => {
+              const next = !settings.dynamicTheme;
+              if (next) {
+                const current = getTheme(settings.theme);
+                updateSettings({
+                  dynamicTheme: true,
+                  ...(current.scheme === 'light'
+                    ? { themeLight: current.id }
+                    : { themeDark: current.id }),
+                });
+                setSchemeTab(current.scheme);
+              } else {
+                updateSettings({
+                  dynamicTheme: false,
+                  theme: resolveThemeId(settings),
+                });
+              }
+            }}
+          />
+        </Row>
+        {settings.dynamicTheme && (
+          <div className="px-4 py-3">
+            <SegmentedControl
+              fill
+              ariaLabel="Theme scheme"
+              options={[{ value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }]}
+              value={schemeTab}
+              onChange={(value) => setSchemeTab(value as ColorScheme)}
+            />
+          </div>
+        )}
+        <div role="radiogroup" aria-label="Theme">
+          {(settings.dynamicTheme ? getThemesForScheme(schemeTab) : THEMES).map((theme) => {
+            const isActive = settings.dynamicTheme
+              ? (schemeTab === 'light' ? settings.themeLight : settings.themeDark) === theme.id
+              : settings.theme === theme.id;
+            return (
+              <button
+                key={theme.id}
+                type="button"
+                role="radio"
+                aria-checked={isActive}
+                onClick={() => {
+                  if (settings.dynamicTheme) {
+                    updateSettings(schemeTab === 'light' ? { themeLight: theme.id } : { themeDark: theme.id });
                   } else {
-                    updateSettings({
-                      dynamicTheme: false,
-                      theme: resolveThemeId(settings),
-                    });
+                    updateSettings({ theme: theme.id });
                   }
                 }}
-              />
-            </div>
-
-            {settings.dynamicTheme && (
-              <>
-                <div className="border-t border-border-subtle" />
-                <div className="py-3">
-                  <div
-                    className="control-surface inline-flex items-center gap-1 p-1 w-full"
-                    role="tablist"
-                    aria-label="Theme scheme"
-                  >
-                    {(['light', 'dark'] as const).map((scheme) => {
-                      const active = schemeTab === scheme;
-                      return (
-                        <button
-                          key={scheme}
-                          role="tab"
-                          aria-selected={active}
-                          onClick={() => setSchemeTab(scheme)}
-                          className={`flex-1 rounded-md px-3 py-1.5 text-sm font-semibold transition-all ${
-                            active
-                              ? 'bg-accent text-white shadow-sm'
-                              : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
-                          }`}
-                        >
-                          {scheme === 'light' ? 'Light' : 'Dark'}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="border-t border-border-subtle" />
-
-            {(settings.dynamicTheme ? getThemesForScheme(schemeTab) : THEMES).map((theme, i) => {
-              const isActive = settings.dynamicTheme
-                ? (schemeTab === 'light' ? settings.themeLight : settings.themeDark) === theme.id
-                : settings.theme === theme.id;
-              return (
-                <div key={theme.id}>
-                  {i > 0 && <div className="border-t border-border-subtle" />}
-                  <button
-                    onClick={() => {
-                      if (settings.dynamicTheme) {
-                        updateSettings(
-                          schemeTab === 'light'
-                            ? { themeLight: theme.id }
-                            : { themeDark: theme.id },
-                        );
-                      } else {
-                        updateSettings({ theme: theme.id });
-                      }
-                    }}
-                    className={`w-full flex items-center justify-between py-3 px-2 rounded-lg transition-colors ${
-                      isActive ? 'bg-accent/5' : 'hover:bg-surface-overlay cursor-pointer'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className={`text-sm ${isActive ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
-                        {theme.name}
-                      </span>
-                    </span>
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex gap-1">
-                        {theme.swatches.map((color, si) => (
-                          <span
-                            key={si}
-                            className="w-4 h-4 rounded-md inline-block shrink-0"
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
-                      </div>
-                      <span className={`w-4 text-right text-sm font-bold transition-opacity ${isActive ? 'text-success opacity-100' : 'opacity-0'}`}>
-                        ✓
-                      </span>
-                    </div>
-                  </button>
-                </div>
-              );
-            })}
-
-          </div>
-
-          {/* ── Library Data ── */}
-          <div className="app-panel p-5">
-            <div className="flex items-center gap-2.5 mb-5">
-              <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
-                <LayersIcon />
-              </div>
-              <h2 className="text-base font-semibold">Library Data</h2>
-            </div>
-
-            {/* Export */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3">
-              <div>
-                <p className="text-sm font-medium">Export to JSON</p>
-                <p className="text-xs text-text-secondary mt-0.5">Download your full library as a backup file</p>
-              </div>
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="shrink-0 sm:ml-4 px-3 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="grouped-row w-full justify-between text-left transition-colors active:bg-fill [@media(hover:hover)]:hover:bg-fill"
               >
-                {exporting ? 'Exporting…' : 'Export'}
+                <span className={`t-body ${isActive ? 'font-semibold text-text-primary' : 'text-text-primary'}`}>{theme.name}</span>
+                <span className="flex items-center gap-3">
+                  <span className="flex -space-x-1" aria-hidden="true">
+                    {theme.swatches.map((color, si) => (
+                      <span key={si} className="h-4 w-4 rounded-full ring-2 ring-surface-raised" style={{ backgroundColor: color }} />
+                    ))}
+                  </span>
+                  <svg className={`h-4 w-4 text-accent transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="m5 12 5 5 9-10" />
+                  </svg>
+                </span>
               </button>
+            );
+          })}
+        </div>
+      </Group>
+
+      {/* ── API Keys ── */}
+      <Group title="API Keys" footer={<span role="status">{saveLabel}</span>}>
+        <div className="grouped-row flex-col items-stretch gap-2 py-3">
+          <label className="t-body text-text-primary" htmlFor="tmdb-api-token">TMDB API key</label>
+          <input
+            id="tmdb-api-token"
+            type="password"
+            autoComplete="off"
+            value={settings.tmdbApiToken}
+            onChange={(e) => {
+              updateSettings({ tmdbApiToken: e.target.value });
+              setTmdbFormatWarning(false);
+            }}
+            onBlur={(e) => setTmdbFormatWarning(e.target.value.trim().length > 0 && !looksLikeTmdbCredential(e.target.value))}
+            placeholder="TMDB API key or read access token"
+            aria-describedby="tmdb-api-token-help"
+            className="field"
+          />
+          <p id="tmdb-api-token-help" className="t-caption">
+            Required for searches, details, Discover feeds, artwork, and streaming provider data. Supports either a TMDB API key or v4 read access token.
+          </p>
+          {tmdbFormatWarning && (
+            <p className="t-caption font-medium text-warning" role="alert">This doesn't look like a TMDB API key (32 characters) or read access token (starts with “eyJ”).</p>
+          )}
+          {tmdbTokenConfigured && providersError && (
+            <p className="t-caption font-medium text-danger" role="alert">TMDB rejected this key. Check that it's valid.</p>
+          )}
+        </div>
+        <div className="grouped-row flex-col items-stretch gap-2 py-3">
+          <label className="t-body text-text-primary" htmlFor="streaming-availability-key">Deep linking API key</label>
+          <input
+            id="streaming-availability-key"
+            type="password"
+            autoComplete="off"
+            value={settings.streamingAvailabilityApiKey}
+            onChange={(e) => updateSettings({ streamingAvailabilityApiKey: e.target.value })}
+            placeholder="Streaming Availability API key"
+            className="field"
+          />
+          <p className="t-caption">
+            Optional. Add a Streaming Availability API key to open exact movie and series pages on supported providers.
+            The app only uses it when you open a Where to Watch tab, and successful results are cached for 7 days.
+          </p>
+        </div>
+      </Group>
+
+      {/* ── Streaming Services ── */}
+      <Group title="Streaming Services" footer="Select the services you subscribe to.">
+        <div className="p-3">
+          {providersLoading ? (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-busy="true">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="skeleton h-[88px] rounded-[14px]" />
+              ))}
             </div>
-
-            <div className="border-t border-border-subtle" />
-
-            {/* Import */}
-            <div className="py-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                  <p className="text-sm font-medium">Import from JSON</p>
-                  <p className="text-xs text-text-secondary mt-0.5">Restore from an export file or a plain items array</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  disabled={importing}
-                  aria-label={importing ? 'Importing JSON file' : 'Choose JSON file'}
-                  className="inline-flex min-w-[105px] shrink-0 items-center justify-center rounded-lg bg-accent/15 px-3 py-1.5 text-sm font-medium text-accent transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50 sm:ml-4"
-                >
-                  {importing ? (
-                    <span
-                      role="status"
-                      className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-accent/30 border-t-accent"
-                    >
-                      <span className="sr-only">Importing…</span>
-                    </span>
-                  ) : (
-                    'Choose file'
-                  )}
-                </button>
-              </div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".json,application/json"
-                onChange={handleImport}
-                disabled={importing}
-                className="hidden"
-              />
-
-              <details className="mt-3 group">
-                <summary className="text-xs text-accent cursor-pointer select-none hover:underline">Show example JSON format</summary>
-                <pre className="mt-2 text-xs bg-surface rounded-lg p-3 overflow-x-auto text-text-secondary leading-relaxed">
-                  {EXAMPLE_JSON}
-                </pre>
-                <p className="mt-2 text-xs text-text-muted">
-                  Valid <code className="bg-surface px-1 rounded">contentType</code>: <code className="bg-surface px-1 rounded">movie</code> | <code className="bg-surface px-1 rounded">series</code><br />
-                  Valid <code className="bg-surface px-1 rounded">status</code>: <code className="bg-surface px-1 rounded">watched</code> | <code className="bg-surface px-1 rounded">plan_to_watch</code> | <code className="bg-surface px-1 rounded">watching</code> | <code className="bg-surface px-1 rounded">dropped</code><br />
-                  <code className="bg-surface px-1 rounded">progress</code> and <code className="bg-surface px-1 rounded">episodes</code> are optional.
-                </p>
-              </details>
-
-              {importResult && (
-                <p className="mt-3 text-xs text-success">
-                  ✓ Added {importResult.added} item{importResult.added !== 1 ? 's' : ''}{importResult.skipped > 0 ? `, skipped ${importResult.skipped}` : ''}.
-                </p>
-              )}
-              {importError && <p className="mt-3 text-xs text-danger">✗ {importError}</p>}
-            </div>
-          </div>
-
-        </div>{/* end left column */}
-
-        {/* ── Right column ── */}
-        <div className="space-y-4">
-
-          {/* ── Preferences ── */}
-          <div className="app-panel p-5">
-            <div className="flex items-center gap-2.5 mb-5">
-              <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
-                <SlidersIcon />
-              </div>
-              <h2 className="text-base font-semibold">Preferences</h2>
-            </div>
-
-            {/* Country */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3">
-              <div>
-                <p className="text-sm font-medium">Country</p>
-                <p className="text-xs text-text-secondary mt-0.5">Used to find streaming services near you</p>
-              </div>
-              <select
-                value={settings.country}
-                onChange={(e) => updateSettings({ country: e.target.value })}
-                className="bg-surface border border-border-subtle rounded-lg px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/50 cursor-pointer sm:ml-4 shrink-0 w-full sm:w-auto"
-              >
-                {!COUNTRIES.some((c) => c.code === settings.country) && (
-                  <option value={settings.country}>{settings.country}</option>
-                )}
-                {COUNTRIES.map((c) => (
-                  <option key={c.code} value={c.code}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="border-t border-border-subtle" />
-
-            {/* Show Spoilers */}
-            <div className="flex items-center justify-between gap-4 py-3">
-              <div>
-                <p className="text-sm font-medium">Show Spoilers</p>
-                <p className="text-xs text-text-secondary mt-0.5">Reveal episode titles and descriptions</p>
-              </div>
-              <Toggle
-                checked={settings.showSpoilers}
-                onChange={() => updateSettings({ showSpoilers: !settings.showSpoilers })}
-              />
-            </div>
-
-            <div className="border-t border-border-subtle" />
-
-            {/* Episode Recap */}
-            <div className="flex items-center justify-between gap-4 py-3">
-              <div>
-                <p className="text-sm font-medium">Episode Recap</p>
-                <p className="text-xs text-text-secondary mt-0.5">Show a Recap button on the last watched episode</p>
-              </div>
-              <Toggle
-                checked={settings.episodeRecapEnabled}
-                onChange={() => updateSettings({ episodeRecapEnabled: !settings.episodeRecapEnabled })}
-              />
-            </div>
-          </div>
-
-          {/* ── AI Assistant ── */}
-          <div className="app-panel p-5">
-            <div className="flex items-center gap-2.5 mb-5">
-              <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
-                <SparklesIcon />
-              </div>
-              <h2 className="text-base font-semibold">AI Assistant</h2>
-            </div>
-
-            {/* Toggle */}
-            <div className="flex items-center justify-between gap-4 py-3">
-              <div>
-                <p className="text-sm font-medium">Use OpenRouter</p>
-                <p className="text-xs text-text-secondary mt-0.5">Use your own API key instead of GitHub Copilot models</p>
-              </div>
-              <Toggle
-                checked={settings.openrouterEnabled}
-                onChange={() => updateSettings({ openrouterEnabled: !settings.openrouterEnabled })}
-              />
-            </div>
-
-            {settings.openrouterEnabled && (
-              <>
-                <div className="border-t border-border-subtle" />
-
-                {/* API Key */}
-                <div className="py-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-medium">API Key</p>
-                      <p className="text-xs text-text-secondary mt-0.5">
-                        Get yours at{' '}
-                        <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
-                          openrouter.ai/keys
-                        </a>
-                      </p>
-                    </div>
-                    <input
-                      type="password"
-                      value={settings.openrouterApiKey}
-                      onChange={(e) => updateSettings({ openrouterApiKey: e.target.value })}
-                      placeholder="sk-or-..."
-                      className="bg-surface border border-border-subtle rounded-lg px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 sm:ml-4 shrink-0 w-full sm:w-56"
-                    />
-                  </div>
-                </div>
-
-                {settings.openrouterApiKey.length >= 10 && (
-                  <>
-                    <div className="border-t border-border-subtle" />
-
-                    {/* Model selector */}
-                    <div className="py-3">
-                      <p className="text-sm font-medium mb-1">Model</p>
-                      <p className="text-xs text-text-secondary mb-2">
-                        {orModelsLoading ? 'Loading models…' : orModelsError ? 'Failed to load models' : `${orModels.length} models available`}
-                      </p>
-                      <ModelPicker
-                        models={orModels}
-                        values={settings.openrouterModels}
-                        onChange={(ids) => {
-                          // Keep openrouterModel in sync — always points to an active pinned model
-                          const activeModel =
-                            ids.length === 0
-                              ? ''
-                              : ids.includes(settings.openrouterModel)
-                                ? settings.openrouterModel
-                                : ids[0];
-                          updateSettings({ openrouterModels: ids, openrouterModel: activeModel });
-                        }}
-                        disabled={orModelsLoading || orModels.length === 0}
-                        loading={orModelsLoading}
-                      />
-                    </div>
-                    {orModelsError && (
-                      <p className="text-xs text-danger pb-2">{orModelsError}</p>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* ── API Keys ── */}
-          <div className="app-panel p-5">
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
-                <KeyIcon />
-              </div>
-              <h2 className="text-base font-semibold">API Keys</h2>
-            </div>
-            <p className="text-xs text-text-secondary mb-5">Configure external service credentials used by Watchlist.</p>
-
-            <div className="py-3">
-              <label className="text-sm font-medium" htmlFor="tmdb-api-token">
-                TMDB API key
-              </label>
-              <p className="mt-1 text-xs text-text-secondary">
-                Required for searches, details, Discover feeds, artwork, and streaming provider data. Supports either a TMDB API key or v4 read access token.
-              </p>
-              <input
-                id="tmdb-api-token"
-                type="password"
-                value={settings.tmdbApiToken}
-                onChange={(e) => updateSettings({ tmdbApiToken: e.target.value })}
-                placeholder="TMDB API key or read access token"
-                className="mt-3 w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
-              />
-            </div>
-
-            <div className="border-t border-border-subtle" />
-
-            <div className="py-3">
-              <label className="text-sm font-medium" htmlFor="streaming-availability-key">
-                Deep linking API key
-              </label>
-              <p className="mt-1 text-xs text-text-secondary">
-                Optional. Add a Streaming Availability API key to open exact movie and series pages on supported providers.
-                The app only uses it when you open a Where to Watch tab, and successful results are cached for 7 days.
-              </p>
-              <input
-                id="streaming-availability-key"
-                type="password"
-                value={settings.streamingAvailabilityApiKey}
-                onChange={(e) => updateSettings({ streamingAvailabilityApiKey: e.target.value })}
-                placeholder="Streaming Availability API key"
-                className="mt-3 w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
-              />
-            </div>
-          </div>
-
-        </div>{/* end right column (middle) */}
-
-        {/* ── Third column ── */}
-        <div className="space-y-4">
-
-          {/* ── Streaming Services ── */}
-          <div className="app-panel p-5">
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 text-accent">
-                <MonitorIcon />
-              </div>
-              <h2 className="text-base font-semibold">Streaming Services</h2>
-            </div>
-            <p className="text-xs text-text-secondary mb-5">Select the services you subscribe to.</p>
-
-            {providersLoading ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="h-[84px] rounded-xl bg-surface animate-pulse" />
-                ))}
-              </div>
-            ) : providersError ? (
-              <div className="rounded-lg border border-danger/30 bg-danger/10 p-3">
-                <p className="text-xs text-danger">
-                  {tmdbTokenConfigured
-                    ? 'Failed to load providers. Check that your TMDB API token is valid.'
-                    : 'TMDB API token is missing. Add it in API Keys to load streaming providers.'}
-                </p>
-              </div>
-            ) : providers.length === 0 ? (
-              <p className="text-xs text-text-muted">No providers found for your country.</p>
-            ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {CURATED_PROVIDER_IDS
-                  .map((id) => providers.find((p) => p.provider_id === id))
-                  .filter((p): p is NonNullable<typeof p> => p !== undefined)
-                  .map((p) => {
+          ) : providersError ? (
+            <p className="t-callout p-1 text-danger" role="alert">
+              {tmdbTokenConfigured
+                ? 'Failed to load providers. Check that your TMDB API token is valid.'
+                : 'TMDB API token is missing. Add it in API Keys to load streaming providers.'}
+            </p>
+          ) : providers.length === 0 ? (
+            <p className="t-callout p-1 text-text-secondary">No providers found for your country.</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {CURATED_PROVIDER_IDS
+                .map((id) => providers.find((p) => p.provider_id === id))
+                .filter((p): p is NonNullable<typeof p> => p !== undefined)
+                .map((p) => {
                   const isSelected = settings.streamingServices.includes(p.provider_id);
                   const logo = logoUrl(p.logo_path, 'w92');
                   return (
                     <button
                       key={p.provider_id}
+                      type="button"
+                      aria-pressed={isSelected}
                       onClick={() => toggleProvider(p.provider_id)}
-                      className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all cursor-pointer ${
+                      className={`press relative flex flex-col items-center gap-1.5 rounded-[14px] p-3 transition-colors ${
                         isSelected
-                          ? 'border-accent bg-accent/10'
-                          : 'border-border-subtle bg-surface hover:border-accent/40 hover:bg-surface-overlay'
+                          ? 'bg-accent/12 ring-2 ring-inset ring-accent'
+                          : 'bg-fill hover:bg-fill-strong'
                       }`}
                     >
                       {logo && (
-                        <img src={logo} alt={p.provider_name} className="w-10 h-10 rounded-lg object-cover" loading="lazy" />
+                        <img src={logo} alt="" className="h-10 w-10 rounded-[10px] object-cover" loading="lazy" />
                       )}
-                      <span className={`text-xs text-center leading-tight line-clamp-2 ${isSelected ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
+                      <span className={`line-clamp-2 text-center text-[0.75rem] leading-tight ${isSelected ? 'font-semibold text-text-primary' : 'text-text-secondary'}`}>
                         {p.provider_name}
                       </span>
                       {isSelected && (
-                        <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-accent rounded-full flex items-center justify-center text-white text-[9px] font-bold leading-none">
-                          ✓
+                        <span className="absolute right-1.5 top-1.5 grid h-4 w-4 place-items-center rounded-full bg-accent text-on-accent" aria-hidden="true">
+                          <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5 9-10" /></svg>
                         </span>
                       )}
                     </button>
                   );
                 })}
-              </div>
-            )}
-          </div>
-
-          {/* ── Danger Zone ── */}
-          <div className="app-panel border-danger/30 p-5">
-            <div className="flex items-center gap-2.5 mb-5">
-              <div className="w-7 h-7 rounded-lg bg-danger/15 flex items-center justify-center shrink-0 text-danger">
-                <TrashIcon />
-              </div>
-              <h2 className="text-base font-semibold text-danger">Danger Zone</h2>
             </div>
+          )}
+        </div>
+      </Group>
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3">
-              <div>
-                <p className="text-sm font-medium">Clear All Library Data</p>
-                <p className="text-xs text-text-secondary mt-0.5">Permanently removes all items, ratings, and episode progress</p>
-              </div>
-              <button
-                onClick={handleClear}
-                disabled={clearing}
-                className="shrink-0 sm:ml-4 px-3 py-1.5 bg-danger/15 text-danger rounded-lg text-sm font-medium hover:bg-danger/25 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {clearing ? 'Clearing…' : 'Clear all'}
-              </button>
-            </div>
+      {/* ── Preferences ── */}
+      <Group title="Preferences">
+        <Row title="Country" description="Used to find streaming services near you">
+          <Select
+            ariaLabel="Country"
+            value={settings.country}
+            onChange={(value) => updateSettings({ country: value })}
+            options={[
+              ...(!COUNTRIES.some((c) => c.code === settings.country) ? [{ value: settings.country, label: settings.country }] : []),
+              ...COUNTRIES.map((c) => ({ value: c.code, label: c.name })),
+            ]}
+          />
+        </Row>
+        <Row title="Show Spoilers" description="Reveal episode descriptions and AI recaps without a tap" titleId={`${switchId}-spoilers`}>
+          <Toggle
+            labelledBy={`${switchId}-spoilers`}
+            checked={settings.showSpoilers}
+            onChange={() => updateSettings({ showSpoilers: !settings.showSpoilers })}
+          />
+        </Row>
+        <Row title="Episode Recap" description="Show an AI Recap button on the last watched episode" titleId={`${switchId}-recap`}>
+          <Toggle
+            labelledBy={`${switchId}-recap`}
+            checked={settings.episodeRecapEnabled}
+            onChange={() => updateSettings({ episodeRecapEnabled: !settings.episodeRecapEnabled })}
+          />
+        </Row>
+      </Group>
+
+      {/* ── Library Data ── */}
+      <Group title="Library Data">
+        <div className="grouped-row flex-wrap justify-between gap-x-4 gap-y-2 py-3">
+          <div className="min-w-0 flex-1 basis-56">
+            <p className="t-body text-text-primary">Export to JSON</p>
+            <p className="t-caption mt-0.5">Download your full library as a backup file</p>
+            <StatusLine status={exportStatus} />
           </div>
+          <button type="button" onClick={handleExport} disabled={exporting} className={buttonClasses('tinted', 'md')}>
+            {exporting ? 'Exporting…' : 'Export'}
+          </button>
+        </div>
+        <div className="grouped-row flex-col items-stretch gap-2 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div className="min-w-0 flex-1 basis-56">
+              <p className="t-body text-text-primary">Import from JSON</p>
+              <p className="t-caption mt-0.5">Restore from an export file or a plain items array</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={importing}
+              aria-label={importing ? 'Importing JSON file' : 'Choose JSON file'}
+              className={buttonClasses('tinted', 'md', 'min-w-[105px]')}
+            >
+              {importing ? (
+                <span role="status" className="inline-flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/30 border-t-accent" aria-hidden="true" />
+                  Importing…
+                </span>
+              ) : (
+                'Choose file'
+              )}
+            </button>
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleImport}
+            disabled={importing}
+            className="hidden"
+          />
+          {importResult && (
+            <p className="t-caption font-medium text-success" role="status">
+              ✓ Added {importResult.added} item{importResult.added !== 1 ? 's' : ''}{importResult.skipped > 0 ? `, skipped ${importResult.skipped}` : ''}.
+            </p>
+          )}
+          {importError && <p className="t-caption font-medium text-danger" role="alert">⚠︎ {importError}</p>}
+          <details className="group">
+            <summary className="t-caption cursor-pointer select-none font-semibold text-accent">Show example JSON format</summary>
+            <pre className="mt-2 overflow-x-auto rounded-xl bg-fill p-3 text-xs leading-relaxed text-text-secondary">
+              {EXAMPLE_JSON}
+            </pre>
+            <p className="t-caption mt-2">
+              Valid <code className="rounded bg-fill px-1">contentType</code>: <code className="rounded bg-fill px-1">movie</code> | <code className="rounded bg-fill px-1">series</code><br />
+              Valid <code className="rounded bg-fill px-1">status</code>: <code className="rounded bg-fill px-1">watched</code> | <code className="rounded bg-fill px-1">plan_to_watch</code> | <code className="rounded bg-fill px-1">watching</code> | <code className="rounded bg-fill px-1">dropped</code><br />
+              <code className="rounded bg-fill px-1">progress</code> and <code className="rounded bg-fill px-1">episodes</code> are optional.
+            </p>
+          </details>
+        </div>
+      </Group>
 
-        </div>{/* end third column */}
+      {/* ── AI Assistant (advanced, collapsed by default) ── */}
+      <Group title="Watch Assistant">
+        <button
+          type="button"
+          aria-expanded={aiOpen}
+          onClick={() => setAiOpen((v) => !v)}
+          className="grouped-row w-full justify-between text-left transition-colors active:bg-fill [@media(hover:hover)]:hover:bg-fill"
+        >
+          <span>
+            <span className="t-body block text-text-primary">AI model</span>
+            <span className="t-caption block">{settings.openrouterEnabled ? 'OpenRouter' : 'GitHub Copilot (default)'}</span>
+          </span>
+          <m.svg
+            className="h-4 w-4 text-text-muted"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            initial={false}
+            animate={{ rotate: aiOpen ? 90 : 0 }}
+            transition={spring.default}
+          >
+            <path d="m9 18 6-6-6-6" />
+          </m.svg>
+        </button>
+        <AnimatePresence initial={false}>
+          {aiOpen && (
+            <m.div
+              key="ai"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ height: spring.move, opacity: { duration: 0.18 } }}
+              className="overflow-hidden"
+            >
+              <Row title="Use OpenRouter" description="Use your own API key instead of GitHub Copilot models" titleId={`${switchId}-openrouter`}>
+                <Toggle
+                  labelledBy={`${switchId}-openrouter`}
+                  checked={settings.openrouterEnabled}
+                  onChange={() => updateSettings({ openrouterEnabled: !settings.openrouterEnabled })}
+                />
+              </Row>
+              {settings.openrouterEnabled && (
+                <div className="grouped-row flex-col items-stretch gap-2 py-3">
+                  <label className="t-body text-text-primary" htmlFor="openrouter-api-key">API Key</label>
+                  <input
+                    id="openrouter-api-key"
+                    type="password"
+                    autoComplete="off"
+                    value={settings.openrouterApiKey}
+                    onChange={(e) => updateSettings({ openrouterApiKey: e.target.value })}
+                    placeholder="sk-or-..."
+                    className="field"
+                  />
+                  <p className="t-caption">
+                    Get yours at{' '}
+                    <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="font-semibold text-accent">
+                      openrouter.ai/keys
+                    </a>
+                  </p>
+                </div>
+              )}
+              {settings.openrouterEnabled && hasOpenrouterKey && (
+                <div className="grouped-row flex-col items-stretch gap-2 py-3">
+                  <p className="t-body text-text-primary">Model</p>
+                  <p className="t-caption">
+                    {orModelsLoading ? 'Loading models…' : orModelsError ? 'Failed to load models' : `${orModels.length} models available`}
+                  </p>
+                  <ModelPicker
+                    models={orModels}
+                    values={settings.openrouterModels}
+                    onChange={(ids) => {
+                      // Keep openrouterModel in sync — always points to an active pinned model
+                      const activeModel =
+                        ids.length === 0
+                          ? ''
+                          : ids.includes(settings.openrouterModel)
+                            ? settings.openrouterModel
+                            : ids[0];
+                      updateSettings({ openrouterModels: ids, openrouterModel: activeModel });
+                    }}
+                    disabled={orModelsLoading || orModels.length === 0}
+                    loading={orModelsLoading}
+                  />
+                  {orModelsError && <p className="t-caption text-danger" role="alert">{orModelsError}</p>}
+                </div>
+              )}
+            </m.div>
+          )}
+        </AnimatePresence>
+      </Group>
 
-      </div>
-      <p className="pb-4 text-center text-xs text-text-muted">
+      {/* ── Destructive action, separated at the bottom and confirmed inline ── */}
+      <Group footer={<>Permanently removes all items, ratings, and episode progress.<StatusLine status={clearStatus} /></>}>
+        <button
+          type="button"
+          aria-expanded={confirmingDelete}
+          onClick={() => setConfirmingDelete((v) => !v)}
+          disabled={clearing}
+          className="grouped-row w-full text-left transition-colors active:bg-fill disabled:opacity-50 [@media(hover:hover)]:hover:bg-fill"
+        >
+          <span className="t-body font-semibold text-danger">{clearing ? 'Deleting…' : 'Delete Library…'}</span>
+        </button>
+        <AnimatePresence initial={false}>
+          {confirmingDelete && (
+            <m.div
+              key="confirm"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ height: spring.default, opacity: { duration: 0.15 } }}
+              className="overflow-hidden"
+              role="alertdialog"
+              aria-label="Confirm delete library"
+            >
+              <div className="px-4 pb-4 pt-1">
+                <p className="t-callout mb-3 text-text-secondary">
+                  Delete <strong className="text-text-primary">{libraryCount} {libraryCount === 1 ? 'title' : 'titles'}</strong> and all episode progress? This can't be undone. Export a backup first if you might need it.
+                </p>
+                <div className="flex gap-2">
+                  <button type="button" autoFocus onClick={() => setConfirmingDelete(false)} className={buttonClasses('secondary', 'lg', 'flex-1')}>
+                    Cancel
+                  </button>
+                  <button type="button" onClick={handleClear} className={buttonClasses('destructive', 'lg', 'flex-1')}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </m.div>
+          )}
+        </AnimatePresence>
+      </Group>
+
+      <p className="t-caption pb-4 text-center text-text-muted">
         Watchlist {appVersion ? `v${appVersion}` : 'version unknown'}
       </p>
     </div>

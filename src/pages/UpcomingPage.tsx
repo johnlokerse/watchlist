@@ -7,6 +7,7 @@ import { useSettings } from '../hooks/useSettings';
 import Card from '../components/ui/Card';
 import CardGrid from '../components/ui/CardGrid';
 import SkeletonCard from '../components/ui/SkeletonCard';
+import { useToday } from '../hooks/useToday';
 
 const UPCOMING_STATUSES = new Set(['Returning Series', 'In Production', 'Planned']);
 const ENDED_STATUSES = new Set(['Ended', 'Canceled']);
@@ -33,7 +34,7 @@ export default function UpcomingPage({ contentType }: UpcomingPageProps) {
   const series = contentType === 'series' ? upcomingItems : undefined;
   const plannedMovies = usePlannedMovies();
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = useToday();
 
   // Fetch TMDB details for all series in the library (enabled only on series tab)
   const seriesIds = tab === 'series' ? (series ?? []).map((i) => i.tmdbId) : [];
@@ -90,24 +91,27 @@ export default function UpcomingPage({ contentType }: UpcomingPageProps) {
   const moviesItems = movies;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-9">
       {/* ── Movies tab ── */}
       {tab === 'movies' && (
         <>
           {moviesItems === undefined ? (
-            <div className="app-panel flex justify-center py-16">
-              <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            <div aria-busy="true">
+              <div className="skeleton mb-4 h-3.5 w-32 rounded" />
+              <CardGrid coverSize={settings.coverSize}>
+                {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+              </CardGrid>
             </div>
           ) : moviesItems.length === 0 ? (
-            <div className="app-panel py-16 text-center text-text-muted">
-              <p className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-lg border border-border-subtle bg-surface-overlay text-accent">
+            <div className="py-16 text-center text-text-secondary">
+              <p className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-accent/15 text-accent">
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3.5" y="4.5" width="17" height="16" rx="2.5" />
                   <path d="M8 2.8v4M16 2.8v4M3.5 9h17" />
                 </svg>
               </p>
-              <p className="font-medium mb-1">Nothing upcoming yet</p>
-              <p className="text-sm">
+              <p className="t-headline mb-1 text-text-primary">Nothing upcoming yet</p>
+              <p className="t-callout">
                 Add unreleased movies to your library and they'll appear here.
               </p>
             </div>
@@ -115,7 +119,7 @@ export default function UpcomingPage({ contentType }: UpcomingPageProps) {
             <section className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="section-title">Release dates</h2>
-                <span className="text-xs font-medium text-text-muted">{moviesItems.length} upcoming</span>
+                <span className="t-caption num text-text-muted">{moviesItems.length} upcoming</span>
               </div>
               <CardGrid coverSize={settings.coverSize}>
                 {moviesItems.map((item) => (
@@ -138,7 +142,7 @@ export default function UpcomingPage({ contentType }: UpcomingPageProps) {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="section-title">Planned</h2>
-                <span className="text-xs font-medium text-text-muted">{plannedMovies.length} items</span>
+                <span className="t-caption num text-text-muted">{plannedMovies.length} {plannedMovies.length === 1 ? 'item' : 'items'}</span>
               </div>
               <CardGrid coverSize={settings.coverSize}>
                 {plannedMovies.map((item) => (
@@ -164,8 +168,11 @@ export default function UpcomingPage({ contentType }: UpcomingPageProps) {
         <>
           {series === undefined || isSeriesDetailsLoading ? (
             series === undefined ? (
-              <div className="app-panel flex justify-center py-16">
-                <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+              <div aria-busy="true">
+                <div className="skeleton mb-4 h-3.5 w-32 rounded" />
+                <CardGrid coverSize={settings.coverSize}>
+                  {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+                </CardGrid>
               </div>
             ) : (
               <CardGrid coverSize={settings.coverSize}>
@@ -175,27 +182,27 @@ export default function UpcomingPage({ contentType }: UpcomingPageProps) {
               </CardGrid>
             )
           ) : series.length === 0 ? (
-            <div className="app-panel py-16 text-center text-text-muted">
-              <p className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-lg border border-border-subtle bg-surface-overlay text-accent">
+            <div className="py-16 text-center text-text-secondary">
+              <p className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-accent/15 text-accent">
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3.5" y="4.5" width="17" height="16" rx="2.5" />
                   <path d="M8 2.8v4M16 2.8v4M3.5 9h17" />
                 </svg>
               </p>
-              <p className="font-medium mb-1">Nothing upcoming yet</p>
-              <p className="text-sm">
+              <p className="t-headline mb-1 text-text-primary">Nothing upcoming yet</p>
+              <p className="t-callout">
                 Series on your watchlist with upcoming episodes will appear here.
               </p>
             </div>
           ) : upcomingEpisodes.length === 0 && announcedSeries.length === 0 && endedSeries.length === 0 ? (
-            <div className="app-panel py-16 text-center text-text-muted">
-              <p className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-lg border border-success/30 bg-success/10 text-success">
+            <div className="py-16 text-center text-text-secondary">
+              <p className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-success/15 text-success">
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m5 12 4 4L19 6" />
                 </svg>
               </p>
-              <p className="font-medium mb-1">All caught up</p>
-              <p className="text-sm">
+              <p className="t-headline mb-1 text-text-primary">All caught up</p>
+              <p className="t-callout">
                 None of your series have upcoming episodes right now.
               </p>
             </div>
@@ -205,7 +212,7 @@ export default function UpcomingPage({ contentType }: UpcomingPageProps) {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="section-title">Next episodes</h2>
-                    <span className="text-xs font-medium text-text-muted">{upcomingEpisodes.length} items</span>
+                    <span className="t-caption num text-text-muted">{upcomingEpisodes.length} {upcomingEpisodes.length === 1 ? 'item' : 'items'}</span>
                   </div>
                   <CardGrid coverSize={settings.coverSize}>
                     {upcomingEpisodes.map(({ item, detail }) => {
@@ -232,7 +239,7 @@ export default function UpcomingPage({ contentType }: UpcomingPageProps) {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="section-title">Announced</h2>
-                    <span className="text-xs font-medium text-text-muted">{announcedSeries.length} items</span>
+                    <span className="t-caption num text-text-muted">{announcedSeries.length} {announcedSeries.length === 1 ? 'item' : 'items'}</span>
                   </div>
                   <CardGrid coverSize={settings.coverSize}>
                     {announcedSeries.map(({ item, detail }) => (
@@ -254,9 +261,9 @@ export default function UpcomingPage({ contentType }: UpcomingPageProps) {
 
               {endedSeries.length > 0 && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="hairline-top flex items-center justify-between pt-6">
                     <h2 className="section-title">Ended</h2>
-                    <span className="text-xs font-medium text-text-muted">{endedSeries.length} items</span>
+                    <span className="t-caption num text-text-muted">{endedSeries.length} {endedSeries.length === 1 ? 'item' : 'items'}</span>
                   </div>
                   <CardGrid compact coverSize={settings.coverSize}>
                     {endedSeries.map(({ item, detail }) => (

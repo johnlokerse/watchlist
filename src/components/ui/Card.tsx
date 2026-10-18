@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { posterUrl } from '../../utils/image';
 import { formatDate } from '../../utils/date';
 import CountdownBadge from './CountdownBadge';
+import { statusLabel } from '../../utils/status';
 import type { NewSeasonState, WatchedStatus } from '../../db/models';
 
 export interface NewSeasonInfo {
@@ -27,16 +28,10 @@ interface Props {
   scrollRestoreId?: string;
 }
 
-function statusLabel(status: WatchedStatus): string | null {
-  if (status === 'watched') return 'Watched';
-  if (status === 'plan_to_watch' || status === 'watching') return 'In Library';
-  return null;
-}
-
 function PlaceholderPoster() {
   return (
     <div className="flex h-full w-full items-center justify-center text-text-muted">
-      <svg className="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <svg className="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M4 7h16v12.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5V7Z" />
         <path d="m4 7 2.8-4h4L8 7M12 7l2.8-4h4L16 7M4 11h16" />
       </svg>
@@ -44,6 +39,7 @@ function PlaceholderPoster() {
   );
 }
 
+/** Artwork-first card: the poster is the surface, the caption sits underneath. */
 export default function Card({
   id, title, posterPath, releaseDate, voteAverage, type, showCountdown, subtitle, compact, status, progressLabel, newSeason, onClick, scrollRestoreId,
 }: Props) {
@@ -53,70 +49,72 @@ export default function Card({
     ? `S${newSeason.number}${newSeason.state === 'airing' ? ' new' : ''}`
     : null;
   const bottomLabel = newSeason ? null : progressLabel;
+  const libraryLabel = status ? statusLabel(status) : null;
 
   return (
     <Link
       to={linkTo}
       onClick={onClick}
       data-scroll-restore-id={scrollRestoreId}
-      className="group/card block overflow-hidden rounded-lg border border-border-subtle bg-surface-raised shadow-[0_14px_40px_rgb(0_0_0_/_0.16)] transition-all hover:-translate-y-0.5 hover:border-accent/45 hover:bg-surface-overlay focus:outline-none focus:ring-2 focus:ring-accent/50"
+      className="group/card block rounded-xl outline-none transition-transform duration-100 ease-out active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
     >
-      <div className="relative aspect-[2/3] bg-surface-overlay">
+      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-surface-overlay shadow-card ring-1 ring-inset ring-hairline transition-[transform,box-shadow] duration-300 ease-out group-hover/card:-translate-y-0.5 group-hover/card:shadow-[0_18px_40px_-16px_rgb(0_0_0/0.6)]">
         {url ? (
           <img
             src={url}
             alt={title}
             loading="lazy"
-            className="h-full w-full object-cover transition duration-300 group-hover/card:scale-[1.025]"
+            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/card:scale-[1.03]"
           />
         ) : (
           <PlaceholderPoster />
         )}
-        {status && statusLabel(status) && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/55">
-            <span className="rounded-md border border-white/15 bg-black/65 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white shadow">
-              {statusLabel(status)}
-            </span>
-          </div>
+        {libraryLabel && (
+          <span className="material-chip t-micro absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-1">
+            <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m5 12 5 5 9-10" />
+            </svg>
+            {libraryLabel}
+          </span>
         )}
         {cornerLabel && (
-          <div
-            className="absolute left-2 top-2 flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-warning/90 px-1.5 py-1 text-[10px] font-bold uppercase leading-none tracking-wide text-[#1a1205] shadow"
+          <span
+            className="t-micro absolute left-1.5 top-1.5 inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-warning px-1.5 py-1 uppercase text-on-warning shadow-chip"
             title={
               newSeason!.state === 'airing'
                 ? `Season ${newSeason!.number} is airing`
                 : `Season ${newSeason!.number} announced`
             }
           >
-            <span className="text-[9px] leading-none text-white" aria-hidden="true">★</span>
+            <span aria-hidden="true">★</span>
             {cornerLabel}
-          </div>
+          </span>
         )}
         {showCountdown && releaseDate && (
-          <div className="absolute right-2 top-2">
+          <div className="absolute right-1.5 top-1.5">
             <CountdownBadge dateStr={releaseDate} />
           </div>
         )}
         {voteAverage != null && voteAverage > 0 && (
-          <div className="absolute bottom-2 left-2 rounded-md bg-black/75 px-2 py-0.5 text-xs font-semibold text-warning backdrop-blur-sm">
-            ★ {voteAverage.toFixed(1)}
-          </div>
+          <span className="material-chip t-micro num absolute bottom-1.5 left-1.5 rounded-md px-1.5 py-1">
+            <span className="text-warning" aria-hidden="true">★</span> {voteAverage.toFixed(1)}
+          </span>
         )}
         {bottomLabel && (
-          <div className="absolute bottom-2 right-2 rounded-md bg-surface-overlay/90 px-2 py-0.5 text-xs font-semibold text-accent backdrop-blur-sm">
+          <span className="t-micro num absolute bottom-1.5 right-1.5 rounded-md bg-accent px-1.5 py-1 text-on-accent shadow-chip">
             {bottomLabel}
-          </div>
+          </span>
         )}
       </div>
-      <div className={compact ? 'p-2 sm:p-3' : 'p-3'}>
-        <h3 className={`${compact ? 'text-xs sm:text-sm' : 'text-sm'} truncate font-semibold leading-snug text-text-primary transition-colors group-hover/card:text-accent`}>
+      <div className={compact ? 'px-0.5 pt-1.5' : 'px-0.5 pt-2'}>
+        <h3 className={`${compact ? 'text-[0.75rem] sm:text-[0.8125rem]' : 'text-[0.875rem]'} truncate font-semibold leading-snug tracking-[-0.005em] text-text-primary`}>
           {title}
         </h3>
         {subtitle && (
-          <p className={`mt-1 truncate text-xs text-text-secondary ${compact ? 'hidden sm:block' : ''}`}>{subtitle}</p>
+          <p className={`t-caption num mt-0.5 truncate ${compact ? 'hidden sm:block' : ''}`}>{subtitle}</p>
         )}
         {releaseDate && (
-          <p className={`mt-1 truncate whitespace-nowrap text-xs text-text-muted ${compact ? 'hidden sm:block' : ''}`}>{formatDate(releaseDate)}</p>
+          <p className={`t-caption num mt-0.5 truncate whitespace-nowrap text-text-muted ${compact ? 'hidden sm:block' : ''}`}>{formatDate(releaseDate)}</p>
         )}
       </div>
     </Link>

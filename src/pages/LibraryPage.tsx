@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AnimatePresence, m } from 'motion/react';
+import { spring } from '../design/motion';
+import { ratingLabel } from '../utils/rating';
+import ListRow from '../components/ui/ListRow';
 import { useWatchedItems, useAllSeriesProgress } from '../db/hooks';
 import { useNewSeasonCheck } from '../hooks/useNewSeasonCheck';
 import { useSearchMovies, useSearchSeries, useMovieGenres, useSeriesGenres, useAvailableProviders } from '../api/tmdb';
@@ -18,8 +22,8 @@ import type { NewSeasonInfo } from '../components/ui/Card';
 import CardGrid from '../components/ui/CardGrid';
 import SkeletonCard from '../components/ui/SkeletonCard';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { formatDate } from '../utils/date';
-import { posterUrl, logoUrl } from '../utils/image';
+import { formatDate, toLocalISODate } from '../utils/date';
+import { logoUrl } from '../utils/image';
 
 const LIBRARY_SCROLL_RESTORE_KEY = 'library-scroll-restore';
 
@@ -150,32 +154,34 @@ function sortItems(items: WatchedItem[], sort: SortOption, tmdbRatings?: Map<str
 
 function FilterToggleButton({
   expanded,
-  active,
+  activeCount,
   onClick,
-  className = '',
 }: {
   expanded: boolean;
-  active: boolean;
+  activeCount: number;
   onClick: () => void;
-  className?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-expanded={expanded}
-      aria-label="Toggle library filters"
-      className={`inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-lg border transition ${
-        active
-          ? 'border-accent/45 bg-accent/15 text-accent'
-          : 'border-border-subtle bg-surface-raised text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
-      } ${className}`}
+      aria-label={activeCount > 0 ? `Filters, ${activeCount} active` : 'Filters'}
+      title="Filters"
+      className={`press relative grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors ${
+        expanded || activeCount > 0
+          ? 'bg-accent/15 text-accent'
+          : 'bg-fill text-text-secondary hover:bg-fill-strong hover:text-text-primary'
+      }`}
     >
-      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M4 7h16" />
-        <path d="M7 12h10" />
-        <path d="M10 17h4" />
+      <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 5h16l-6.2 7.6V19l-3.6-1.8v-4.6L4 5Z" />
       </svg>
+      {activeCount > 0 && (
+        <span className="t-micro num absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-accent px-1 text-on-accent shadow-chip">
+          {activeCount}
+        </span>
+      )}
     </button>
   );
 }
@@ -191,10 +197,6 @@ function needsStreamingAvailability(item: WatchedItem) {
   return item.status === 'plan_to_watch';
 }
 
-function itemHref(item: WatchedItem) {
-  return item.contentType === 'movie' ? `/movie/${item.tmdbId}` : `/series/${item.tmdbId}`;
-}
-
 function itemReleaseLabel(item: WatchedItem) {
   return item.releaseDate ? formatDate(item.releaseDate) : 'TBA';
 }
@@ -205,79 +207,39 @@ function SeriesProgressValue({ progress }: { progress: SeriesProgress | undefine
 
   if (newSeason) {
     return (
-      <span className="font-semibold text-warning">
-        {newSeason.state === 'airing' ? `New S${newSeason.number} airing` : `S${newSeason.number} announced`}
+      <span className="t-micro shrink-0 rounded-md bg-warning px-1.5 py-1 text-on-warning">
+        {newSeason.state === 'airing' ? `New S${newSeason.number}` : `S${newSeason.number} announced`}
       </span>
     );
   }
 
-  return (
-    <span className={label ? 'font-semibold text-accent' : 'text-text-muted'}>
-      {label ?? 'No progress'}
-    </span>
-  );
+  return label ? (
+    <span className="t-micro num shrink-0 rounded-md bg-accent/15 px-1.5 py-1 text-accent">{label}</span>
+  ) : null;
 }
 
-
-function LibraryTable({ items, progressByTmdbId, onOpen }: { items: WatchedItem[]; progressByTmdbId: ProgressMap; onOpen: () => void }) {
+function LibraryList({ items, progressByTmdbId, onOpen }: { items: WatchedItem[]; progressByTmdbId: ProgressMap; onOpen: () => void }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border-subtle bg-surface-raised">
-      <div className="hidden grid-cols-[minmax(0,1.7fr)_130px_130px_110px] gap-3 border-b border-border-subtle px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-text-muted md:grid">
-        <span>Title</span>
-        <span>Release</span>
-        <span>Status</span>
-        <span>Signal</span>
-      </div>
-      <div className="divide-y divide-border-subtle">
-        {items.map((item) => {
-          const poster = posterUrl(item.posterPath, 'w92');
-
-          const restoreId = getLibraryItemRestoreId(item.contentType, item.tmdbId);
-
-          return (
-            <div
-              key={itemKey(item)}
-              data-scroll-restore-id={restoreId}
-              className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 px-3 py-3 transition hover:bg-surface-overlay md:grid-cols-[minmax(0,1.7fr)_130px_130px_110px] md:items-center md:px-4"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="h-14 w-10 shrink-0 overflow-hidden rounded-md border border-border-subtle bg-surface-overlay">
-                  {poster ? (
-                    <img src={poster} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="grid h-full place-items-center text-[10px] text-text-muted">N/A</div>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <Link
-                    to={itemHref(item)}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onOpen();
-                    }}
-                    className="block truncate font-semibold text-text-primary transition hover:text-accent"
-                  >
-                    {item.title}
-                  </Link>
-                  <p className="mt-1 text-xs capitalize text-text-muted">{item.contentType}</p>
-                </div>
-              </div>
-
-              <span className="hidden text-sm text-text-secondary md:block">{itemReleaseLabel(item)}</span>
-              <span className="hidden text-sm font-semibold text-text-primary md:block">{STATUS_LABELS[item.status]}</span>
-              <span className="self-center justify-self-end text-sm md:justify-self-start">
-                {item.contentType === 'series' ? (
-                  <SeriesProgressValue progress={progressByTmdbId?.get(item.tmdbId)} />
-                ) : (
-                  <span className={item.userRating ? 'font-semibold text-warning' : 'text-text-muted'}>
-                    {item.userRating ? `${item.userRating}/10` : 'No rating'}
-                  </span>
-                )}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+    <div className="grouped">
+      {items.map((item) => (
+        <ListRow
+          key={itemKey(item)}
+          id={item.tmdbId}
+          title={item.title}
+          posterPath={item.posterPath}
+          type={item.contentType}
+          onClick={onOpen}
+          scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
+          meta={`${itemReleaseLabel(item)} · ${STATUS_LABELS[item.status]}`}
+          trailing={
+            item.contentType === 'series' ? (
+              <SeriesProgressValue progress={progressByTmdbId?.get(item.tmdbId)} />
+            ) : item.userRating ? (
+              <span className="t-callout num shrink-0 font-semibold text-warning">{ratingLabel(item.userRating)}</span>
+            ) : null
+          }
+        />
+      ))}
     </div>
   );
 }
@@ -304,59 +266,73 @@ function LibraryCollection({
   if (items.length === 0) return null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <section>
+      <div className="mb-3 flex items-center justify-between">
         <h2 className="section-title">
           <button
             type="button"
             onClick={onToggleCollapse}
             aria-expanded={!collapsed}
-            className="inline-flex items-center gap-2 text-left text-inherit hover:text-text-primary transition-colors"
+            className="press inline-flex min-h-8 items-center gap-1.5 text-left text-inherit transition-colors hover:text-text-primary"
           >
             {title}
-            <svg
-              className={`h-3.5 w-3.5 text-text-muted transition-transform ${collapsed ? '-rotate-90' : 'rotate-0'}`}
+            <m.svg
+              className="h-3.5 w-3.5"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.6"
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
+              initial={false}
+              animate={{ rotate: collapsed ? -90 : 0 }}
+              transition={spring.default}
             >
               <path d="m6 9 6 6 6-6" />
-            </svg>
+            </m.svg>
           </button>
         </h2>
-        <span className="text-xs font-medium text-text-muted">{items.length} items</span>
+        <span className="t-caption num text-text-muted">{items.length} {items.length === 1 ? 'item' : 'items'}</span>
       </div>
-      {collapsed ? null : (
-        <>
-      {viewMode === 'cards' ? (
-        <CardGrid compact={coverSize === 'xs' || title === 'Watched'} coverSize={coverSize}>
-          {items.map((item) => {
-            const progress = item.contentType === 'series' ? progressByTmdbId?.get(item.tmdbId) : undefined;
-            return (
-              <Card
-                key={itemKey(item)}
-                id={item.tmdbId}
-                title={item.title}
-                posterPath={item.posterPath}
-                type={item.contentType}
-                progressLabel={item.status === 'watching' ? progressLabelFor(progress) : undefined}
-                newSeason={newSeasonInfo(progress)}
-                onClick={onOpenItem}
-                scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
-              />
-            );
-          })}
-        </CardGrid>
-      ) : (
-        <LibraryTable items={items} progressByTmdbId={progressByTmdbId} onOpen={onOpenItem} />
-      )}
-        </>
-      )}
-    </div>
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <m.div
+            key="content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ height: spring.move, opacity: { duration: 0.18 } }}
+            className="-mx-2 -mb-2 overflow-hidden px-2 pb-2"
+          >
+            <m.div key={`${viewMode}-${coverSize}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+              {viewMode === 'cards' ? (
+                <CardGrid compact={coverSize === 'xs' || title === 'Watched'} coverSize={coverSize}>
+                  {items.map((item) => {
+                    const progress = item.contentType === 'series' ? progressByTmdbId?.get(item.tmdbId) : undefined;
+                    return (
+                      <Card
+                        key={itemKey(item)}
+                        id={item.tmdbId}
+                        title={item.title}
+                        posterPath={item.posterPath}
+                        type={item.contentType}
+                        progressLabel={item.status === 'watching' ? progressLabelFor(progress) : undefined}
+                        newSeason={newSeasonInfo(progress)}
+                        onClick={onOpenItem}
+                        scrollRestoreId={getLibraryItemRestoreId(item.contentType, item.tmdbId)}
+                      />
+                    );
+                  })}
+                </CardGrid>
+              ) : (
+                <LibraryList items={items} progressByTmdbId={progressByTmdbId} onOpen={onOpenItem} />
+              )}
+            </m.div>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </section>
   );
 }
 
@@ -510,7 +486,7 @@ export default function LibraryPage({ contentType }: LibraryPageProps) {
 
     // Exclude movies shown on the Upcoming page
     if (contentType === 'movie') {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = toLocalISODate();
       result = result.filter((i) => {
         const isUpcoming = i.releaseDate && i.releaseDate >= today;
         const isPlanned = i.status === 'plan_to_watch' && !i.releaseDate;
@@ -633,13 +609,21 @@ export default function LibraryPage({ contentType }: LibraryPageProps) {
     setShowMobileFilters((value) => !value);
   };
 
+  const activeFilterCount = statusFilters.length + genreFilters.length + streamingFilters.length;
+
   return (
     <div className="space-y-6">
-      <div ref={controlsRef} className="mobile-safe-sticky-top sticky top-[var(--safe-area-top)] z-30 -mx-4 border-y border-border-subtle bg-surface/95 p-3 shadow-lg backdrop-blur md:static md:mx-0 md:rounded-lg md:border md:bg-surface-raised md:p-4 md:shadow-[0_18px_60px_rgb(0_0_0_/_0.18)]">
-        <div className={`flex gap-2 md:pr-0 ${isControlsStuck ? 'pr-14' : 'pr-0'}`}>
+      {/* Sticky toolbar: translucent material on mobile (content scrolls underneath), a panel on desktop. */}
+      <div
+        ref={controlsRef}
+        className={`mobile-safe-sticky-top sticky top-[var(--safe-area-top)] z-30 -mx-4 px-4 py-2.5 md:static md:mx-0 md:p-0 ${
+          isControlsStuck ? 'material-chrome hairline-bottom' : ''
+        } md:bg-transparent md:shadow-none md:backdrop-blur-none`}
+      >
+        <div className={`flex gap-2 md:pr-0 ${isControlsStuck ? 'pr-12' : 'pr-0'}`}>
           <FilterToggleButton
             expanded={showCurrentFilters}
-            active={showCurrentFilters || statusFilters.length > 0 || genreFilters.length > 0 || streamingFilters.length > 0}
+            activeCount={activeFilterCount}
             onClick={toggleCurrentFilters}
           />
           <div className="min-w-0 flex-1">
@@ -650,59 +634,78 @@ export default function LibraryPage({ contentType }: LibraryPageProps) {
             />
           </div>
         </div>
-        <div className={`${showCurrentFilters ? 'flex' : 'hidden'} mt-3 flex-col gap-3`}>
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap items-center gap-3">
-              <ViewToggle
-                value={viewMode}
-                onChange={setViewMode}
-                coverSize={settings.coverSize}
-                onCoverSizeChange={(size) => updateSettings({ coverSize: size })}
-              />
-              <Select
-                ariaLabel="Sort library"
-                options={SORT_OPTIONS}
-                value={sort}
-                onChange={(value) => setSort(value as SortOption)}
-              />
-            </div>
-            <FilterBar
-              filters={tab === 'movies' ? MOVIE_STATUS_FILTERS : SERIES_STATUS_FILTERS}
-              selected={statusFilters}
-              onChange={setStatusFilters}
-            />
-            <p className="text-xs font-medium text-text-muted">
-              {isSearching ? `Searching TMDB for "${debouncedSearch}"` : `${filteredItems.length} ${tab} shown`}
-            </p>
-          </div>
-          {genreFilterOptions.length > 0 && (
-            <div className="flex flex-col gap-2 border-t border-border-subtle pt-3">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Genres</span>
-              <FilterBar
-                filters={genreFilterOptions}
-                selected={genreFilters}
-                onChange={setGenreFilters}
-                ariaLabel="Genres"
-              />
-            </div>
+        <AnimatePresence initial={false}>
+          {showCurrentFilters && (
+            <m.div
+              key="filters"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ height: spring.move, opacity: { duration: 0.18 } }}
+              className="overflow-hidden"
+            >
+              <div className="max-h-[60svh] overflow-y-auto overscroll-contain pt-3 md:max-h-none">
+                <div className="app-panel space-y-4 p-3 md:p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ViewToggle
+                        value={viewMode}
+                        onChange={setViewMode}
+                        coverSize={settings.coverSize}
+                        onCoverSizeChange={(size) => updateSettings({ coverSize: size })}
+                      />
+                      <Select
+                        ariaLabel="Sort library"
+                        options={SORT_OPTIONS}
+                        value={sort}
+                        onChange={(value) => setSort(value as SortOption)}
+                      />
+                    </div>
+                    <p className="t-caption num text-text-muted">
+                      {isSearching ? `Searching TMDB for "${debouncedSearch}"` : `${filteredItems.length} ${tab} shown`}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <span className="t-label">Status</span>
+                    <FilterBar
+                      filters={tab === 'movies' ? MOVIE_STATUS_FILTERS : SERIES_STATUS_FILTERS}
+                      selected={statusFilters}
+                      onChange={setStatusFilters}
+                      ariaLabel="Status"
+                    />
+                  </div>
+                  {genreFilterOptions.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="t-label">Genres</span>
+                      <FilterBar
+                        filters={genreFilterOptions}
+                        selected={genreFilters}
+                        onChange={setGenreFilters}
+                        ariaLabel="Genres"
+                      />
+                    </div>
+                  )}
+                  {streamingFilterOptions.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="t-label">
+                        Streaming
+                        {providersLoading && streamingFilters.length > 0 && (
+                          <span className="ml-2 normal-case tracking-normal">Checking availability…</span>
+                        )}
+                      </span>
+                      <FilterBar
+                        filters={streamingFilterOptions}
+                        selected={streamingFilters}
+                        onChange={setStreamingFilters}
+                        ariaLabel="Streaming services"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </m.div>
           )}
-          {streamingFilterOptions.length > 0 && (
-            <div className="flex flex-col gap-2 border-t border-border-subtle pt-3">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-                Streaming
-                {providersLoading && streamingFilters.length > 0 && (
-                  <span className="ml-2 normal-case text-text-muted">Checking availability…</span>
-                )}
-              </span>
-              <FilterBar
-                filters={streamingFilterOptions}
-                selected={streamingFilters}
-                onChange={setStreamingFilters}
-                ariaLabel="Streaming services"
-              />
-            </div>
-          )}
-        </div>
+        </AnimatePresence>
       </div>
 
       {/* Library items */}
@@ -713,18 +716,18 @@ export default function LibraryPage({ contentType }: LibraryPageProps) {
               {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
             </CardGrid>
           ) : filteredItems.length === 0 ? (
-            <div className="text-center py-16 text-text-muted">
-              <p className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-lg border border-border-subtle bg-surface-overlay text-accent">
+            <div className="py-16 text-center text-text-secondary">
+              <p className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-accent/15 text-accent">
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4 5.5h11.5a2.5 2.5 0 0 1 2.5 2.5v11.5H6.5A2.5 2.5 0 0 1 4 17V5.5Z" />
                   <path d="M7.5 5.5v14M9.5 9h5M9.5 12h5" />
                 </svg>
               </p>
-              <p>No {tab} in your library yet.</p>
-              <p className="text-sm mt-1">Search above to find and add some!</p>
+              <p className="t-headline text-text-primary">No {tab} in your library yet.</p>
+              <p className="t-callout mt-1">Search above to find and add some!</p>
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-9">
               {librarySections.map((section) => (
                 <LibraryCollection
                   key={section.status}
@@ -751,14 +754,14 @@ export default function LibraryPage({ contentType }: LibraryPageProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="section-title">Search Results</h2>
-            <span className="text-xs font-medium text-text-muted">{tmdbResults.length} matches</span>
+            <span className="t-caption num text-text-muted">{tmdbResults.length} {tmdbResults.length === 1 ? 'match' : 'matches'}</span>
           </div>
           {searchLoading ? (
             <CardGrid coverSize={settings.coverSize}>
               {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
             </CardGrid>
           ) : searchError ? (
-            <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-text-secondary">
+            <div className="rounded-2xl bg-warning/12 p-4 text-[0.875rem] text-text-secondary" role="alert">
               <p className="font-medium text-text-primary">
                 {tmdbTokenConfigured ? 'TMDB search failed' : 'TMDB API token required'}
               </p>
@@ -772,7 +775,7 @@ export default function LibraryPage({ contentType }: LibraryPageProps) {
               </Link>
             </div>
           ) : tmdbResults.length === 0 ? (
-            <p className="text-text-muted py-8 text-center">No results found for "{debouncedSearch}"</p>
+            <p className="t-callout py-8 text-center text-text-secondary">No results for "{debouncedSearch}"</p>
           ) : (
             <CardGrid coverSize={settings.coverSize}>
               {tmdbResults.map((item) => {

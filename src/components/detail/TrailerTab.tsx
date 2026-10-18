@@ -23,7 +23,7 @@ export default function TrailerTab({ videos }: Props) {
 
   if (ordered.length === 0) {
     return (
-      <div className="text-center py-16 text-text-muted">
+      <div className="py-16 text-center text-text-secondary">
         <p className="text-3xl mb-2">🎬</p>
         <p>No trailers available.</p>
       </div>
@@ -38,7 +38,7 @@ export default function TrailerTab({ videos }: Props) {
       <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
         <iframe
           key={active.key}
-          className="absolute inset-0 w-full h-full rounded-xl"
+          className="absolute inset-0 h-full w-full rounded-[20px] shadow-card"
           src={`https://www.youtube-nocookie.com/embed/${active.key}?rel=0`}
           title={active.name}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -46,21 +46,23 @@ export default function TrailerTab({ videos }: Props) {
         />
       </div>
 
-      <p className="text-sm font-medium text-text-primary">{active.name}</p>
+      <p className="t-headline text-text-primary">{active.name}</p>
 
       {/* Playlist — only shown when there are multiple videos */}
       {ordered.length > 1 && (
         <div className="space-y-1">
-          <p className="text-xs text-text-muted uppercase tracking-wide mb-2">More videos</p>
-          <div className="flex flex-col gap-1">
+          <p className="section-title mb-2">More videos</p>
+          <div className="grouped">
             {ordered.map((v, i) => (
               <button
                 key={v.id}
+                type="button"
+                aria-pressed={i === selected}
                 onClick={() => setSelected(i)}
-                className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                className={`grouped-row w-full text-left text-[0.875rem] transition-colors ${
                   i === selected
-                    ? 'bg-accent/15 text-accent font-medium'
-                    : 'text-text-secondary hover:bg-surface-raised hover:text-text-primary'
+                    ? 'bg-accent/12 text-accent'
+                    : 'text-text-primary active:bg-fill [@media(hover:hover)]:hover:bg-fill'
                 }`}
               >
                 <span className="font-medium">{v.type}</span>

@@ -1,4 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { AnimatePresence, m } from 'motion/react';
+import { spring } from '../../design/motion';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import Sheet from '../ui/Sheet';
 import { useChat } from '../../hooks/useChat';
 import { useSettings } from '../../hooks/useSettings';
 import { useChatHistory } from '../../hooks/useChatHistory';
@@ -18,7 +22,7 @@ interface TMDBChatDetails {
 
 function AssistantIcon() {
   return (
-    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="h-5 w-5 md:h-6 md:w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 7h16v12.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5V7Z" />
       <path d="m4 7 2.8-4h4L8 7M12 7l2.8-4h4L16 7M4 11h16" />
       <path d="M9 15h6M12 14v2" />
@@ -31,9 +35,11 @@ export default function CopilotChat() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const isMobile = useMediaQuery('(max-width: 767.98px)');
+  const fabRef = useRef<HTMLButtonElement>(null);
 
   const { settings, updateSettings } = useSettings();
-  const { sessionId, messages, isStreaming, error, createSession, sendMessage, destroySession, setMessages, setSessionId } = useChat();
+  const { sessionId, messages, isStreaming, error, createSession, sendMessage, retryLast, destroySession, setMessages, setSessionId } = useChat();
   const { sessions, isLoadingSessions, loadSessions, resumeSession } = useChatHistory();
 
   const initSession = useCallback((modelOverride?: string) => {
@@ -169,64 +175,120 @@ export default function CopilotChat() {
     setIsExpanded((e) => !e);
   }, []);
 
+  // Escape closes the desktop panel (the mobile sheet handles its own keys).
+  useEffect(() => {
+    if (!isOpen || isMobile) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isExpanded) setIsExpanded(false);
+        else handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isOpen, isMobile, isExpanded, handleClose]);
+
+  const panel = (onClose: () => void) => (
+    <ChatPanel
+      messages={messages}
+      isStreaming={isStreaming}
+      error={error}
+      isCreatingSession={isCreatingSession || (!sessionId && !sessionError)}
+      sessionError={sessionError}
+      onSend={handleSend}
+      onClose={onClose}
+      onRetry={initSession}
+      onRetryMessage={retryLast}
+      onNewChat={handleNewChat}
+      onAdd={handleAdd}
+      pinnedModels={settings.openrouterModels}
+      activeModel={settings.openrouterModel}
+      onModelChange={handleModelChange}
+      isExpanded={isExpanded && !isMobile}
+      onToggleExpand={handleToggleExpand}
+      sessions={sessions}
+      activeSessionId={sessionId}
+      isLoadingSessions={isLoadingSessions}
+      onSelectSession={handleSelectSession}
+    />
+  );
+
   return (
     <>
-      {isOpen && (
-        <>
-          {/* Mobile backdrop */}
-          <div className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
-          {/* Desktop expanded backdrop */}
-          {isExpanded && (
-            <div className="hidden md:block fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={handleToggleExpand} />
-          )}
-          <div className={`fixed z-50 bg-surface border border-border-subtle shadow-2xl flex flex-col overflow-hidden inset-0 md:inset-auto md:rounded-lg ${
-            isExpanded
-              ? 'md:top-[calc(3.5rem+1rem)] md:left-1/2 md:-translate-x-1/2 md:w-[min(1040px,92vw)] md:h-[calc(100vh-3.5rem-2rem)]'
-              : 'md:bottom-24 md:right-6 md:w-[380px] md:h-[560px]'
-          }`}>
-            <ChatPanel
-              messages={messages}
-              isStreaming={isStreaming}
-              error={error}
-              isCreatingSession={isCreatingSession || (!sessionId && !sessionError)}
-              sessionError={sessionError}
-              onSend={handleSend}
-              onClose={handleClose}
-              onRetry={initSession}
-              onNewChat={handleNewChat}
-              onAdd={handleAdd}
-              pinnedModels={settings.openrouterModels}
-              activeModel={settings.openrouterModel}
-              onModelChange={handleModelChange}
-              isExpanded={isExpanded}
-              onToggleExpand={handleToggleExpand}
-              sessions={sessions}
-              activeSessionId={sessionId}
-              isLoadingSessions={isLoadingSessions}
-              onSelectSession={handleSelectSession}
-            />
-          </div>
-        </>
+      {/* Mobile: a draggable bottom sheet */}
+      {isOpen && isMobile && (
+        <Sheet onClose={handleClose} labelledBy="watch-assistant-title" tall>
+          {(dismiss) => panel(dismiss)}
+        </Sheet>
       )}
 
-      <button
-        onClick={() => setIsOpen((o) => !o)}
-        className={`mobile-safe-fab fixed z-50 right-3 top-[13px] h-[46px] w-[46px] md:top-auto md:right-6 md:bottom-6 md:h-14 md:w-14 rounded-lg shadow-lg flex items-center justify-center transition-all duration-200 ${
-          isOpen
-            ? 'bg-surface-overlay text-text-secondary border border-border-subtle scale-95'
-            : 'bg-accent hover:bg-accent-hover text-white scale-100 hover:scale-105'
-        }`}
-        aria-label={isOpen ? 'Close assistant' : 'Open watch assistant (⌘K)'}
-        title={isOpen ? 'Close assistant' : 'Open watch assistant (⌘K / Ctrl+K)'}
-      >
-        {isOpen ? (
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
-        ) : (
-          <AssistantIcon />
+      {/* Desktop: a floating, non-modal panel that grows out of the button (no scrim);
+          expanded it becomes a modal focus surface with a dimming scrim. */}
+      <AnimatePresence>
+        {isOpen && !isMobile && isExpanded && (
+          <m.div
+            key="chat-scrim"
+            className="fixed inset-0 z-40 bg-black/45"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={handleToggleExpand}
+            aria-hidden="true"
+          />
         )}
-      </button>
+        {isOpen && !isMobile && (
+          <m.div
+            key="chat-panel"
+            layout
+            role="dialog"
+            aria-labelledby="watch-assistant-title"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ ...spring.default, opacity: { duration: 0.15 } }}
+            style={{ transformOrigin: 'bottom right' }}
+            className={`material-sheet shadow-sheet fixed z-50 flex flex-col overflow-hidden rounded-[20px] ${
+              isExpanded
+                ? 'inset-x-0 top-8 mx-auto h-[calc(100dvh-4rem)] w-[min(1040px,92vw)]'
+                : 'bottom-24 right-6 h-[min(600px,calc(100dvh-8rem))] w-[400px]'
+            }`}
+          >
+            {panel(handleClose)}
+          </m.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {!(isOpen && isMobile) && (
+          <m.button
+            key="chat-fab"
+            ref={fabRef}
+            type="button"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={spring.default}
+            onClick={() => setIsOpen((o) => !o)}
+            className={`mobile-safe-fab press fixed right-3 top-[10px] z-50 grid h-10 w-10 place-items-center rounded-full shadow-card md:bottom-6 md:right-6 md:top-auto md:h-14 md:w-14 ${
+              isOpen
+                ? 'material-sheet text-text-secondary'
+                : 'bg-accent text-on-accent hover:bg-accent-hover'
+            }`}
+            aria-label={isOpen ? 'Close assistant' : 'Open watch assistant (⌘K)'}
+            aria-expanded={isOpen}
+            title={isOpen ? 'Close assistant' : 'Open watch assistant (⌘K / Ctrl+K)'}
+          >
+            {isOpen ? (
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            ) : (
+              <AssistantIcon />
+            )}
+          </m.button>
+        )}
+      </AnimatePresence>
     </>
   );
 }

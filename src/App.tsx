@@ -7,6 +7,8 @@ import SettingsPage from './pages/SettingsPage';
 import InsightsPage from './pages/InsightsPage';
 import MovieDetailPage from './pages/MovieDetailPage';
 import SeriesDetailPage from './pages/SeriesDetailPage';
+import { TodayProvider } from './hooks/useToday';
+import ToastProvider from './components/ui/ToastProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,22 +28,26 @@ function LegacyMediaRedirect({ view }: { view: 'library' | 'upcoming' }) {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<AppShell />}>
-        <Route path="/" element={<Navigate to="/movies" replace />} />
-        <Route path="/movies" element={<MediaPage contentType="movie" />} />
-        <Route path="/series" element={<MediaPage contentType="series" />} />
-        <Route path="/library" element={<LegacyMediaRedirect view="library" />} />
-        <Route path="/upcoming" element={<LegacyMediaRedirect view="upcoming" />} />
-            <Route path="/discover" element={<DiscoverPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/insights" element={<InsightsPage />} />
-            <Route path="/movie/:id" element={<MovieDetailPage />} />
-            <Route path="/series/:id" element={<SeriesDetailPage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <TodayProvider>
+        <ToastProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<AppShell />}>
+              <Route path="/" element={<Navigate to="/movies" replace />} />
+              <Route path="/movies" element={<MediaPage contentType="movie" />} />
+              <Route path="/series" element={<MediaPage contentType="series" />} />
+              <Route path="/library" element={<LegacyMediaRedirect view="library" />} />
+              <Route path="/upcoming" element={<LegacyMediaRedirect view="upcoming" />} />
+              <Route path="/discover" element={<DiscoverPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/insights" element={<InsightsPage />} />
+              <Route path="/movie/:id" element={<MovieDetailPage />} />
+              <Route path="/series/:id" element={<SeriesDetailPage />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+        </ToastProvider>
+      </TodayProvider>
     </QueryClientProvider>
   );
 }

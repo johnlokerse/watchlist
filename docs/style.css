@@ -317,6 +317,12 @@ nav {
   box-shadow: 0 20px 50px rgba(0,0,0,0.5);
 }
 
+.feature-media-portrait {
+  width: 100%;
+  max-width: 320px;
+  margin-inline: auto;
+}
+
 .feature-media video,
 .feature-media img {
   width: 100%;
