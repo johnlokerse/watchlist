@@ -539,7 +539,7 @@ export default function SettingsPage() {
 
       let added = 0;
       let skipped = 0;
-      // Exports are newest-first; without addedAt, import oldest-first so the "added now" order matches.
+      // Older exports lack addedAt and are ordered newest-first; import oldest-first to preserve order.
       const ordered = entries.some((e) => e.addedAt) ? entries : [...entries].reverse();
       for (const entry of ordered) {
         if (!entry.tmdbId || !entry.title || !entry.contentType || !entry.status) {
@@ -556,8 +556,8 @@ export default function SettingsPage() {
           userRating: entry.userRating ?? null,
           notes: entry.notes ?? '',
           genreIds: Array.isArray(entry.genreIds) ? entry.genreIds : [],
-          addedAt: entry.addedAt ?? undefined,
           watchedAt: entry.watchedAt ?? null,
+          addedAt: entry.addedAt ?? undefined,
         });
 
         if (!id) { skipped++; continue; }

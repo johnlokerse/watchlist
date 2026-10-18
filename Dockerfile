@@ -14,7 +14,7 @@ RUN npm run build
 # Stage 2: Runtime
 FROM node:22-bookworm-slim
 
-ARG APP_VERSION=1.5.3
+ARG APP_VERSION=2.0.0
 
 # Install gh CLI (required by Copilot SDK)
 RUN apt-get update && apt-get install -y curl && \

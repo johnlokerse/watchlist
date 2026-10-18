@@ -905,7 +905,9 @@ export const queries = {
     );
     return {
       items: items.map(({ tmdbId, title, contentType, status, posterPath, releaseDate, userRating, notes, watchedAt, addedAt, genreIds }) => ({
-        tmdbId, title, contentType, status, posterPath, releaseDate, addedAt,
+        tmdbId, title, contentType, status, posterPath, releaseDate,
+        addedAt,
+        ...(genreIds.length > 0 && { genreIds }),
         ...(userRating != null && { userRating }),
         ...(notes && { notes }),
         ...(watchedAt != null && { watchedAt }),
