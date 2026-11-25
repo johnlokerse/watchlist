@@ -17,20 +17,6 @@ async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): 
 
 // --- Movies ---
 
-export function useUpcomingMovies() {
-  return useInfiniteQuery({
-    queryKey: ['movies', 'upcoming'],
-    queryFn: ({ pageParam = 1 }) =>
-      tmdbFetch<TMDBPagedResponse<TMDBMovie>>('/movie/upcoming', {
-        page: String(pageParam),
-        region: 'NL',
-      }),
-    initialPageParam: 1,
-    getNextPageParam: (last) => (last.page < last.total_pages ? last.page + 1 : undefined),
-    staleTime: STALE_TIME_LIST,
-  });
-}
-
 export function useMovieDetail(id: number | undefined) {
   return useQuery({
     queryKey: ['movie', id],
@@ -59,19 +45,6 @@ export function useSearchMovies(query: string) {
 }
 
 // --- Series ---
-
-export function useUpcomingSeries() {
-  return useInfiniteQuery({
-    queryKey: ['series', 'upcoming'],
-    queryFn: ({ pageParam = 1 }) =>
-      tmdbFetch<TMDBPagedResponse<TMDBSeries>>('/tv/on_the_air', {
-        page: String(pageParam),
-      }),
-    initialPageParam: 1,
-    getNextPageParam: (last) => (last.page < last.total_pages ? last.page + 1 : undefined),
-    staleTime: STALE_TIME_LIST,
-  });
-}
 
 export function useSeriesDetail(id: number | undefined) {
   return useQuery({

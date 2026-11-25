@@ -5,7 +5,7 @@
  *
  * Used exclusively by Playwright tests via playwright.config.ts webServer.
  */
-import express, { type Request } from 'express';
+import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
@@ -228,18 +228,24 @@ app.post('/api/migrate', (req, res) => {
 
 // ── Stubbed Chat Endpoints ─────────────────────────────────────────
 
+function sendSseStub(res: Response, events: unknown[]) {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+  for (const event of events) res.write(`data: ${JSON.stringify(event)}\n\n`);
+  res.end();
+}
+
 app.post('/api/chat/session', (_req, res) => {
   res.json({ sessionId: 'test-session-123' });
 });
 
 app.post('/api/chat/message', (_req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
-  res.write(`data: ${JSON.stringify({ type: 'delta', content: 'This is a stubbed test response from the AI assistant.' })}\n\n`);
-  res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
-  res.end();
+  sendSseStub(res, [
+    { type: 'delta', content: 'This is a stubbed test response from the AI assistant.' },
+    { type: 'done' },
+  ]);
 });
 
 app.delete('/api/chat/session/:id', (_req, res) => {
@@ -249,15 +255,12 @@ app.delete('/api/chat/session/:id', (_req, res) => {
 // ── Stubbed Recap Endpoint ─────────────────────────────────────────
 
 app.post('/api/recap/episode', (_req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
   const recap =
     "In this gripping episode, the tension reaches a breaking point as Walt makes a decision that will have far-reaching consequences. Jesse is forced to confront the reality of their situation while the walls close in around them. Meanwhile, Skyler grows increasingly suspicious of Walt's behavior, setting the stage for a dramatic confrontation.";
-  res.write(`data: ${JSON.stringify({ type: 'delta', content: recap })}\n\n`);
-  res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
-  res.end();
+  sendSseStub(res, [
+    { type: 'delta', content: recap },
+    { type: 'done' },
+  ]);
 });
 
 // ── Start ──────────────────────────────────────────────────────────

@@ -7,6 +7,8 @@
 - `npm run dev:server:test` — test backend with stubbed Copilot SDK (`--env-file .env.test`).
 - `npm run build` — `tsc -b && vite build`. Uses TypeScript project references.
 - `npm run lint` — `eslint .` (ignores `dist`).
+- `npm run check` — full static check: `lint` + `check:dead-code` (knip: unused files/exports/deps) + `check:duplication` (jscpd) + `build`. Runs in CI via `.github/workflows/lint.yml`.
+- When removing a feature, delete its files, exports, and dependencies in the same change — knip fails CI on leftovers.
 - `npm run test` — Playwright E2E (headless). `test:ui` / `test:headed` for interactive.
 
 ## Environment
@@ -21,12 +23,11 @@
 - `server/` — Express backend. `server/index.ts` is the production app; `server/test-server.ts` is the Copilot-stubbed version used by Playwright.
 - `data/` — SQLite database file (`movie-tracker.db`). Auto-created on first run. Gitignored.
 - Database: `better-sqlite3` with WAL mode enabled. Tables auto-created in `server/db.ts`.
-- TypeScript: project references. `tsconfig.app.json` covers `src/`, `tsconfig.node.json` covers `vite.config.ts`.
+- TypeScript: project references. `tsconfig.app.json` covers `src/`, `tsconfig.node.json` covers `vite.config.ts` + `playwright.config.ts`, `server/tsconfig.json` covers `server/` (all `noEmit`; `tsc -b` type-checks everything).
 
 ## Vite proxy
 
 - `/api` → `http://localhost:3001` (Express backend).
-- `/trakt-api` → `https://api.trakt.tv` (rewrite strips prefix).
 - SSE responses disable Nagle's algorithm for low-latency streaming.
 
 ## Testing

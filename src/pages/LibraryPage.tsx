@@ -353,7 +353,8 @@ export default function LibraryPage({ contentType }: LibraryPageProps) {
   const [providerMap, setProviderMap] = useState<Map<string, number[]>>(new Map());
   const [providersLoading, setProvidersLoading] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useLocalStorage('library-mobile-filters-open', false);
-  const [showWideFilters, setShowWideFilters] = useState(true);
+  // Persisted like the mobile variant so a closed pane stays closed when navigating away and back.
+  const [showWideFilters, setShowWideFilters] = useLocalStorage('library-wide-filters-open', true);
   const [isWide, setIsWide] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
   );

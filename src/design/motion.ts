@@ -40,9 +40,3 @@ export function project(velocity: number, decelerationRate = 0.998): number {
 export function rubberband(overshoot: number, dimension: number, constant = 0.55): number {
   return (overshoot * dimension * constant) / (dimension + constant * Math.abs(overshoot));
 }
-
-export function prefersReducedMotion(): boolean {
-  return typeof window !== 'undefined'
-    && typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}

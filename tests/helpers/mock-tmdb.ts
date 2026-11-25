@@ -21,7 +21,7 @@ const seriesDetail1396 = loadFixture('series-detail-1396.json');
 const season1396S1 = loadFixture('season-1396-1.json');
 
 async function routeTMDB(page: Page, pathGlob: string, json: unknown): Promise<void> {
-  await page.route(`**/api.themoviedb.org/3/${pathGlob}`, (route) => route.fulfill({ json }));
+  // The frontend only ever calls the server proxy (/api/tmdb), never api.themoviedb.org directly.
   await page.route(`**/api/tmdb/${pathGlob}`, (route) => route.fulfill({ json }));
 }
 
@@ -34,9 +34,6 @@ async function routeTMDB(page: Page, pathGlob: string, json: unknown): Promise<v
  */
 export async function setupTMDBMocks(page: Page): Promise<void> {
   // Catch-all (registered first = lowest priority)
-  await page.route('**/api.themoviedb.org/**', (route) =>
-    route.fulfill({ json: { results: [], page: 1, total_pages: 1, total_results: 0 } }),
-  );
   await page.route('**/api/tmdb/**', (route) =>
     route.fulfill({ json: { results: [], page: 1, total_pages: 1, total_results: 0 } }),
   );

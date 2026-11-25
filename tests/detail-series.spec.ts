@@ -192,7 +192,7 @@ test.describe('Series Detail Page', () => {
   });
 
   test('shows error state for unknown series ID', async ({ page }) => {
-    await page.route('**/api.themoviedb.org/**', (route) =>
+    await page.route('**/api/tmdb/**', (route) =>
       route.fulfill({ status: 404, json: { status_message: 'Not found' } }),
     );
     await page.goto('/series/999999');

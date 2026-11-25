@@ -6,7 +6,6 @@ export interface MenuItem {
   id: string;
   label: string;
   onSelect: () => void;
-  selected?: boolean;
   destructive?: boolean;
   /** Visually separate this item from the one above. */
   separated?: boolean;
@@ -26,12 +25,10 @@ interface Props {
   items: MenuItem[];
   trigger: (props: TriggerProps) => ReactNode;
   align?: 'start' | 'end';
-  /** Items act as a single choice (status pickers). */
-  selectable?: boolean;
 }
 
 /** Popover menu that scales out of its trigger and folds back into it. */
-export default function Menu({ label, items, trigger, align = 'start', selectable = false }: Props) {
+export default function Menu({ label, items, trigger, align = 'start' }: Props) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -45,8 +42,7 @@ export default function Menu({ label, items, trigger, align = 'start', selectabl
 
   useEffect(() => {
     if (!open) return;
-    const selectedIndex = Math.max(0, items.findIndex((item) => item.selected));
-    requestAnimationFrame(() => itemsRef.current[selectedIndex]?.focus());
+    requestAnimationFrame(() => itemsRef.current[0]?.focus());
     const handlePointer = (event: PointerEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) setOpen(false);
     };
@@ -106,8 +102,7 @@ export default function Menu({ label, items, trigger, align = 'start', selectabl
                     itemsRef.current[index] = el;
                   }}
                   type="button"
-                  role={selectable ? 'menuitemradio' : 'menuitem'}
-                  aria-checked={selectable ? Boolean(item.selected) : undefined}
+                  role="menuitem"
                   tabIndex={-1}
                   onClick={() => {
                     item.onSelect();
@@ -118,11 +113,6 @@ export default function Menu({ label, items, trigger, align = 'start', selectabl
                   }`}
                 >
                   <span>{item.label}</span>
-                  {item.selected && (
-                    <svg className="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m5 12 5 5 9-10" />
-                    </svg>
-                  )}
                 </button>
               </div>
             ))}

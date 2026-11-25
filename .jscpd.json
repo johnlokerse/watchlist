@@ -1,0 +1,21 @@
+{
+  "threshold": 7,
+  "minTokens": 50,
+  "minLines": 4,
+  "reporters": ["console"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/package-lock.json",
+    "**/tests/fixtures/**",
+    "**/docs/**",
+    "**/playwright-report/**",
+    "**/test-results/**",
+    "**/*.md",
+    "**/*.json",
+    "**/*.yml",
+    "**/*.yaml",
+    "**/*.html",
+    "**/*.css"
+  ]
+}

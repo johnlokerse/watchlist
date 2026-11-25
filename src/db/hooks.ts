@@ -274,10 +274,3 @@ export async function clearLibrary() {
   await apiFetch('/library/clear', { method: 'POST' });
   triggerInvalidate();
 }
-
-export async function bulkAddWatchedEpisodes(entries: WatchedEpisode[]) {
-  for (const e of entries) {
-    await apiFetch('/episodes/toggle', { method: 'POST', body: JSON.stringify(e) }).catch(() => {});
-  }
-  triggerInvalidate();
-}

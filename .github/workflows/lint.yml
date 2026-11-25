@@ -1,0 +1,42 @@
+name: Lint and static analysis
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-analysis:
+    name: ESLint + knip + jscpd + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Dead code (knip — unused files, exports, dependencies)
+        run: npm run check:dead-code
+
+      - name: Duplication (jscpd)
+        run: npm run check:duplication
+
+      - name: Type-check and build
+        run: npm run build

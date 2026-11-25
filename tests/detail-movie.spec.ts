@@ -194,7 +194,7 @@ test.describe('Movie Detail Page', () => {
 
   test('shows error state for unknown movie ID', async ({ page }) => {
     // Override to return an error for an unknown ID
-    await page.route('**/api.themoviedb.org/**', (route) =>
+    await page.route('**/api/tmdb/**', (route) =>
       route.fulfill({ status: 404, json: { status_message: 'Not found' } }),
     );
     await page.goto('/movie/999999');

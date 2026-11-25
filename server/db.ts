@@ -196,7 +196,6 @@ const stmts = {
   clearEpisodes: db.prepare(`DELETE FROM watched_episodes`),
 
   // export
-  getAllProgress: db.prepare(`SELECT * FROM series_progress`),
   getAllEpisodes: db.prepare(`SELECT * FROM watched_episodes`),
 
   // insights
@@ -884,7 +883,7 @@ export const queries = {
 
   exportAll() {
     const items = (stmts.getAllItems.all() as WatchedItemRow[]).map(rowToItem);
-    const progress = (stmts.getAllProgress.all() as {
+    const progress = (stmts.getAllProgressRows.all() as {
       id: number; watchedItemId: number; tmdbId: number;
       currentSeason: number; currentEpisode: number;
       totalSeasons: number; totalEpisodes: number;
@@ -911,7 +910,6 @@ export const queries = {
         ...(userRating != null && { userRating }),
         ...(notes && { notes }),
         ...(watchedAt != null && { watchedAt }),
-        ...(genreIds.length > 0 && { genreIds }),
       })),
       progress,
       episodes,
@@ -919,5 +917,3 @@ export const queries = {
     };
   },
 };
-
-export { db as sqliteDb };

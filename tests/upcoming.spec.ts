@@ -80,7 +80,7 @@ test.describe('Upcoming views', () => {
         season_number: 6,
       },
     };
-    await page.route('**/api.themoviedb.org/3/tv/1396*', (route) =>
+    await page.route('**/api/tmdb/tv/1396*', (route) =>
       route.fulfill({ json: futureFixture }),
     );
 

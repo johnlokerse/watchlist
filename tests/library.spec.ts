@@ -69,6 +69,22 @@ test.describe('Library Page', () => {
     await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
   });
 
+  test('wide filter panel stays closed after navigating away and back', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await setupTMDBMocks(page);
+    await page.goto('/movies');
+
+    const filterToggle = page.getByRole('button', { name: 'Filters', exact: true });
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'true');
+
+    await filterToggle.click();
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
+
+    await page.goto('/discover');
+    await page.goto('/movies');
+    await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
   test('series tab has 3 filter pills including Watching', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/series');
