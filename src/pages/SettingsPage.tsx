@@ -405,6 +405,7 @@ export default function SettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const tmdbTokenConfigured = settings.tmdbApiToken.trim().length > 0;
+  const canExport = libraryCount > 0;
   const { providers, isLoading: providersLoading, isError: providersError } = useAvailableProviders(settings.tmdbApiToken.trim());
   const [appVersion, setAppVersion] = useState<string | null>(null);
 
@@ -845,9 +846,20 @@ export default function SettingsPage() {
             <p className="t-caption mt-0.5">Download your full library as a backup file</p>
             <StatusLine status={exportStatus} />
           </div>
-          <button type="button" onClick={handleExport} disabled={exporting} className={buttonClasses('tinted', 'md')}>
-            {exporting ? 'Exporting…' : 'Export'}
-          </button>
+          {/* The title sits on the wrapper: a disabled button gets pointer-events-none, so a title on the button itself would never show on hover. */}
+          <span
+            title={canExport ? undefined : 'There are no series or movies found to export'}
+            className="inline-flex"
+          >
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={exporting || !canExport}
+              className={buttonClasses('tinted', 'md')}
+            >
+              {exporting ? 'Exporting…' : 'Export'}
+            </button>
+          </span>
         </div>
         <div className="grouped-row flex-col items-stretch gap-2 py-3">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">

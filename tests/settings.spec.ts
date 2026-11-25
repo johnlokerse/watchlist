@@ -78,6 +78,26 @@ test.describe('Settings Page', () => {
     await expect(page.getByText(/Export to JSON/)).toBeVisible();
   });
 
+  test('export button is disabled with tooltip when the library is empty', async ({ page, request }) => {
+    await clearLibrary(request);
+    await setupTMDBMocks(page);
+    await page.goto('/settings');
+    const exportButton = page.getByRole('button', { name: 'Export', exact: true });
+    await expect(exportButton).toBeDisabled();
+    // The title sits on the wrapper span, because a disabled button has pointer-events-none.
+    await expect(exportButton.locator('..')).toHaveAttribute('title', 'There are no series or movies found to export');
+  });
+
+  test('export button is enabled without tooltip when the library has items', async ({ page, request }) => {
+    await clearLibrary(request);
+    await seedMovie(request);
+    await setupTMDBMocks(page);
+    await page.goto('/settings');
+    const exportButton = page.getByRole('button', { name: 'Export', exact: true });
+    await expect(exportButton).toBeEnabled();
+    await expect(exportButton.locator('..')).not.toHaveAttribute('title');
+  });
+
   test('shows Import from JSON section with example JSON link', async ({ page }) => {
     await setupTMDBMocks(page);
     await page.goto('/settings');
